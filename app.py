@@ -108,6 +108,49 @@ def api_config():
             cfg["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
         return jsonify(cfg)
 
+@app.route("/api/detect-telegram-chat", methods=["POST"])
+def api_detect_telegram_chat():
+    import urllib.request
+    import json
+    data = request.get_json() or {}
+    token = (data.get("token") or "").strip()
+    if not token:
+        return jsonify({"ok": False, "message": "Primero pega tu Telegram Bot Token arriba."})
+    try:
+        url = f"https://api.telegram.org/bot{token}/getUpdates"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            res = json.loads(resp.read().decode("utf-8"))
+        results = res.get("result") or []
+        if not results:
+            return jsonify({
+                "ok": False,
+                "message": "No se detectaron mensajes aún. Agrega tu bot al grupo, envía un mensaje como 'Hola' en el grupo y vuelve a pulsar Autodetectar."
+            })
+        # Buscar primero grupos/canales en los eventos más recientes, o el último chat
+        detected_chat = None
+        for item in reversed(results):
+            msg = item.get("message") or item.get("channel_post") or item.get("my_chat_member") or {}
+            chat = msg.get("chat")
+            if chat and chat.get("id"):
+                detected_chat = chat
+                if str(chat.get("type")) in ["group", "supergroup", "channel"]:
+                    break
+        if detected_chat:
+            chat_id = str(detected_chat["id"])
+            title = detected_chat.get("title") or detected_chat.get("username") or detected_chat.get("first_name") or "Chat"
+            chat_type = detected_chat.get("type", "chat")
+            return jsonify({
+                "ok": True,
+                "chat_id": chat_id,
+                "title": title,
+                "type": chat_type,
+                "message": f"✅ Detectado ({chat_type}): {title} [ID: {chat_id}]"
+            })
+        return jsonify({"ok": False, "message": "Envía un mensaje en el grupo donde esté el bot y vuelve a intentar."})
+    except Exception as e:
+        return jsonify({"ok": False, "message": f"Token inválido o error de conexión: {str(e)}"})
+
 @app.route("/api/test-telegram", methods=["POST"])
 def api_test_telegram():
     data = request.get_json() or {}
