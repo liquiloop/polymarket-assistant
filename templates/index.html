@@ -240,15 +240,18 @@
         </div>
 
         <div>
-          <label class="block text-gray-300 font-semibold mb-1">Telegram Chat ID:</label>
+          <label class="block text-gray-300 font-semibold mb-1">Telegram Chat ID (Tu usuario o Grupo):</label>
           <div class="flex gap-2">
-            <input type="text" id="cfg-telegram-chat" placeholder="Ej: 987654321" 
+            <input type="text" id="cfg-telegram-chat" placeholder="Ej: -100123456789 (o pulsa Autodetectar)" 
                    class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:border-emerald-500">
+            <button onclick="autodetectarGrupo()" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold flex items-center gap-1.5 transition" title="Detecta el ID del grupo automáticamente">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Autodetectar
+            </button>
             <button onclick="probarTelegram()" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold flex items-center gap-1.5 transition">
               <i class="fa-paper-plane fa-solid"></i> Probar
             </button>
           </div>
-          <p class="text-[11px] text-gray-500 mt-1">Obtenlo enviando un mensaje a @userinfobot en Telegram.</p>
+          <p class="text-[11px] text-gray-500 mt-1">Mete tu bot a tu grupo de Telegram, escribe "Hola" en el grupo y pulsa <b>Autodetectar</b>.</p>
         </div>
 
         <div>
@@ -490,6 +493,28 @@
       statusDiv.classList.add('bg-emerald-900/50', 'text-emerald-300');
       statusDiv.innerText = 'Configuración guardada correctamente.';
       setTimeout(() => cerrarConfigModal(), 1200);
+    }
+
+    async function autodetectarGrupo() {
+      const token = document.getElementById('cfg-telegram-token').value.trim();
+      const statusDiv = document.getElementById('cfg-status-msg');
+      statusDiv.classList.remove('hidden', 'bg-red-900/50', 'text-red-300', 'bg-emerald-900/50', 'text-emerald-300');
+      statusDiv.innerText = 'Buscando tu grupo o chat en Telegram...';
+
+      const resp = await fetch('/api/detect-telegram-chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token})
+      });
+      const res = await resp.json();
+      if (res.ok) {
+        document.getElementById('cfg-telegram-chat').value = res.chat_id;
+        statusDiv.classList.add('bg-emerald-900/50', 'text-emerald-300');
+        statusDiv.innerText = res.message;
+      } else {
+        statusDiv.classList.add('bg-red-900/50', 'text-red-300');
+        statusDiv.innerText = `❌ ${res.message}`;
+      }
     }
 
     async function probarTelegram() {
