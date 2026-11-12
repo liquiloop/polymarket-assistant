@@ -1,0 +1,13 @@
+{
+    "MIN_PROBABILITY": 0.7,
+    "MAX_PROBABILITY": 0.98,
+    "MAX_DAYS": 30,
+    "MIN_VOLUME_24H": 3000,
+    "MIN_LIQUIDITY": 2000,
+    "MIN_APR": 25.0,
+    "TELEGRAM_BOT_TOKEN": "",
+    "TELEGRAM_CHAT_ID": "",
+    "GEMINI_API_KEY": "",
+    "AUTO_SCAN_MINUTES": 15,
+    "PORT": 5050
+}
