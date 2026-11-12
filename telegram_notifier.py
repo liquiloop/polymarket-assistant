@@ -60,17 +60,18 @@ def send_telegram_message(text):
 
 def format_opportunity_alert(op):
     """Formatea la oportunidad en una tarjeta atractiva para Telegram."""
+    centavos = round(op['price'] * 100, 1)
     texto = (
-        f"🎯 <b>NUEVA OPORTUNIDAD POLYMARKET (≥70%)</b>\n\n"
+        f"🎯 <b>SEÑAL POLYMARKET (≥70% PROB)</b>\n\n"
         f"📌 <b>Evento:</b> {op['question']}\n"
-        f"✅ <b>Opción Recomendada:</b> <code>{op['outcome']}</code>\n"
-        f"📊 <b>Probabilidad de Mercado:</b> <b>{op['probability']}%</b> (${op['price']:.2f})\n"
-        f"💰 <b>Retorno Neto (ROI):</b> <b>+{op['roi']}%</b>\n"
+        f"✅ <b>Botón a Comprar:</b> <code>{op['outcome']}</code> (el de <b>~{centavos:g}¢</b>)\n"
+        f"📊 <b>Probabilidad:</b> <b>{op['probability']}%</b> (Pagas ${op['price']:.2f} ➔ Cobras $1.00)\n"
+        f"💰 <b>Ganancia Neta (ROI):</b> <b>+{op['roi']}%</b>\n"
         f"⏱️ <b>Tiempo de Cierre:</b> {op['days_left']} días (~{int(op['hours_left'])} hrs)\n"
-        f"🚀 <b>Rendimiento Anualizado (APR):</b> <b>{op['apr']:,.0f}%</b>\n"
+        f"🚀 <b>Rendimiento Anual (APR):</b> <b>{op['apr']:,.0f}%</b>\n"
         f"💧 <b>Liquidez / Vol 24h:</b> ${op['liquidity']:,.0f} / ${op['volume_24h']:,.0f}\n"
-        f"🛡️ <b>Apuesta Sugerida (Kelly):</b> ~{op['kelly_pct']}% del bankroll\n\n"
-        f"🔗 <a href='{op['link']}'>👉 Abrir Mercado en Polymarket</a>"
+        f"🛡️ <b>Gestión (Kelly):</b> Invertir ~{op['kelly_pct']}% de tu capital\n\n"
+        f"🔗 <a href='{op['link']}'>👉 Abrir Evento en Polymarket</a>"
     )
     return texto
 
