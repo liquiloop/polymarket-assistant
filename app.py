@@ -11,7 +11,7 @@ if current_dir not in sys.path:
 from config import load_config, save_config
 from scanner import get_polymarket_opportunities
 from ai_analyst import analizar_oportunidad
-from telegram_notifier import send_telegram_message, check_and_notify_opportunities
+from telegram_notifier import send_telegram_message, check_and_notify_opportunities, format_opportunity_alert
 
 app = Flask(__name__, template_folder=os.path.join(current_dir, "templates"))
 
@@ -96,6 +96,14 @@ def api_config():
         for k, v in new_data.items():
             current[k] = v
         save_config(current)
+        if current.get("TELEGRAM_BOT_TOKEN") and current.get("TELEGRAM_CHAT_ID"):
+            def _send_initial():
+                try:
+                    ops = get_polymarket_opportunities()
+                    check_and_notify_opportunities(ops[:5])
+                except Exception:
+                    pass
+            threading.Thread(target=_send_initial, daemon=True).start()
         return jsonify({"success": True, "config": current})
     else:
         cfg = load_config()
@@ -107,6 +115,15 @@ def api_config():
         if os.environ.get("GEMINI_API_KEY"):
             cfg["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
         return jsonify(cfg)
+
+@app.route("/api/send-opportunity", methods=["POST"])
+def api_send_opportunity():
+    op = request.get_json() or {}
+    if not op or not op.get("question"):
+        return jsonify({"ok": False, "message": "Datos de oportunidad inválidos."})
+    msg = format_opportunity_alert(op)
+    ok, status = send_telegram_message(msg)
+    return jsonify({"ok": ok, "message": status})
 
 @app.route("/api/detect-telegram-chat", methods=["POST"])
 def api_detect_telegram_chat():
