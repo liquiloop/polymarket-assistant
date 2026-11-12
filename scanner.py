@@ -93,19 +93,13 @@ def get_polymarket_opportunities(custom_filters=None):
             if dias_restantes > max_days:
                 continue
 
-            # Construir enlace exacto al evento padre en Polymarket (evita errores 404 en sub-mercados)
+            # Construir enlace exacto al evento padre en Polymarket (usa siempre el slug del evento principal)
             events_list = m.get("events") or []
             event_slug = events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None
             market_slug = m.get("slug") or ""
+            canonical_slug = event_slug or market_slug
 
-            if event_slug and market_slug and event_slug != market_slug:
-                link = f"https://polymarket.com/event/{event_slug}/{market_slug}"
-            elif event_slug:
-                link = f"https://polymarket.com/event/{event_slug}"
-            elif market_slug:
-                link = f"https://polymarket.com/event/{market_slug}"
-            else:
-                link = "https://polymarket.com"
+            link = f"https://polymarket.com/event/{canonical_slug}" if canonical_slug else "https://polymarket.com"
 
             for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
                 p = float(p_str)
@@ -138,7 +132,7 @@ def get_polymarket_opportunities(custom_filters=None):
                         "volume_24h": round(vol_24h, 2),
                         "liquidity": round(liq, 2),
                         "kelly_pct": kelly_quarter,
-                        "slug": event_slug or market_slug,
+                        "slug": canonical_slug,
                         "link": link,
                         "image": m.get("icon") or m.get("image") or ""
                     })
