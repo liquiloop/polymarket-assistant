@@ -52,6 +52,10 @@ def get_polymarket_opportunities(custom_filters=None):
 
     for m in markets:
         try:
+            # Ignorar mercados que no aceptan órdenes
+            if m.get("acceptingOrders") is False:
+                continue
+
             vol_24h = float(m.get("volume24hr") or m.get("volumeNum") or 0)
             liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
 
@@ -72,16 +76,36 @@ def get_polymarket_opportunities(custom_filters=None):
 
             # Cálculo de tiempo de resolución
             end_date_str = m.get("endDateIso") or m.get("endDate")
-            dias_restantes = 1.0
-            if end_date_str:
-                end_date = parse_polymarket_date(end_date_str)
-                if end_date:
-                    segundos = (end_date - ahora).total_seconds()
-                    # Si el mercado ya expiró pero no ha cerrado formalmente, asignamos mínimo 1 hora
-                    dias_restantes = max(segundos / 86400, 0.04)
+            if not end_date_str:
+                continue
+
+            end_date = parse_polymarket_date(end_date_str)
+            if not end_date:
+                continue
+
+            segundos = (end_date - ahora).total_seconds()
+            # Descartar mercados cuya fecha estimada ya venció en el pasado (en disputa o sin fecha real)
+            if segundos <= 0:
+                continue
+
+            dias_restantes = max(segundos / 86400, 0.04)
 
             if dias_restantes > max_days:
                 continue
+
+            # Construir enlace exacto al evento padre en Polymarket (evita errores 404 en sub-mercados)
+            events_list = m.get("events") or []
+            event_slug = events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None
+            market_slug = m.get("slug") or ""
+
+            if event_slug and market_slug and event_slug != market_slug:
+                link = f"https://polymarket.com/event/{event_slug}/{market_slug}"
+            elif event_slug:
+                link = f"https://polymarket.com/event/{event_slug}"
+            elif market_slug:
+                link = f"https://polymarket.com/event/{market_slug}"
+            else:
+                link = "https://polymarket.com"
 
             for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
                 p = float(p_str)
@@ -98,9 +122,6 @@ def get_polymarket_opportunities(custom_filters=None):
                     kelly_full = (p_est * b - (1.0 - p_est)) / b if b > 0 else 0
                     kelly_quarter = max(round(kelly_full * 0.25 * 100, 1), 0.5)
 
-                    slug = m.get("slug") or ""
-                    link = f"https://polymarket.com/event/{slug}" if slug else f"https://polymarket.com/market/{m.get('id')}"
-
                     oportunidades.append({
                         "id": f"{m.get('id')}_{idx}",
                         "market_id": m.get("id"),
@@ -112,12 +133,12 @@ def get_polymarket_opportunities(custom_filters=None):
                         "price": round(p, 4),
                         "roi": round(roi, 2),
                         "days_left": round(dias_restantes, 1),
-                        "hours_left": round(dias_restantes * 24, 0),
+                        "hours_left": max(round(dias_restantes * 24, 0), 1),
                         "apr": round(apr, 1),
                         "volume_24h": round(vol_24h, 2),
                         "liquidity": round(liq, 2),
                         "kelly_pct": kelly_quarter,
-                        "slug": slug,
+                        "slug": event_slug or market_slug,
                         "link": link,
                         "image": m.get("icon") or m.get("image") or ""
                     })
@@ -130,7 +151,8 @@ def get_polymarket_opportunities(custom_filters=None):
 
 if __name__ == "__main__":
     ops = get_polymarket_opportunities()
-    print(f"\n[+] Se encontraron {len(ops)} oportunidades con probabilidad >= 70%:")
+    print(f"\n[+] Se encontraron {len(ops)} oportunidades vigentes con probabilidad >= 70%:")
     print("-" * 110)
     for op in ops[:10]:
         print(f"[{op['probability']:>5.1f}%] {op['outcome']:<15} | ROI: {op['roi']:>5.1f}% | Días: {op['days_left']:>4.1f} | APR: {op['apr']:>7.0f}% | {op['question'][:45]}")
+        print(f"   -> URL: {op['link']}")
