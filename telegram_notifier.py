@@ -59,19 +59,26 @@ def send_telegram_message(text):
         return False, f"Error al enviar mensaje a Telegram: {str(e)}"
 
 def format_opportunity_alert(op):
-    """Formatea la oportunidad en una tarjeta atractiva para Telegram."""
-    centavos = round(op['price'] * 100, 1)
+    """Formatea la oportunidad en una tarjeta súper fácil de entender para Telegram."""
+    centavos = op.get("centavos") or round(op.get("price", 0.75) * 100)
+    cobro_10 = op.get("cobro_10") or round(10 * (1 + op.get("roi", 0) / 100), 2)
+    ganancia_10 = op.get("ganancia_10") or round(cobro_10 - 10, 2)
+    como_ganas = op.get("como_ganas") or f"Ganas si se cumple la opción «{op['outcome']}»."
+    instruccion = op.get("instruccion_boton") or f"Toca el botón «{op['outcome']}» de ~{centavos}¢."
+    tiempo_txt = f"{int(op['hours_left'])} horas" if op.get("days_left", 1) < 1 else f"{op['days_left']} días"
+
     texto = (
-        f"🎯 <b>SEÑAL POLYMARKET (≥70% PROB)</b>\n\n"
-        f"📌 <b>Evento:</b> {op['question']}\n"
-        f"✅ <b>Botón a Comprar:</b> <code>{op['outcome']}</code> (el de <b>~{centavos:g}¢</b>)\n"
-        f"📊 <b>Probabilidad:</b> <b>{op['probability']}%</b> (Pagas ${op['price']:.2f} ➔ Cobras $1.00)\n"
-        f"💰 <b>Ganancia Neta (ROI):</b> <b>+{op['roi']}%</b>\n"
-        f"⏱️ <b>Tiempo de Cierre:</b> {op['days_left']} días (~{int(op['hours_left'])} hrs)\n"
-        f"🚀 <b>Rendimiento Anual (APR):</b> <b>{op['apr']:,.0f}%</b>\n"
-        f"💧 <b>Liquidez / Vol 24h:</b> ${op['liquidity']:,.0f} / ${op['volume_24h']:,.0f}\n"
-        f"🛡️ <b>Gestión (Kelly):</b> Invertir ~{op['kelly_pct']}% de tu capital\n\n"
-        f"🔗 <a href='{op['link']}'>👉 Abrir Evento en Polymarket</a>"
+        f"🎯 <b>SEÑAL FÁCIL POLYMARKET ({op['probability']}% Probabilidad)</b>\n\n"
+        f"📌 <b>Evento:</b> {op['question']}\n\n"
+        f"🗣️ <b>¿Cómo ganas esta apuesta?</b>\n"
+        f"👉 {como_ganas}\n\n"
+        f"👆 <b>¿Qué botón tocar en Polymarket?</b>\n"
+        f"👉 {instruccion}\n\n"
+        f"💵 <b>Ejemplo si metes $10 dólares:</b>\n"
+        f"• Pones: <b>$10.00</b>\n"
+        f"• Si aciertas cobras: <b>${cobro_10:.2f}</b> (Ganas <b>+${ganancia_10:.2f} limpios</b>)\n"
+        f"• Tiempo estimado para cobrar: <b>~{tiempo_txt}</b>\n\n"
+        f"🔗 <a href='{op['link']}'>👉 ABRIR EVENTO EN POLYMARKET</a>"
     )
     return texto
 
