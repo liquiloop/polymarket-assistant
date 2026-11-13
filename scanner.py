@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import re
 import urllib.request
 from datetime import datetime, timezone
 
@@ -24,10 +25,81 @@ def parse_polymarket_date(date_str):
     except Exception:
         return None
 
+def generar_explicacion_simple(question, outcome, price, roi):
+    """
+    Traduce el mercado de Polymarket a una explicación en español súper sencilla,
+    indicando qué tiene que pasar para ganar y qué botón tocar.
+    """
+    q_clean = (question or "").strip()
+    out_clean = (outcome or "").strip()
+    centavos = round(price * 100)
+    cobro_10 = round(10 * (1 + roi / 100), 2)
+    ganancia_10 = round(cobro_10 - 10, 2)
+
+    # Caso 1: Spread / Hándicap
+    if q_clean.lower().startswith("spread:"):
+        match = re.search(r"Spread:\s*(.+?)\s*\(([+-]?\d+\.?\d*)\)", q_clean, re.IGNORECASE)
+        if match:
+            fav_team = match.group(1).strip()
+            pts = abs(float(match.group(2)))
+            pts_entero = int(pts)
+            if out_clean.lower() == fav_team.lower():
+                como_ganas = f"Ganas si {out_clean} gana el partido por {pts_entero + 1} puntos/goles o más de diferencia."
+                boton_txt = f"Busca la sección 'Spread' y toca el botón '{out_clean} -{pts}' (de ~{centavos}¢)."
+            else:
+                como_ganas = f"Ventaja para {out_clean}: Ganas si {out_clean} gana el partido, empata, o incluso si pierde por máximo {pts_entero} puntos/goles."
+                boton_txt = f"Busca la sección 'Spread' y toca el botón de '{out_clean} +{pts}' (el que cuesta ~{centavos}¢)."
+        else:
+            como_ganas = f"Apuesta con ventaja de puntos a favor de '{out_clean}'."
+            boton_txt = f"En la sección 'Spread', toca el botón '{out_clean}' que cuesta ~{centavos}¢."
+
+    # Caso 2: Preguntas de Sí o No (Yes / No)
+    elif out_clean.lower() in ["yes", "no"]:
+        # Traducir preguntas comunes de deportes ("Will X win on...?", "Will X vs Y end in a draw?")
+        win_match = re.search(r"Will (.+?) win on", q_clean, re.IGNORECASE)
+        draw_match = re.search(r"Will (.+?) end in a draw", q_clean, re.IGNORECASE)
+        if win_match:
+            equipo = win_match.group(1).strip()
+            if out_clean.lower() == "yes":
+                como_ganas = f"Ganas si {equipo} gana su partido."
+                boton_txt = f"Toca el botón a favor de '{equipo}' (o 'Yes') que cuesta ~{centavos}¢."
+            else:
+                como_ganas = f"Ganas si {equipo} NO gana el partido (es decir, si empata o pierde)."
+                boton_txt = f"Toca el botón 'No' en la fila de {equipo} (el que cuesta ~{centavos}¢)."
+        elif draw_match:
+            partido = draw_match.group(1).strip()
+            if out_clean.lower() == "no":
+                como_ganas = f"Ganas si el partido ({partido}) NO termina en empate (ganas si cualquiera de los dos equipos gana)."
+                boton_txt = f"En la opción de Empate (Draw), toca el botón 'No' que cuesta ~{centavos}¢."
+            else:
+                como_ganas = f"Ganas si el partido ({partido}) termina en empate."
+                boton_txt = f"Toca el botón 'Draw / Yes' que cuesta ~{centavos}¢."
+        else:
+            if out_clean.lower() == "yes":
+                como_ganas = f"Ganas si SE CUMPLE esto: «{q_clean}»."
+                boton_txt = f"Toca el botón verde 'Yes' (el que cuesta ~{centavos}¢)."
+            else:
+                como_ganas = f"Ganas si NO ocurre esto: «{q_clean}»."
+                boton_txt = f"Toca el botón 'No' (el que cuesta ~{centavos}¢)."
+
+    # Caso 3: Partido directo Equipo A vs Equipo B
+    else:
+        como_ganas = f"¡Súper simple! Ganas si «{out_clean}» gana el partido o evento."
+        boton_txt = f"Toca directamente el botón con el nombre «{out_clean}» (el que cuesta ~{centavos}¢)."
+
+    return {
+        "como_ganas": como_ganas,
+        "instruccion_boton": boton_txt,
+        "centavos": centavos,
+        "cobro_10": cobro_10,
+        "ganancia_10": ganancia_10,
+        "es_spread": q_clean.lower().startswith("spread:")
+    }
+
 def get_polymarket_opportunities(custom_filters=None):
     """
     Escanea la API pública de Polymarket y filtra las mejores oportunidades
-    con probabilidad >= prob_min, calculando ROI, Días restantes, APR y Criterio Kelly.
+    con probabilidad >= prob_min, calculando ROI, Días restantes, APR y Guía Fácil.
     """
     cfg = load_config()
     prob_min = custom_filters.get("prob_min", cfg.get("MIN_PROBABILITY", 0.70)) if custom_filters else cfg.get("MIN_PROBABILITY", 0.70)
@@ -36,6 +108,7 @@ def get_polymarket_opportunities(custom_filters=None):
     min_vol = custom_filters.get("min_vol", cfg.get("MIN_VOLUME_24H", 3000)) if custom_filters else cfg.get("MIN_VOLUME_24H", 3000)
     min_liq = custom_filters.get("min_liq", cfg.get("MIN_LIQUIDITY", 2000)) if custom_filters else cfg.get("MIN_LIQUIDITY", 2000)
     min_apr = custom_filters.get("min_apr", cfg.get("MIN_APR", 25.0)) if custom_filters else cfg.get("MIN_APR", 25.0)
+    ocultar_spreads = custom_filters.get("hide_spreads", False) if custom_filters else False
 
     url = "https://gamma-api.polymarket.com/markets?limit=250&active=true&closed=false&order=volume24hr&ascending=false"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
@@ -52,14 +125,16 @@ def get_polymarket_opportunities(custom_filters=None):
 
     for m in markets:
         try:
-            # Ignorar mercados que no aceptan órdenes
             if m.get("acceptingOrders") is False:
+                continue
+
+            question_text = m.get("question") or ""
+            if ocultar_spreads and question_text.lower().startswith("spread:"):
                 continue
 
             vol_24h = float(m.get("volume24hr") or m.get("volumeNum") or 0)
             liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
 
-            # Filtro de liquidez y volumen para evitar mercados estancados
             if vol_24h < min_vol or liq < min_liq:
                 continue
 
@@ -74,7 +149,6 @@ def get_polymarket_opportunities(custom_filters=None):
             if len(precios) != len(opciones):
                 continue
 
-            # Cálculo de tiempo de resolución
             end_date_str = m.get("endDateIso") or m.get("endDate")
             if not end_date_str:
                 continue
@@ -84,7 +158,6 @@ def get_polymarket_opportunities(custom_filters=None):
                 continue
 
             segundos = (end_date - ahora).total_seconds()
-            # Descartar mercados cuya fecha estimada ya venció en el pasado (en disputa o sin fecha real)
             if segundos <= 0:
                 continue
 
@@ -93,7 +166,6 @@ def get_polymarket_opportunities(custom_filters=None):
             if dias_restantes > max_days:
                 continue
 
-            # Construir enlace exacto al evento padre en Polymarket (usa siempre el slug del evento principal)
             events_list = m.get("events") or []
             event_slug = events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None
             market_slug = m.get("slug") or ""
@@ -110,21 +182,23 @@ def get_polymarket_opportunities(custom_filters=None):
                     if apr < min_apr:
                         continue
 
-                    # Criterio de Kelly (calculando ventaja con probabilidad estimada 2% por encima)
                     p_est = min(p + 0.02, 0.99)
                     b = (1.0 - p) / p
                     kelly_full = (p_est * b - (1.0 - p_est)) / b if b > 0 else 0
                     kelly_quarter = max(round(kelly_full * 0.25 * 100, 1), 0.5)
 
+                    guia = generar_explicacion_simple(question_text, opcion, p, roi)
+
                     oportunidades.append({
                         "id": f"{m.get('id')}_{idx}",
                         "market_id": m.get("id"),
-                        "question": m.get("question"),
+                        "question": question_text,
                         "description": m.get("description", ""),
                         "resolution_source": m.get("resolutionSource", "UMA Oracle / Reglas Oficiales"),
                         "outcome": opcion,
                         "probability": round(p * 100, 1),
                         "price": round(p, 4),
+                        "centavos": guia["centavos"],
                         "roi": round(roi, 2),
                         "days_left": round(dias_restantes, 1),
                         "hours_left": max(round(dias_restantes * 24, 0), 1),
@@ -132,6 +206,11 @@ def get_polymarket_opportunities(custom_filters=None):
                         "volume_24h": round(vol_24h, 2),
                         "liquidity": round(liq, 2),
                         "kelly_pct": kelly_quarter,
+                        "como_ganas": guia["como_ganas"],
+                        "instruccion_boton": guia["instruccion_boton"],
+                        "cobro_10": guia["cobro_10"],
+                        "ganancia_10": guia["ganancia_10"],
+                        "es_spread": guia["es_spread"],
                         "slug": canonical_slug,
                         "link": link,
                         "image": m.get("icon") or m.get("image") or ""
@@ -139,14 +218,6 @@ def get_polymarket_opportunities(custom_filters=None):
         except Exception:
             continue
 
-    # Ordenar por el mejor rendimiento anualizado (APR)
-    oportunidades.sort(key=lambda x: x["apr"], reverse=True)
+    # Priorizar apuestas directas simples (no spreads) y luego ordenar por APR
+    oportunidades.sort(key=lambda x: (not x["es_spread"], x["apr"]), reverse=True)
     return oportunidades
-
-if __name__ == "__main__":
-    ops = get_polymarket_opportunities()
-    print(f"\n[+] Se encontraron {len(ops)} oportunidades vigentes con probabilidad >= 70%:")
-    print("-" * 110)
-    for op in ops[:10]:
-        print(f"[{op['probability']:>5.1f}%] {op['outcome']:<15} | ROI: {op['roi']:>5.1f}% | Días: {op['days_left']:>4.1f} | APR: {op['apr']:>7.0f}% | {op['question'][:45]}")
-        print(f"   -> URL: {op['link']}")
