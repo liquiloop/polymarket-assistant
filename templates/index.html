@@ -324,16 +324,18 @@
       } catch (e) {}
     }
 
-    async function escanearMercados() {
+    async function escanearMercados(silencioso = false) {
       const btn = document.getElementById('btn-scan');
       const icon = document.getElementById('scan-icon');
       const spinner = document.getElementById('loading-spinner');
       const container = document.getElementById('contenedor-tarjetas');
       
       icon.classList.add('fa-spin');
-      spinner.classList.remove('hidden');
-      container.innerHTML = '';
-      document.getElementById('no-results').classList.add('hidden');
+      if (!silencioso && todasLasOportunidades.length === 0) {
+        spinner.classList.remove('hidden');
+        container.innerHTML = '';
+        document.getElementById('no-results').classList.add('hidden');
+      }
 
       const pMin = parseFloat(document.getElementById('slider-prob').value) / 100;
       const dMax = parseFloat(document.getElementById('slider-dias').value);
@@ -425,12 +427,12 @@
               <!-- PANEL TÉCNICO BITCOIN 5M EN VIVO -->
               <div class="p-3 bg-amber-950/30 rounded-lg border border-amber-500/40 mb-3 text-xs space-y-1.5">
                 <div class="flex justify-between items-center text-amber-300 font-bold border-b border-amber-800/40 pb-1">
-                  <span>📊 Datos BTC en Vivo (${op.etiqueta_vela || '5M'})</span>
+                  <span>📊 Datos BTC al Segundo (${op.etiqueta_vela || '5M'})</span>
                   <span>RSI: ${op.btc_live.rsi7}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2 pt-0.5 text-[11px]">
                   <div>
-                    <span class="text-gray-400 block">Apertura 5m:</span>
+                    <span class="text-gray-400 block">Price To Beat (5m):</span>
                     <span class="text-white font-mono font-bold">$${op.btc_live.open_5m.toLocaleString()}</span>
                   </div>
                   <div class="text-right">
@@ -442,7 +444,7 @@
                 </div>
                 <div class="flex justify-between text-[11px] text-gray-300 pt-1 border-t border-amber-800/30">
                   <span>Promedio TWAP: <b>$${op.btc_live.twap_btc.toLocaleString()}</b></span>
-                  <span>Impulso 3m: <b class="${op.btc_live.mom_3m >= 0 ? 'text-emerald-400' : 'text-red-400'}">${op.btc_live.mom_3m >= 0 ? '+' : ''}$${op.btc_live.mom_3m}</b></span>
+                  <span>Impulso 1m: <b class="${op.btc_live.mom_3m >= 0 ? 'text-emerald-400' : 'text-red-400'}">${op.btc_live.mom_3m >= 0 ? '+' : ''}$${op.btc_live.mom_3m}</b></span>
                 </div>
               </div>
               ` : ''}
@@ -616,9 +618,9 @@
     // Inicializar al cargar
     document.addEventListener('DOMContentLoaded', () => {
       cargarFiltrosLocales();
-      escanearMercados();
-      // Auto-refresco cada 25 segundos para seguir las velas de 5 minutos de Bitcoin en vivo
-      setInterval(escanearMercados, 25000);
+      escanearMercados(false);
+      // Auto-refresco silencioso cada 8 segundos para seguir la gráfica de Bitcoin 5m y el libro CLOB al instante
+      setInterval(() => escanearMercados(true), 8000);
     });
   </script>
 </body>
