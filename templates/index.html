@@ -129,7 +129,7 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-500 text-sm"></i>
-          <input type="text" id="filtro-texto" oninput="filtrarLocalmente()" placeholder="Buscar por palabra clave (ej. Spain, NBA, Winner, Bitcoin)..." 
+          <input type="text" id="filtro-texto" oninput="guardarFiltrosLocales(); filtrarLocalmente();" placeholder="Buscar por palabra clave (ej. Bitcoin, Spain, NBA, Winner)..." 
                  class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500">
         </div>
 
@@ -137,7 +137,7 @@
         <div class="flex items-center gap-2 bg-gray-900/90 border border-gray-700 px-3 py-1.5 rounded-lg text-xs">
           <span class="text-gray-400">Tu Capital:</span>
           <span class="text-gray-500">$</span>
-          <input type="number" id="user-bankroll" value="1000" onchange="renderizarTarjetas()" class="w-20 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
+          <input type="number" id="user-bankroll" value="1000" onchange="guardarFiltrosLocales(); renderizarTarjetas();" class="w-20 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
           <span class="text-gray-400 text-[11px]">(Calcula apuesta en USD)</span>
         </div>
       </div>
@@ -149,7 +149,7 @@
             <span>Probabilidad Mínima:</span>
             <span class="font-bold text-emerald-400" id="val-prob">70%</span>
           </div>
-          <input type="range" id="slider-prob" min="65" max="95" value="70" onchange="actualizarSlider('prob'); escanearMercados();" class="w-full accent-emerald-500 cursor-pointer">
+          <input type="range" id="slider-prob" min="50" max="95" value="70" oninput="actualizarSlider('prob')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-emerald-500 cursor-pointer">
         </div>
 
         <div>
@@ -157,7 +157,7 @@
             <span>Días Máx. de Cierre:</span>
             <span class="font-bold text-teal-400" id="val-dias">30 días</span>
           </div>
-          <input type="range" id="slider-dias" min="1" max="60" value="30" onchange="actualizarSlider('dias'); escanearMercados();" class="w-full accent-teal-500 cursor-pointer">
+          <input type="range" id="slider-dias" min="1" max="60" value="30" oninput="actualizarSlider('dias')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-teal-500 cursor-pointer">
         </div>
 
         <div>
@@ -165,7 +165,7 @@
             <span>APR Mínimo Anualizado:</span>
             <span class="font-bold text-blue-400" id="val-apr">25% APR</span>
           </div>
-          <input type="range" id="slider-apr" min="10" max="200" value="25" step="5" onchange="actualizarSlider('apr'); escanearMercados();" class="w-full accent-blue-500 cursor-pointer">
+          <input type="range" id="slider-apr" min="10" max="200" value="25" step="5" oninput="actualizarSlider('apr')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-blue-500 cursor-pointer">
         </div>
       </div>
     </div>
@@ -283,6 +283,45 @@
       if (tipo === 'prob') document.getElementById('val-prob').innerText = document.getElementById('slider-prob').value + '%';
       if (tipo === 'dias') document.getElementById('val-dias').innerText = document.getElementById('slider-dias').value + ' días';
       if (tipo === 'apr') document.getElementById('val-apr').innerText = document.getElementById('slider-apr').value + '% APR';
+    }
+
+    function guardarFiltrosLocales() {
+      try {
+        const estado = {
+          prob: document.getElementById('slider-prob').value,
+          dias: document.getElementById('slider-dias').value,
+          apr: document.getElementById('slider-apr').value,
+          bankroll: document.getElementById('user-bankroll').value,
+          texto: document.getElementById('filtro-texto').value
+        };
+        localStorage.setItem('polyedge_filtros_v1', JSON.stringify(estado));
+      } catch (e) {}
+    }
+
+    function cargarFiltrosLocales() {
+      try {
+        const raw = localStorage.getItem('polyedge_filtros_v1');
+        if (!raw) return;
+        const estado = JSON.parse(raw);
+        if (estado.prob) {
+          document.getElementById('slider-prob').value = estado.prob;
+          actualizarSlider('prob');
+        }
+        if (estado.dias) {
+          document.getElementById('slider-dias').value = estado.dias;
+          actualizarSlider('dias');
+        }
+        if (estado.apr) {
+          document.getElementById('slider-apr').value = estado.apr;
+          actualizarSlider('apr');
+        }
+        if (estado.bankroll) {
+          document.getElementById('user-bankroll').value = estado.bankroll;
+        }
+        if (typeof estado.texto === 'string') {
+          document.getElementById('filtro-texto').value = estado.texto;
+        }
+      } catch (e) {}
     }
 
     async function escanearMercados() {
@@ -576,6 +615,7 @@
 
     // Inicializar al cargar
     document.addEventListener('DOMContentLoaded', () => {
+      cargarFiltrosLocales();
       escanearMercados();
       // Auto-refresco cada 25 segundos para seguir las velas de 5 minutos de Bitcoin en vivo
       setInterval(escanearMercados, 25000);
