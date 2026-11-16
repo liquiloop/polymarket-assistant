@@ -65,6 +65,35 @@ def format_opportunity_alert(op):
     ganancia_10 = op.get("ganancia_10") or round(cobro_10 - 10, 2)
     como_ganas = op.get("como_ganas") or f"Ganas si se cumple la opción «{op['outcome']}»."
     instruccion = op.get("instruccion_boton") or f"Toca el botón «{op['outcome']}» de ~{centavos}¢."
+
+    if op.get("es_btc_5m"):
+        tiempo_txt = op.get("tiempo_exacto", "pocos minutos")
+        btc_live = op.get("btc_live")
+        bloque_btc = ""
+        if btc_live:
+            diff = btc_live.get("diff_usd", 0)
+            flecha = "📈 ARRIBA" if diff >= 0 else "📉 ABAJO"
+            signo = "+" if diff >= 0 else ""
+            bloque_btc = (
+                f"📊 <b>Bitcoin en Vivo (Vela 5m):</b>\n"
+                f"• Precio al iniciar los 5m: <b>${btc_live['open_5m']:,.2f}</b>\n"
+                f"• Precio BTC ahora: <b>${btc_live['current_btc']:,.2f}</b> ({signo}${diff:,.2f} {flecha})\n\n"
+            )
+        return (
+            f"⚡ <b>SEÑAL RÁPIDA: BITCOIN 5 MINUTOS ({op['probability']}% Prob)</b>\n\n"
+            f"📌 <b>Mercado:</b> {op['question']}\n"
+            f"⏱️ <b>Tiempo restante de los 5 min:</b> <b>{tiempo_txt}</b>\n\n"
+            f"{bloque_btc}"
+            f"🗣️ <b>¿Cómo ganas?</b>\n"
+            f"👉 {como_ganas}\n\n"
+            f"👆 <b>¿Qué botón tocar en Polymarket?</b>\n"
+            f"👉 {instruccion}\n\n"
+            f"💵 <b>Ejemplo si metes $10 dólares:</b>\n"
+            f"• Pones: <b>$10.00</b>\n"
+            f"• En <b>{tiempo_txt}</b> cobras: <b>${cobro_10:.2f}</b> (Ganas <b>+${ganancia_10:.2f} limpios</b>)\n\n"
+            f"🔗 <a href='{op['link']}'>👉 ENTRAR RÁPIDO A BITCOIN 5 MIN</a>"
+        )
+
     tiempo_txt = f"{int(op['hours_left'])} horas" if op.get("days_left", 1) < 1 else f"{op['days_left']} días"
 
     texto = (
