@@ -7,6 +7,7 @@ import math
 import urllib.request
 from datetime import datetime, timezone
 
+# Asegurar importación de config independientemente de cómo se invoque el script
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
@@ -50,117 +51,94 @@ def _calc_rsi(vals, period=7):
     rs = avg_g / avg_l
     return 100.0 - (100.0 / (1.0 + rs))
 
-def obtener_precios_clob_en_vivo(clob_token_ids, fallback_prices):
+def analizar_mercado_btc_en_vivo(slot_ts):
     """
-    Consulta directamente el motor de órdenes en tiempo real (CLOB) de Polymarket
-    para obtener el precio al milisegundo sin el retraso de 45s de Gamma API.
-    """
-    if not clob_token_ids or len(clob_token_ids) < 2:
-        return [float(p) for p in fallback_prices]
-    precios_reales = []
-    try:
-        for i, tid in enumerate(clob_token_ids):
-            url = f"https://clob.polymarket.com/midpoint?token_id={tid}"
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=4) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                mid = float(data.get("mid", fallback_prices[i]))
-                precios_reales.append(mid)
-        if len(precios_reales) == len(clob_token_ids):
-            return precios_reales
-    except Exception:
-        pass
-    return [float(p) for p in fallback_prices]
-
-def analizar_mercado_btc_en_vivo(slot_ts, clob_prob_up=None):
-    """
-    Analiza en tiempo real:
-    1. El precio instantáneo al segundo (Live Trades de Coinbase) + velas de 1m.
-    2. La pendiente inmediata de la gráfica (últimos 30-60 segundos) para detectar giros en V al instante.
-    3. La posición frente al 'Price To Beat' (Apertura de los 5m).
-    4. El flujo en tiempo real del libro de órdenes CLOB de Polymarket (conectado a Chainlink).
+    Analiza las velas de 1 minuto de BTC-USD en tiempo real (Coinbase)
+    y calcula de forma firme y estable para el periodo de 5 minutos:
+    - Apertura exacta de la vela de 5m, precio actual y TWAP acumulado.
+    - Indicadores técnicos estables (EMA 5, EMA 12, RSI 7, Momentum 3m, Presión de volumen).
+    - Probabilidad Real Estimada por el Algoritmo para UP (Sube) y DOWN (Baja).
     """
     try:
-        # 1. Obtener velas de 1m
-        url_candles = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60"
-        req_c = urllib.request.Request(url_candles, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req_c, timeout=5) as resp:
+        url = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=6) as resp:
             candles = json.loads(resp.read().decode("utf-8"))
         if not candles:
             return None
 
+        # Ordenar cronológicamente [time, low, high, open, close, volume]
         candles.sort(key=lambda x: x[0])
-        closes = [float(c[4]) for c in candles[-20:]]
+        closes = [float(c[4]) for c in candles[-35:]]
+        opens = [float(c[3]) for c in candles[-35:]]
+        vols = [float(c[5]) for c in candles[-35:]]
         current_btc = closes[-1]
-
-        # 2. Obtener los últimos trades al segundo para medir la pendiente inmediata de la gráfica
-        micro_slope = 0.0
-        buy_pressure = 0.0
-        try:
-            url_trades = "https://api.exchange.coinbase.com/products/BTC-USD/trades?limit=60"
-            req_t = urllib.request.Request(url_trades, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req_t, timeout=4) as resp_t:
-                trades = json.loads(resp_t.read().decode("utf-8"))
-            if trades and len(trades) >= 10:
-                current_btc = float(trades[0]["price"])
-                oldest_recent_btc = float(trades[-1]["price"])
-                micro_slope = current_btc - oldest_recent_btc
-                vol_b = sum(float(t["size"]) for t in trades if t.get("side") == "buy")
-                vol_s = sum(float(t["size"]) for t in trades if t.get("side") == "sell")
-                buy_pressure = (vol_b - vol_s) / max(vol_b + vol_s, 0.001)
-        except Exception:
-            pass
-
-        closes[-1] = current_btc
 
         # Velas dentro del bloque actual de 5 minutos [slot_ts, slot_ts + 300)
         window = [c for c in candles if slot_ts <= c[0] < slot_ts + 300]
         if window:
             open_5m = float(window[0][3])
-            twap_btc = (sum((float(c[1]) + float(c[2]) + float(c[3]) + float(c[4])) / 4.0 for c in window) + current_btc) / (len(window) + 1)
+            twap_btc = sum((float(c[1]) + float(c[2]) + float(c[3]) + float(c[4])) / 4.0 for c in window) / len(window)
         else:
-            open_5m = closes[-2] if len(closes) >= 2 else current_btc
-            twap_btc = (open_5m + current_btc) / 2.0
+            open_5m = current_btc
+            twap_btc = current_btc
 
         diff_spot = current_btc - open_5m
         diff_twap = twap_btc - open_5m
 
-        # Pendiente del último minuto (1m) y micro-pendiente en segundos
-        mom_1m = current_btc - float(candles[-1][3]) # Cambio dentro de la vela de 1m actual
-        mom_2m = current_btc - closes[-3] if len(closes) >= 3 else mom_1m
-        ema3 = _calc_ema(closes, 3)
-        ema7 = _calc_ema(closes, 7)
+        # Indicadores técnicos de corto plazo (estables durante la vela de 5m)
+        ema5 = _calc_ema(closes, 5)
+        ema12 = _calc_ema(closes, 12)
         rsi7 = _calc_rsi(closes, 7)
+        mom_1m = closes[-1] - closes[-2] if len(closes) >= 2 else 0.0
+        mom_3m = closes[-1] - closes[-4] if len(closes) >= 4 else 0.0
 
-        # Velocidad instantánea de la gráfica (lo que el usuario ve subir o bajar en pantalla ahora mismo)
-        impulso_inmediato = mom_1m * 0.6 + micro_slope * 0.4
+        # Presión de volumen en los últimos 5 minutos
+        vol_up = sum(vols[i] for i in range(-5, 0) if closes[i] >= opens[i])
+        vol_down = sum(vols[i] for i in range(-5, 0) if closes[i] < opens[i])
+        vol_bias = (vol_up - vol_down) / max(vol_up + vol_down, 0.01)
 
-        escala_usd = max(current_btc * 0.00035, 18.0)
-        spot_vs_target_score = math.tanh(diff_spot / escala_usd)
-        slope_score = math.tanh((impulso_inmediato * 1.4 + (ema3 - ema7) * 0.5) / (escala_usd * 0.7))
+        # Segundos transcurridos en la vela actual de 5m
+        now_ts = int(time.time())
+        elapsed = max(min(now_ts - slot_ts, 295), 0)
+        progress = elapsed / 300.0
 
-        # Combinar posición frente al Price To Beat + pendiente inmediata + flujo CLOB en vivo
-        tech_prob_up = 0.50 + 0.42 * math.tanh(spot_vs_target_score * 0.55 + slope_score * 0.65 + buy_pressure * 0.20)
-        tech_prob_up = max(min(tech_prob_up, 0.95), 0.05)
+        escala_usd = max(current_btc * 0.00045, 22.0)
+        twap_score = math.tanh((diff_twap * 0.65 + diff_spot * 0.35) / escala_usd)
 
-        if clob_prob_up is not None and 0.04 <= clob_prob_up <= 0.96:
-            # El CLOB en vivo de Polymarket refleja el feed de Chainlink al segundo;
-            # fusionamos 65% CLOB en vivo + 35% nuestra pendiente inmediata para total precisión con la gráfica.
-            prob_up_final = clob_prob_up * 0.65 + tech_prob_up * 0.35
+        ema_diff = ema5 - ema12
+        trend_score = math.tanh((ema_diff * 0.5 + mom_3m * 0.35 + mom_1m * 0.4) / escala_usd)
+        vol_score = vol_bias * 0.4
+
+        if 52 <= rsi7 <= 76:
+            rsi_score = 0.25
+        elif 24 <= rsi7 <= 48:
+            rsi_score = -0.25
+        elif rsi7 > 80:
+            rsi_score = -0.20
+        elif rsi7 < 20:
+            rsi_score = 0.20
         else:
-            prob_up_final = tech_prob_up
+            rsi_score = 0.0
 
-        prob_up_final = max(min(prob_up_final, 0.96), 0.04)
-        prob_down_final = 1.0 - prob_up_final
+        tech_combined = max(min(trend_score * 0.65 + vol_score * 0.20 + rsi_score * 0.15, 0.95), -0.95)
 
-        # Explicación precisa de lo que está haciendo la gráfica en este instante
-        partes_razon = []
-        if abs(impulso_inmediato) >= 2.0:
-            sube_baja = "SUBIENDO con fuerza 📈" if impulso_inmediato > 0 else "BAJANDO con fuerza 📉"
-            partes_razon.append(f"La gráfica en vivo está {sube_baja} ({impulso_inmediato:+.1f} USD en el último minuto)")
-        if abs(diff_spot) >= 1.0:
-            pos_txt = "ARRIBA" if diff_spot >= 0 else "ABAJO"
-            partes_razon.append(f"Precio actual ${abs(diff_spot):,.1f} USD {pos_txt} del Price To Beat (${open_5m:,.2f})")
+        peso_twap = 0.25 + 0.55 * progress
+        peso_tech = 1.0 - peso_twap
+        raw_signal = twap_score * peso_twap + tech_combined * peso_tech
+
+        prob_up_model = 0.50 + 0.44 * math.tanh(raw_signal * 1.45)
+        prob_up_model = max(min(prob_up_model, 0.94), 0.06)
+        prob_down_model = 1.0 - prob_up_model
+
+        razones = []
+        if abs(diff_spot) >= 3:
+            dir_txt = "arriba" if diff_spot > 0 else "abajo"
+            razones.append(f"BTC está ${abs(diff_spot):,.1f} USD {dir_txt} de la apertura de los 5m (${open_5m:,.2f})")
+        if (ema5 > ema12 and prob_up_model >= 0.5) or (ema5 < ema12 and prob_down_model > 0.5):
+            razones.append(f"Tendencia EMA 5/12 y Momentum 3m (${mom_3m:+.1f}) confirmados")
+        if abs(vol_bias) > 0.25:
+            razones.append("Fuerte presión de volumen " + ("comprador" if vol_bias > 0 else "vendedor"))
 
         return {
             "open_5m": round(open_5m, 2),
@@ -168,14 +146,13 @@ def analizar_mercado_btc_en_vivo(slot_ts, clob_prob_up=None):
             "twap_btc": round(twap_btc, 2),
             "diff_usd": round(diff_spot, 2),
             "diff_twap": round(diff_twap, 2),
-            "ema5": round(ema3, 2),
-            "ema12": round(ema7, 2),
+            "ema5": round(ema5, 2),
+            "ema12": round(ema12, 2),
             "rsi7": round(rsi7, 1),
-            "mom_1m": round(impulso_inmediato, 2),
-            "mom_3m": round(impulso_inmediato, 2), # Mostramos el impulso inmediato de 1m en la UI
-            "prob_up_model": round(prob_up_final, 4),
-            "prob_down_model": round(prob_down_final, 4),
-            "razones": " + ".join(partes_razon) if partes_razon else "Movimiento en tiempo real sincronizado con gráfica"
+            "mom_3m": round(mom_3m, 2),
+            "prob_up_model": round(prob_up_model, 4),
+            "prob_down_model": round(prob_down_model, 4),
+            "razones": " + ".join(razones) if razones else "Impulso técnico de corto plazo en velas de 1m"
         }
     except Exception as e:
         print(f"[Error en análisis técnico BTC]: {e}")
@@ -183,18 +160,20 @@ def analizar_mercado_btc_en_vivo(slot_ts, clob_prob_up=None):
 
 def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=False):
     """
-    Escanea la vela de 5 minutos ACTUAL EN JUEGO en Polymarket consultando el libro
-    de órdenes CLOB al milisegundo y la pendiente en vivo de los últimos segundos.
+    Evalúa los periodos de 5 minutos de Bitcoin (vela actual en juego y próxima vela de 5 min),
+    usando el modelo técnico estable (TWAP + EMA 5/12 + Momentum 3m + RSI 7) para mantener
+    una señal firme sin cambiar erráticamente dentro del mismo bloque de 5 minutos.
     """
     now_ts = int(time.time())
     slot_ts = (now_ts // 300) * 300
     secs_left = (slot_ts + 300) - now_ts
 
-    # Siempre poner PRIMERO la vela ACTUAL EN JUEGO, y si falta poco (<90s), mostrar también la siguiente debajo
-    slots_to_check = [(slot_ts, "ACTUAL EN JUEGO")]
-    if secs_left < 90 and include_warming_up:
-        slots_to_check.append((slot_ts + 300, "PRÓXIMA VELA 5M"))
+    slots_to_check = []
+    if secs_left >= 35:
+        slots_to_check.append((slot_ts, "ACTUAL EN JUEGO"))
+    slots_to_check.append((slot_ts + 300, "PRÓXIMA VELA 5M"))
 
+    btc_analysis = analizar_mercado_btc_en_vivo(slot_ts)
     candidatos = []
 
     for s_ts, etiqueta_vela in slots_to_check:
@@ -202,7 +181,7 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
         url = f"https://gamma-api.polymarket.com/events?slug={slug}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         try:
-            with urllib.request.urlopen(req, timeout=7) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             if not data:
                 continue
@@ -216,69 +195,60 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
 
             raw_prices = m.get("outcomePrices")
             raw_outcomes = m.get("outcomes")
-            fallback_precios = json.loads(raw_prices) if isinstance(raw_prices, str) else raw_prices
+            precios = json.loads(raw_prices) if isinstance(raw_prices, str) else raw_prices
             opciones = json.loads(raw_outcomes) if isinstance(raw_outcomes, str) else raw_outcomes
-            if not fallback_precios or not opciones or len(fallback_precios) != len(opciones):
+            if not precios or not opciones or len(precios) != len(opciones):
                 continue
 
-            # Obtener precios EN VIVO al segundo desde CLOB API (sin retraso de caché)
-            raw_clob_ids = m.get("clobTokenIds")
-            clob_ids = json.loads(raw_clob_ids) if isinstance(raw_clob_ids, str) else (raw_clob_ids or [])
-            precios_vivos = obtener_precios_clob_en_vivo(clob_ids, fallback_precios)
-
             s_left = max((s_ts + 300) - int(time.time()), 5)
-            if not include_warming_up and s_left < 35:
+            if not include_warming_up and s_ts == slot_ts and s_left < 45:
                 continue
 
             mins = s_left // 60
             secs = s_left % 60
-            tiempo_corto = f"{mins:02d}m {secs:02d}s"
+            tiempo_corto = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
             dias_restantes = max(s_left / 86400.0, 0.0005)
             liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
             vol = float(m.get("volumeNum") or m.get("volume") or 0)
             link = f"https://polymarket.com/event/{slug}"
 
-            # Identificar precio CLOB de Up
-            clob_up = None
-            for op_name, p_val in zip(opciones, precios_vivos):
-                if op_name.lower() == "up":
-                    clob_up = p_val
-                    break
-
-            btc_analysis = analizar_mercado_btc_en_vivo(s_ts, clob_prob_up=clob_up)
-
-            # Seleccionar la dirección dominante sincronizada con el CLOB en vivo y la pendiente inmediata
             mejor_candidato_vela = None
-            mejor_prob = -1.0
+            mejor_score = -999.0
 
-            for idx, (opcion, p_market) in enumerate(zip(opciones, precios_vivos)):
-                if not include_warming_up and (p_market <= 0.04 or p_market >= 0.96):
+            for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
+                p_market = float(p_str)
+                if p_market <= 0.03 or p_market >= 0.96:
                     continue
-                p_safe = max(min(p_market, 0.995), 0.005)
+
                 es_up = opcion.lower() == "up"
                 if btc_analysis:
                     p_model = btc_analysis["prob_up_model"] if es_up else btc_analysis["prob_down_model"]
+                    if s_ts == slot_ts:
+                        p_efectiva = max(p_market, p_model * 0.65 + p_market * 0.35)
+                    else:
+                        p_efectiva = p_model
                 else:
-                    p_model = p_safe
+                    p_model = p_market
+                    p_efectiva = p_market
 
-                # Sincronización estricta: la dirección ganadora es la que domina el CLOB en vivo + pendiente 1m
-                p_combinada = p_safe * 0.65 + p_model * 0.35
-                if p_combinada > mejor_prob:
-                    mejor_prob = p_combinada
-                    roi = ((1.0 - p_safe) / p_safe) * 100.0
-                    ev_ratio = p_combinada * (1.0 / p_safe) - 1.0
-                    mejor_candidato_vela = (idx, opcion, p_safe, p_model, p_combinada, roi, ev_ratio)
+                roi = ((1.0 - p_market) / p_market) * 100.0
+                ev_ratio = p_efectiva * (1.0 / p_market) - 1.0
+                score = (p_efectiva * 100.0) + (ev_ratio * 25.0)
+
+                if score > mejor_score:
+                    mejor_score = score
+                    mejor_candidato_vela = (idx, opcion, p_market, p_model, p_efectiva, roi, ev_ratio)
 
             if not mejor_candidato_vela:
                 continue
 
-            idx, mejor_opcion, p_market, p_model, p_combinada, roi, ev_ratio = mejor_candidato_vela
-            prob_mostrar = round(max(p_market, p_combinada) * 100, 1)
-            centavos = round(p_market * 100)
+            idx, mejor_opcion, p_market, p_model, p_efectiva, roi, ev_ratio = mejor_candidato_vela
+            prob_mostrar = round(max(p_efectiva, p_market) * 100, 1)
 
             cumple_umbral = (prob_mostrar >= prob_min * 100) and (p_market <= prob_max)
             if cumple_umbral or include_warming_up:
                 apr = (roi / dias_restantes) * 365
+                centavos = round(p_market * 100)
                 cobro_10 = round(10 * (1 + roi / 100), 2)
                 ganancia_10 = round(cobro_10 - 10, 2)
 
@@ -286,16 +256,16 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
                 direccion_es = "SUBE (Up 📈)" if es_up else "BAJA (Down 📉)"
                 color_boton = "verde «Up»" if es_up else "rojo «Down»"
 
-                razon_analisis = btc_analysis["razones"] if btc_analysis else "Flujo de órdenes en tiempo real a favor"
+                razon_analisis = btc_analysis["razones"] if btc_analysis else "Flujo de órdenes a favor"
                 como_ganas = (
-                    f"🏆 DIRECCIÓN EN VIVO: {direccion_es}. "
-                    f"Ganas si al terminar el reloj ({tiempo_corto}) Bitcoin cierra "
-                    f"{'ARRIBA' if es_up else 'ABAJO'} del Price To Beat. "
-                    f"📊 {razon_analisis}."
+                    f"🏆 MEJOR DIRECCIÓN: {direccion_es}. "
+                    f"Ganas si al cerrar esta vela ({tiempo_corto}) el promedio de Bitcoin termina "
+                    f"{'ARRIBA' if es_up else 'ABAJO'} de su apertura. "
+                    f"📊 Motivo: {razon_analisis}."
                 )
                 instruccion_boton = (
-                    f"En Polymarket toca el botón {color_boton} de {centavos}¢ "
-                    f"(Quedan {tiempo_corto} en el reloj)."
+                    f"Entra al enlace y toca el botón {color_boton} que cuesta ~{centavos}¢ "
+                    f"(Probabilidad estimada: {prob_mostrar}% | Precio mercado: {centavos}¢)."
                 )
 
                 candidatos.append({
@@ -303,7 +273,7 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
                     "market_id": m.get("id"),
                     "question": f"⚡ [BITCOIN 5 MIN - {etiqueta_vela}] {ev.get('title')}",
                     "description": ev.get("description", ""),
-                    "resolution_source": "CLOB Polymarket en Vivo + Pendiente 1m",
+                    "resolution_source": "Chainlink BTC/USD TWAP + Algoritmo Técnico 1m/5m",
                     "outcome": f"{mejor_opcion} ➔ {direccion_es}",
                     "raw_outcome": mejor_opcion,
                     "probability": prob_mostrar,
@@ -316,7 +286,6 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
                     "days_left": round(dias_restantes, 3),
                     "hours_left": round(s_left / 3600.0, 2),
                     "seconds_left": s_left,
-                    "end_timestamp": s_ts + 300,
                     "tiempo_exacto": tiempo_corto,
                     "etiqueta_vela": etiqueta_vela,
                     "es_btc_5m": True,
@@ -339,6 +308,7 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
             print(f"[Error escaneando BTC 5m]: {e}")
             continue
 
+    candidatos.sort(key=lambda x: (x["cumple_70"], x["probability"], x["ev_pct"]), reverse=True)
     if not include_warming_up:
         return [c for c in candidatos if c["cumple_70"]]
     return candidatos
