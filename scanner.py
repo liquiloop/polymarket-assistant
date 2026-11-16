@@ -190,11 +190,10 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
     slot_ts = (now_ts // 300) * 300
     secs_left = (slot_ts + 300) - now_ts
 
-    # Si quedan menos de 15 segundos en la vela actual, pasar a la siguiente vela que está por arrancar
-    if secs_left >= 15:
-        slots_to_check = [(slot_ts, "ACTUAL EN JUEGO")]
-    else:
-        slots_to_check = [(slot_ts + 300, "EMPEZANDO AHORA")]
+    # Siempre poner PRIMERO la vela ACTUAL EN JUEGO, y si falta poco (<90s), mostrar también la siguiente debajo
+    slots_to_check = [(slot_ts, "ACTUAL EN JUEGO")]
+    if secs_left < 90 and include_warming_up:
+        slots_to_check.append((slot_ts + 300, "PRÓXIMA VELA 5M"))
 
     candidatos = []
 
@@ -253,21 +252,22 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
             mejor_prob = -1.0
 
             for idx, (opcion, p_market) in enumerate(zip(opciones, precios_vivos)):
-                if p_market <= 0.02 or p_market >= 0.98:
+                if not include_warming_up and (p_market <= 0.04 or p_market >= 0.96):
                     continue
+                p_safe = max(min(p_market, 0.995), 0.005)
                 es_up = opcion.lower() == "up"
                 if btc_analysis:
                     p_model = btc_analysis["prob_up_model"] if es_up else btc_analysis["prob_down_model"]
                 else:
-                    p_model = p_market
+                    p_model = p_safe
 
                 # Sincronización estricta: la dirección ganadora es la que domina el CLOB en vivo + pendiente 1m
-                p_combinada = p_market * 0.65 + p_model * 0.35
+                p_combinada = p_safe * 0.65 + p_model * 0.35
                 if p_combinada > mejor_prob:
                     mejor_prob = p_combinada
-                    roi = ((1.0 - p_market) / p_market) * 100.0
-                    ev_ratio = p_combinada * (1.0 / p_market) - 1.0
-                    mejor_candidato_vela = (idx, opcion, p_market, p_model, p_combinada, roi, ev_ratio)
+                    roi = ((1.0 - p_safe) / p_safe) * 100.0
+                    ev_ratio = p_combinada * (1.0 / p_safe) - 1.0
+                    mejor_candidato_vela = (idx, opcion, p_safe, p_model, p_combinada, roi, ev_ratio)
 
             if not mejor_candidato_vela:
                 continue
