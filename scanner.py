@@ -5,14 +5,26 @@ import re
 import time
 import math
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 
-# Asegurar importación de config independientemente de cómo se invoque el script
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from config import load_config
+
+def obtener_utc_real():
+    """Obtiene el timestamp UTC exacto del servidor de Polymarket para evitar desfases de reloj local."""
+    try:
+        req = urllib.request.Request("https://gamma-api.polymarket.com/events?limit=1", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            date_hdr = resp.headers.get("Date")
+            if date_hdr:
+                return int(parsedate_to_datetime(date_hdr).timestamp())
+    except Exception:
+        pass
+    return int(time.time())
 
 def parse_polymarket_date(date_str):
     if not date_str:
@@ -51,267 +63,337 @@ def _calc_rsi(vals, period=7):
     rs = avg_g / avg_l
     return 100.0 - (100.0 / (1.0 + rs))
 
-def analizar_mercado_btc_en_vivo(slot_ts):
+def analizar_btc_15m_y_1h(true_ts):
     """
-    Analiza las velas de 1 minuto de BTC-USD en tiempo real (Coinbase)
-    y calcula de forma firme y estable para el periodo de 5 minutos:
-    - Apertura exacta de la vela de 5m, precio actual y TWAP acumulado.
-    - Indicadores técnicos estables (EMA 5, EMA 12, RSI 7, Momentum 3m, Presión de volumen).
-    - Probabilidad Real Estimada por el Algoritmo para UP (Sube) y DOWN (Baja).
+    Analiza simultáneamente las temporalidades de 15 Minutos (15m) y 1 Hora (1h) de Bitcoin:
+    - Usa velas de 1m y 5m de BTC-USD en tiempo real.
+    - Calcula apertura, precio actual, TWAP (para 15m), distancia al cierre (para 1h),
+      EMA 5/12, RSI 7 e Impulso de 15m y 1h.
+    - Detecta si hay DOBLE CONFIRMACIÓN (cuando 15m y 1h apuntan hacia el mismo lado).
     """
     try:
-        url = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=6) as resp:
-            candles = json.loads(resp.read().decode("utf-8"))
-        if not candles:
+        req_1m = urllib.request.Request("https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60", headers={"User-Agent": "Mozilla/5.0"})
+        req_5m = urllib.request.Request("https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=300", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req_1m, timeout=6) as r1:
+            candles_1m = json.loads(r1.read().decode("utf-8"))
+        with urllib.request.urlopen(req_5m, timeout=6) as r5:
+            candles_5m = json.loads(r5.read().decode("utf-8"))
+
+        if not candles_1m or not candles_5m:
             return None
 
-        # Ordenar cronológicamente [time, low, high, open, close, volume]
-        candles.sort(key=lambda x: x[0])
-        closes = [float(c[4]) for c in candles[-35:]]
-        opens = [float(c[3]) for c in candles[-35:]]
-        vols = [float(c[5]) for c in candles[-35:]]
-        current_btc = closes[-1]
+        candles_1m.sort(key=lambda x: x[0])
+        candles_5m.sort(key=lambda x: x[0])
 
-        # Velas dentro del bloque actual de 5 minutos [slot_ts, slot_ts + 300)
-        window = [c for c in candles if slot_ts <= c[0] < slot_ts + 300]
-        if window:
-            open_5m = float(window[0][3])
-            twap_btc = sum((float(c[1]) + float(c[2]) + float(c[3]) + float(c[4])) / 4.0 for c in window) / len(window)
+        current_btc = float(candles_1m[-1][4])
+        closes_5m = [float(c[4]) for c in candles_5m[-40:]]
+        opens_5m = [float(c[3]) for c in candles_5m[-40:]]
+        vols_5m = [float(c[5]) for c in candles_5m[-40:]]
+
+        slot_15m = (true_ts // 900) * 900
+        slot_1h = (true_ts // 3600) * 3600
+
+        # --- 1. CÁLCULO PARA 15 MINUTOS (15M) ---
+        w_15m = [c for c in candles_1m if slot_15m <= c[0] < slot_15m + 900]
+        if w_15m:
+            open_15m = float(w_15m[0][3])
+            twap_15m = sum((float(c[1]) + float(c[2]) + float(c[3]) + float(c[4])) / 4.0 for c in w_15m) / len(w_15m)
         else:
-            open_5m = current_btc
-            twap_btc = current_btc
+            open_15m = current_btc
+            twap_15m = current_btc
 
-        diff_spot = current_btc - open_5m
-        diff_twap = twap_btc - open_5m
+        diff_spot_15m = current_btc - open_15m
+        diff_twap_15m = twap_15m - open_15m
+        mom_15m = current_btc - float(candles_1m[-15][4]) if len(candles_1m) >= 15 else diff_spot_15m
 
-        # Indicadores técnicos de corto plazo (estables durante la vela de 5m)
-        ema5 = _calc_ema(closes, 5)
-        ema12 = _calc_ema(closes, 12)
-        rsi7 = _calc_rsi(closes, 7)
-        mom_1m = closes[-1] - closes[-2] if len(closes) >= 2 else 0.0
-        mom_3m = closes[-1] - closes[-4] if len(closes) >= 4 else 0.0
+        ema5_5m = _calc_ema(closes_5m, 5)
+        ema12_5m = _calc_ema(closes_5m, 12)
+        rsi_5m = _calc_rsi(closes_5m, 7)
 
-        # Presión de volumen en los últimos 5 minutos
-        vol_up = sum(vols[i] for i in range(-5, 0) if closes[i] >= opens[i])
-        vol_down = sum(vols[i] for i in range(-5, 0) if closes[i] < opens[i])
-        vol_bias = (vol_up - vol_down) / max(vol_up + vol_down, 0.01)
+        vol_up_15m = sum(vols_5m[i] for i in range(-4, 0) if closes_5m[i] >= opens_5m[i])
+        vol_dn_15m = sum(vols_5m[i] for i in range(-4, 0) if closes_5m[i] < opens_5m[i])
+        vol_bias_15m = (vol_up_15m - vol_dn_15m) / max(vol_up_15m + vol_dn_15m, 0.01)
 
-        # Segundos transcurridos en la vela actual de 5m
-        now_ts = int(time.time())
-        elapsed = max(min(now_ts - slot_ts, 295), 0)
-        progress = elapsed / 300.0
+        elapsed_15m = max(min(true_ts - slot_15m, 890), 0)
+        prog_15m = elapsed_15m / 900.0
+        escala_15m = max(current_btc * 0.0008, 45.0) # ~50 USD movimiento típico en 15m
 
-        escala_usd = max(current_btc * 0.00045, 22.0)
-        twap_score = math.tanh((diff_twap * 0.65 + diff_spot * 0.35) / escala_usd)
+        twap_score_15m = math.tanh((diff_twap_15m * 0.60 + diff_spot_15m * 0.40) / escala_15m)
+        trend_score_15m = math.tanh(((ema5_5m - ema12_5m) * 0.6 + mom_15m * 0.4) / escala_15m)
+        raw_15m = twap_score_15m * (0.35 + 0.45 * prog_15m) + (trend_score_15m * 0.75 + vol_bias_15m * 0.25) * (0.65 - 0.45 * prog_15m)
+        prob_up_15m = max(min(0.50 + 0.44 * math.tanh(raw_15m * 1.4), 0.94), 0.06)
 
-        ema_diff = ema5 - ema12
-        trend_score = math.tanh((ema_diff * 0.5 + mom_3m * 0.35 + mom_1m * 0.4) / escala_usd)
-        vol_score = vol_bias * 0.4
-
-        if 52 <= rsi7 <= 76:
-            rsi_score = 0.25
-        elif 24 <= rsi7 <= 48:
-            rsi_score = -0.25
-        elif rsi7 > 80:
-            rsi_score = -0.20
-        elif rsi7 < 20:
-            rsi_score = 0.20
+        # --- 2. CÁLCULO PARA 1 HORA (1H) ---
+        w_1h = [c for c in candles_1m if slot_1h <= c[0] < slot_1h + 3600]
+        if w_1h:
+            open_1h = float(w_1h[0][3])
+            twap_1h = sum((float(c[1]) + float(c[2]) + float(c[3]) + float(c[4])) / 4.0 for c in w_1h) / len(w_1h)
         else:
-            rsi_score = 0.0
+            open_1h = current_btc
+            twap_1h = current_btc
 
-        tech_combined = max(min(trend_score * 0.65 + vol_score * 0.20 + rsi_score * 0.15, 0.95), -0.95)
+        diff_spot_1h = current_btc - open_1h
+        mom_1h = current_btc - float(candles_5m[-12][4]) if len(candles_5m) >= 12 else diff_spot_1h
+        ema8_5m = _calc_ema(closes_5m, 8)
+        ema21_5m = _calc_ema(closes_5m, 21)
+        rsi_1h = _calc_rsi(closes_5m, 12)
 
-        peso_twap = 0.25 + 0.55 * progress
-        peso_tech = 1.0 - peso_twap
-        raw_signal = twap_score * peso_twap + tech_combined * peso_tech
+        elapsed_1h = max(min(true_ts - slot_1h, 3590), 0)
+        prog_1h = elapsed_1h / 3600.0
+        escala_1h = max(current_btc * 0.0015, 90.0) # ~100 USD movimiento típico en 1h
 
-        prob_up_model = 0.50 + 0.44 * math.tanh(raw_signal * 1.45)
-        prob_up_model = max(min(prob_up_model, 0.94), 0.06)
-        prob_down_model = 1.0 - prob_up_model
+        # En 1H Polymarket resuelve por Close >= Open
+        pos_score_1h = math.tanh(diff_spot_1h / escala_1h)
+        trend_score_1h = math.tanh(((ema8_5m - ema21_5m) * 0.6 + mom_1h * 0.4) / escala_1h)
+        raw_1h = pos_score_1h * (0.35 + 0.50 * prog_1h) + trend_score_1h * (0.65 - 0.50 * prog_1h)
+        prob_up_1h = max(min(0.50 + 0.44 * math.tanh(raw_1h * 1.4), 0.95), 0.05)
 
-        razones = []
-        if abs(diff_spot) >= 3:
-            dir_txt = "arriba" if diff_spot > 0 else "abajo"
-            razones.append(f"BTC está ${abs(diff_spot):,.1f} USD {dir_txt} de la apertura de los 5m (${open_5m:,.2f})")
-        if (ema5 > ema12 and prob_up_model >= 0.5) or (ema5 < ema12 and prob_down_model > 0.5):
-            razones.append(f"Tendencia EMA 5/12 y Momentum 3m (${mom_3m:+.1f}) confirmados")
-        if abs(vol_bias) > 0.25:
-            razones.append("Fuerte presión de volumen " + ("comprador" if vol_bias > 0 else "vendedor"))
+        dir_15m = "UP" if prob_up_15m >= 0.5 else "DOWN"
+        dir_1h = "UP" if prob_up_1h >= 0.5 else "DOWN"
+        doble_confirmacion = (dir_15m == dir_1h)
+
+        # Bono de confianza cuando 15m y 1h están alineados en la misma dirección
+        if doble_confirmacion:
+            if dir_15m == "UP":
+                prob_up_15m = min(prob_up_15m + 0.03, 0.95)
+                prob_up_1h = min(prob_up_1h + 0.03, 0.95)
+            else:
+                prob_up_15m = max(prob_up_15m - 0.03, 0.05)
+                prob_up_1h = max(prob_up_1h - 0.03, 0.05)
 
         return {
-            "open_5m": round(open_5m, 2),
-            "current_btc": round(current_btc, 2),
-            "twap_btc": round(twap_btc, 2),
-            "diff_usd": round(diff_spot, 2),
-            "diff_twap": round(diff_twap, 2),
-            "ema5": round(ema5, 2),
-            "ema12": round(ema12, 2),
-            "rsi7": round(rsi7, 1),
-            "mom_3m": round(mom_3m, 2),
-            "prob_up_model": round(prob_up_model, 4),
-            "prob_down_model": round(prob_down_model, 4),
-            "razones": " + ".join(razones) if razones else "Impulso técnico de corto plazo en velas de 1m"
+            "doble_confirmacion": doble_confirmacion,
+            "direccion_alineada": dir_15m if doble_confirmacion else None,
+            "15m": {
+                "open_5m": round(open_15m, 2),
+                "current_btc": round(current_btc, 2),
+                "twap_btc": round(twap_15m, 2),
+                "diff_usd": round(diff_spot_15m, 2),
+                "rsi7": round(rsi_5m, 1),
+                "mom_3m": round(mom_15m, 2),
+                "prob_up_model": round(prob_up_15m, 4),
+                "prob_down_model": round(1.0 - prob_up_15m, 4),
+                "doble_confirmacion": doble_confirmacion,
+                "razones": (
+                    f"{'🔥 DOBLE CONFIRMACIÓN (15m y 1h alineados) + ' if doble_confirmacion else ''}"
+                    f"BTC está ${abs(diff_spot_15m):,.1f} USD {'arriba' if diff_spot_15m >= 0 else 'abajo'} de la apertura de 15m (${open_15m:,.2f}) "
+                    f"con Impulso 15m de ${mom_15m:+.1f} USD"
+                )
+            },
+            "1h": {
+                "open_5m": round(open_1h, 2),
+                "current_btc": round(current_btc, 2),
+                "twap_btc": round(twap_1h, 2),
+                "diff_usd": round(diff_spot_1h, 2),
+                "rsi7": round(rsi_1h, 1),
+                "mom_3m": round(mom_1h, 2),
+                "prob_up_model": round(prob_up_1h, 4),
+                "prob_down_model": round(1.0 - prob_up_1h, 4),
+                "doble_confirmacion": doble_confirmacion,
+                "razones": (
+                    f"{'🔥 DOBLE CONFIRMACIÓN (15m y 1h alineados) + ' if doble_confirmacion else ''}"
+                    f"BTC está ${abs(diff_spot_1h):,.1f} USD {'arriba' if diff_spot_1h >= 0 else 'abajo'} de la apertura de 1 Hora (${open_1h:,.2f}) "
+                    f"con Impulso horario de ${mom_1h:+.1f} USD"
+                )
+            }
         }
     except Exception as e:
-        print(f"[Error en análisis técnico BTC]: {e}")
+        print(f"[Error en análisis BTC 15m/1h]: {e}")
         return None
+
+def _procesar_evento_btc(ev, true_ts, etiqueta_periodo, datos_tecnicos, prob_min, prob_max, include_warming_up, min_secs_alert):
+    """Construye la tarjeta de oportunidad para un evento de Bitcoin (15m o 1h)."""
+    markets = ev.get("markets") or []
+    if not markets:
+        return None
+    m = markets[0]
+    if m.get("closed") or m.get("acceptingOrders") is False:
+        return None
+
+    raw_prices = m.get("outcomePrices")
+    raw_outcomes = m.get("outcomes")
+    precios = json.loads(raw_prices) if isinstance(raw_prices, str) else raw_prices
+    opciones = json.loads(raw_outcomes) if isinstance(raw_outcomes, str) else raw_outcomes
+    if not precios or not opciones or len(precios) != len(opciones):
+        return None
+
+    end_dt = parse_polymarket_date(m.get("endDate") or ev.get("endDate"))
+    if not end_dt:
+        return None
+    s_left = int(end_dt.timestamp()) - true_ts
+    if s_left <= 15:
+        return None
+    if not include_warming_up and s_left < min_secs_alert:
+        return None
+
+    mins = s_left // 60
+    secs = s_left % 60
+    tiempo_corto = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
+    dias_restantes = max(s_left / 86400.0, 0.001)
+    liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
+    vol = float(m.get("volumeNum") or m.get("volume") or 0)
+    slug = ev.get("slug") or m.get("slug") or ""
+    link = f"https://polymarket.com/event/{slug}"
+
+    mejor_candidato = None
+    mejor_score = -999.0
+
+    for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
+        p_market = float(p_str)
+        if p_market <= 0.03 or p_market >= 0.96:
+            continue
+        es_up = opcion.lower() == "up"
+        if datos_tecnicos:
+            p_model = datos_tecnicos["prob_up_model"] if es_up else datos_tecnicos["prob_down_model"]
+            p_efectiva = max(p_market, p_model * 0.60 + p_market * 0.40)
+        else:
+            p_model = p_market
+            p_efectiva = p_market
+
+        roi = ((1.0 - p_market) / p_market) * 100.0
+        ev_ratio = p_efectiva * (1.0 / p_market) - 1.0
+        score = (p_efectiva * 100.0) + (ev_ratio * 25.0)
+        if score > mejor_score:
+            mejor_score = score
+            mejor_candidato = (idx, opcion, p_market, p_model, p_efectiva, roi, ev_ratio)
+
+    if not mejor_candidato:
+        return None
+
+    idx, mejor_opcion, p_market, p_model, p_efectiva, roi, ev_ratio = mejor_candidato
+    prob_mostrar = round(max(p_efectiva, p_market) * 100, 1)
+    cumple_umbral = (prob_mostrar >= prob_min * 100) and (p_market <= prob_max)
+
+    if not (cumple_umbral or include_warming_up):
+        return None
+
+    apr = (roi / dias_restantes) * 365
+    centavos = round(p_market * 100)
+    cobro_10 = round(10 * (1 + roi / 100), 2)
+    ganancia_10 = round(cobro_10 - 10, 2)
+
+    es_up = mejor_opcion.lower() == "up"
+    direccion_es = "SUBE (Up 📈)" if es_up else "BAJA (Down 📉)"
+    color_boton = "verde «Up»" if es_up else "rojo «Down»"
+    doble_conf = datos_tecnicos.get("doble_confirmacion", False) if datos_tecnicos else False
+    badge_doble = " 🔥 [DOBLE CONFIRMACIÓN 15M+1H]" if doble_conf else ""
+
+    razon_analisis = datos_tecnicos["razones"] if datos_tecnicos else "Tendencia confirmada"
+    como_ganas = (
+        f"🏆 MEJOR DIRECCIÓN: {direccion_es}{badge_doble}. "
+        f"Ganas si al cerrar este periodo ({tiempo_corto}) Bitcoin termina "
+        f"{'ARRIBA' if es_up else 'ABAJO'} de su apertura (${datos_tecnicos['open_5m']:,.2f}). "
+        f"📊 {razon_analisis}."
+    )
+    instruccion_boton = (
+        f"Entra con calma al enlace y toca el botón {color_boton} que cuesta ~{centavos}¢ "
+        f"(Confianza: {prob_mostrar}% | Tiempo restante: {tiempo_corto})."
+    )
+
+    return {
+        "id": f"btc_{etiqueta_periodo}_{m.get('id')}_{idx}",
+        "market_id": m.get("id"),
+        "question": f"⚡ [{etiqueta_periodo}]{badge_doble} {ev.get('title')}",
+        "description": ev.get("description", ""),
+        "resolution_source": "Polymarket BTC 15m / 1h Oficial",
+        "outcome": f"{mejor_opcion} ➔ {direccion_es}",
+        "raw_outcome": mejor_opcion,
+        "probability": prob_mostrar,
+        "market_probability": round(p_market * 100, 1),
+        "model_probability": round(p_model * 100, 1),
+        "price": round(p_market, 4),
+        "centavos": centavos,
+        "roi": round(roi, 2),
+        "ev_pct": round(ev_ratio * 100, 1),
+        "days_left": round(dias_restantes, 3),
+        "hours_left": round(s_left / 3600.0, 2),
+        "seconds_left": s_left,
+        "tiempo_exacto": tiempo_corto,
+        "etiqueta_vela": etiqueta_periodo + (" 🔥 ALINEADO" if doble_conf else ""),
+        "es_btc_5m": True,
+        "doble_confirmacion": doble_conf,
+        "btc_live": datos_tecnicos,
+        "apr": round(apr, 1),
+        "volume_24h": round(vol, 2),
+        "liquidity": round(liq, 2),
+        "kelly_pct": 3.0 if doble_conf else 2.0,
+        "como_ganas": como_ganas,
+        "instruccion_boton": instruccion_boton,
+        "cobro_10": cobro_10,
+        "ganancia_10": ganancia_10,
+        "es_spread": False,
+        "slug": slug,
+        "link": link,
+        "image": ev.get("icon") or ev.get("image") or "",
+        "cumple_70": cumple_umbral
+    }
 
 def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=False):
     """
-    Evalúa los periodos de 5 minutos de Bitcoin (vela actual en juego y próxima vela de 5 min),
-    usando el modelo técnico estable (TWAP + EMA 5/12 + Momentum 3m + RSI 7) para mantener
-    una señal firme sin cambiar erráticamente dentro del mismo bloque de 5 minutos.
+    Escanea los mercados de BITCOIN 15 MINUTOS (15m) y BITCOIN 1 HORA (1h),
+    evaluando cuál dirección (SUBE o BAJA) tiene la mayor probabilidad real y
+    destacando cuando hay DOBLE CONFIRMACIÓN (15m y 1h alineados).
     """
-    now_ts = int(time.time())
-    slot_ts = (now_ts // 300) * 300
-    secs_left = (slot_ts + 300) - now_ts
+    true_ts = obtener_utc_real()
+    analisis = analizar_btc_15m_y_1h(true_ts)
+    datos_15m = analisis["15m"] if analisis else None
+    datos_1h = analisis["1h"] if analisis else None
 
-    slots_to_check = []
-    if secs_left >= 35:
-        slots_to_check.append((slot_ts, "ACTUAL EN JUEGO"))
-    slots_to_check.append((slot_ts + 300, "PRÓXIMA VELA 5M"))
+    resultados = []
 
-    btc_analysis = analizar_mercado_btc_en_vivo(slot_ts)
-    candidatos = []
+    # 1. Buscar mercado activo de BITCOIN 15 MINUTOS (btc-updown-15m-{slot_15m})
+    slot_15m = (true_ts // 900) * 900
+    secs_left_15m = (slot_15m + 900) - true_ts
+    slots_15m = [slot_15m]
+    if secs_left_15m < 120 and include_warming_up:
+        slots_15m.append(slot_15m + 900)
 
-    for s_ts, etiqueta_vela in slots_to_check:
-        slug = f"btc-updown-5m-{s_ts}"
-        url = f"https://gamma-api.polymarket.com/events?slug={slug}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    for s_15 in slots_15m:
+        slug_15 = f"btc-updown-15m-{s_15}"
         try:
-            with urllib.request.urlopen(req, timeout=8) as resp:
+            req = urllib.request.Request(f"https://gamma-api.polymarket.com/events?slug={slug_15}", headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=7) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            if not data:
-                continue
-            ev = data[0]
-            markets = ev.get("markets") or []
-            if not markets:
-                continue
-            m = markets[0]
-            if m.get("closed") or m.get("acceptingOrders") is False:
-                continue
-
-            raw_prices = m.get("outcomePrices")
-            raw_outcomes = m.get("outcomes")
-            precios = json.loads(raw_prices) if isinstance(raw_prices, str) else raw_prices
-            opciones = json.loads(raw_outcomes) if isinstance(raw_outcomes, str) else raw_outcomes
-            if not precios or not opciones or len(precios) != len(opciones):
-                continue
-
-            s_left = max((s_ts + 300) - int(time.time()), 5)
-            if not include_warming_up and s_ts == slot_ts and s_left < 45:
-                continue
-
-            mins = s_left // 60
-            secs = s_left % 60
-            tiempo_corto = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
-            dias_restantes = max(s_left / 86400.0, 0.0005)
-            liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
-            vol = float(m.get("volumeNum") or m.get("volume") or 0)
-            link = f"https://polymarket.com/event/{slug}"
-
-            mejor_candidato_vela = None
-            mejor_score = -999.0
-
-            for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
-                p_market = float(p_str)
-                if p_market <= 0.03 or p_market >= 0.96:
-                    continue
-
-                es_up = opcion.lower() == "up"
-                if btc_analysis:
-                    p_model = btc_analysis["prob_up_model"] if es_up else btc_analysis["prob_down_model"]
-                    if s_ts == slot_ts:
-                        p_efectiva = max(p_market, p_model * 0.65 + p_market * 0.35)
-                    else:
-                        p_efectiva = p_model
-                else:
-                    p_model = p_market
-                    p_efectiva = p_market
-
-                roi = ((1.0 - p_market) / p_market) * 100.0
-                ev_ratio = p_efectiva * (1.0 / p_market) - 1.0
-                score = (p_efectiva * 100.0) + (ev_ratio * 25.0)
-
-                if score > mejor_score:
-                    mejor_score = score
-                    mejor_candidato_vela = (idx, opcion, p_market, p_model, p_efectiva, roi, ev_ratio)
-
-            if not mejor_candidato_vela:
-                continue
-
-            idx, mejor_opcion, p_market, p_model, p_efectiva, roi, ev_ratio = mejor_candidato_vela
-            prob_mostrar = round(max(p_efectiva, p_market) * 100, 1)
-
-            cumple_umbral = (prob_mostrar >= prob_min * 100) and (p_market <= prob_max)
-            if cumple_umbral or include_warming_up:
-                apr = (roi / dias_restantes) * 365
-                centavos = round(p_market * 100)
-                cobro_10 = round(10 * (1 + roi / 100), 2)
-                ganancia_10 = round(cobro_10 - 10, 2)
-
-                es_up = mejor_opcion.lower() == "up"
-                direccion_es = "SUBE (Up 📈)" if es_up else "BAJA (Down 📉)"
-                color_boton = "verde «Up»" if es_up else "rojo «Down»"
-
-                razon_analisis = btc_analysis["razones"] if btc_analysis else "Flujo de órdenes a favor"
-                como_ganas = (
-                    f"🏆 MEJOR DIRECCIÓN: {direccion_es}. "
-                    f"Ganas si al cerrar esta vela ({tiempo_corto}) el promedio de Bitcoin termina "
-                    f"{'ARRIBA' if es_up else 'ABAJO'} de su apertura. "
-                    f"📊 Motivo: {razon_analisis}."
+            if data:
+                op_15 = _procesar_evento_btc(
+                    data[0], true_ts, "BITCOIN 15 MIN", datos_15m,
+                    prob_min, prob_max, include_warming_up, min_secs_alert=120
                 )
-                instruccion_boton = (
-                    f"Entra al enlace y toca el botón {color_boton} que cuesta ~{centavos}¢ "
-                    f"(Probabilidad estimada: {prob_mostrar}% | Precio mercado: {centavos}¢)."
-                )
-
-                candidatos.append({
-                    "id": f"btc5m_{m.get('id')}_{idx}",
-                    "market_id": m.get("id"),
-                    "question": f"⚡ [BITCOIN 5 MIN - {etiqueta_vela}] {ev.get('title')}",
-                    "description": ev.get("description", ""),
-                    "resolution_source": "Chainlink BTC/USD TWAP + Algoritmo Técnico 1m/5m",
-                    "outcome": f"{mejor_opcion} ➔ {direccion_es}",
-                    "raw_outcome": mejor_opcion,
-                    "probability": prob_mostrar,
-                    "market_probability": round(p_market * 100, 1),
-                    "model_probability": round(p_model * 100, 1),
-                    "price": round(p_market, 4),
-                    "centavos": centavos,
-                    "roi": round(roi, 2),
-                    "ev_pct": round(ev_ratio * 100, 1),
-                    "days_left": round(dias_restantes, 3),
-                    "hours_left": round(s_left / 3600.0, 2),
-                    "seconds_left": s_left,
-                    "tiempo_exacto": tiempo_corto,
-                    "etiqueta_vela": etiqueta_vela,
-                    "es_btc_5m": True,
-                    "btc_live": btc_analysis,
-                    "apr": round(apr, 1),
-                    "volume_24h": round(vol, 2),
-                    "liquidity": round(liq, 2),
-                    "kelly_pct": 2.5,
-                    "como_ganas": como_ganas,
-                    "instruccion_boton": instruccion_boton,
-                    "cobro_10": cobro_10,
-                    "ganancia_10": ganancia_10,
-                    "es_spread": False,
-                    "slug": slug,
-                    "link": link,
-                    "image": ev.get("icon") or ev.get("image") or "",
-                    "cumple_70": cumple_umbral
-                })
+                if op_15:
+                    resultados.append(op_15)
         except Exception as e:
-            print(f"[Error escaneando BTC 5m]: {e}")
-            continue
+            print(f"[Error escaneando BTC 15m]: {e}")
 
-    candidatos.sort(key=lambda x: (x["cumple_70"], x["probability"], x["ev_pct"]), reverse=True)
+    # 2. Buscar mercado activo de BITCOIN 1 HORA (bitcoin-up-or-down-...-et)
+    try:
+        now_dt = datetime.fromtimestamp(true_ts, tz=timezone.utc)
+        min_d = now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        max_d = (now_dt + timedelta(hours=2, minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        url_1h = f"https://gamma-api.polymarket.com/events?limit=40&active=true&closed=false&end_date_min={min_d}&end_date_max={max_d}"
+        req_1h = urllib.request.Request(url_1h, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req_1h, timeout=8) as resp_1h:
+            evs_1h = json.loads(resp_1h.read().decode("utf-8"))
+
+        # Filtrar eventos horarios de Bitcoin Up or Down
+        btc_1h_events = [
+            e for e in evs_1h
+            if (e.get("slug", "").startswith("bitcoin-up-or-down-") or e.get("slug", "").startswith("btc-updown-1h-"))
+        ]
+        # Ordenar por fecha de cierre más próxima (la hora actual en curso)
+        btc_1h_events.sort(key=lambda e: e.get("endDate", ""))
+        for ev_h in btc_1h_events[:1]:
+            op_1h = _procesar_evento_btc(
+                ev_h, true_ts, "BITCOIN 1 HORA", datos_1h,
+                prob_min, prob_max, include_warming_up, min_secs_alert=300
+            )
+            if op_1h:
+                resultados.append(op_1h)
+    except Exception as e:
+        print(f"[Error escaneando BTC 1h]: {e}")
+
     if not include_warming_up:
-        return [c for c in candidatos if c["cumple_70"]]
-    return candidatos
+        return [r for r in resultados if r["cumple_70"]]
+    return resultados
 
 def generar_explicacion_simple(question, outcome, price, roi):
     q_clean = (question or "").strip()
@@ -385,7 +467,8 @@ def get_polymarket_opportunities(custom_filters=None):
     min_apr = custom_filters.get("min_apr", cfg.get("MIN_APR", 25.0)) if custom_filters else cfg.get("MIN_APR", 25.0)
     ocultar_spreads = custom_filters.get("hide_spreads", False) if custom_filters else False
 
-    oportunidades_btc_5m = get_btc_5m_opportunities(prob_min=prob_min, prob_max=prob_max, include_warming_up=True)
+    # 1. Obtener oportunidades de BITCOIN 15 MINUTOS y 1 HORA
+    oportunidades_btc = get_btc_5m_opportunities(prob_min=prob_min, prob_max=prob_max, include_warming_up=True)
 
     url = "https://gamma-api.polymarket.com/markets?limit=250&active=true&closed=false&order=volume24hr&ascending=false"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
@@ -395,7 +478,7 @@ def get_polymarket_opportunities(custom_filters=None):
             markets = json.loads(response.read().decode("utf-8"))
     except Exception as e:
         print(f"[Error de conexión con Polymarket API]: {e}")
-        return oportunidades_btc_5m
+        return oportunidades_btc
 
     ahora = datetime.now(timezone.utc)
     oportunidades = []
@@ -407,9 +490,9 @@ def get_polymarket_opportunities(custom_filters=None):
 
             question_text = m.get("question") or ""
             q_lower = question_text.lower()
-            m_slug = (m.get("slug") or "").lower()
 
-            if ("bitcoin" in q_lower or "btc" in q_lower) and ("btc-updown-5m" not in m_slug):
+            # Para Bitcoin, usamos exclusivamente nuestro motor de 15 Minutos y 1 Hora
+            if "bitcoin" in q_lower or "btc" in q_lower:
                 continue
 
             if ocultar_spreads and q_lower.startswith("spread:"):
@@ -503,4 +586,4 @@ def get_polymarket_opportunities(custom_filters=None):
             continue
 
     oportunidades.sort(key=lambda x: (not x["es_spread"], x["apr"]), reverse=True)
-    return oportunidades_btc_5m + oportunidades
+    return oportunidades_btc + oportunidades
