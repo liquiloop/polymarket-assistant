@@ -69,35 +69,36 @@ def format_opportunity_alert(op):
     if op.get("es_btc_5m"):
         tiempo_txt = op.get("tiempo_exacto", "pocos minutos")
         btc_live = op.get("btc_live")
-        etiqueta = op.get("etiqueta_vela", "EN VIVO")
+        etiqueta = op.get("etiqueta_vela", "BITCOIN")
         prob_modelo = op.get("model_probability", op.get("probability"))
+        doble_txt = "\n🔥 <b>¡DOBLE CONFIRMACIÓN! (15 Min y 1 Hora apuntan al mismo lado)</b>" if op.get("doble_confirmacion") else ""
         bloque_btc = ""
         if btc_live:
             diff = btc_live.get("diff_usd", 0)
             flecha = "📈 ARRIBA" if diff >= 0 else "📉 ABAJO"
             signo = "+" if diff >= 0 else ""
             bloque_btc = (
-                f"📊 <b>Análisis Técnico BTC en Vivo:</b>\n"
-                f"• Apertura vela 5m: <b>${btc_live['open_5m']:,.2f}</b>\n"
+                f"📊 <b>Análisis Técnico BTC ({etiqueta}):</b>\n"
+                f"• Apertura del periodo: <b>${btc_live['open_5m']:,.2f}</b>\n"
                 f"• Precio BTC actual: <b>${btc_live['current_btc']:,.2f}</b> ({signo}${diff:,.2f} {flecha})\n"
-                f"• Promedio TWAP 5m: <b>${btc_live['twap_btc']:,.2f}</b> | RSI: <b>{btc_live['rsi7']}</b>\n"
-                f"• Impulso 3 min: <b>${btc_live['mom_3m']:+.2f} USD</b>\n\n"
+                f"• Promedio TWAP: <b>${btc_live['twap_btc']:,.2f}</b> | RSI: <b>{btc_live['rsi7']}</b>\n"
+                f"• Impulso del periodo: <b>${btc_live['mom_3m']:+.2f} USD</b>\n\n"
             )
         return (
-            f"⚡ <b>MEJOR OPORTUNIDAD BITCOIN 5 MIN ({etiqueta})</b>\n\n"
-            f"📌 <b>Periodo:</b> {op['question']}\n"
+            f"⚡ <b>SEÑAL {etiqueta} ({op['probability']}% Confianza)</b>{doble_txt}\n\n"
+            f"📌 <b>Mercado:</b> {op['question']}\n"
             f"🏆 <b>Mejor Entrada:</b> <b>{op['outcome']}</b>\n"
             f"🧠 <b>Confianza del Algoritmo:</b> <b>{prob_modelo}%</b> (Botón cuesta <b>{centavos}¢</b>)\n"
-            f"⏱️ <b>Tiempo de cierre:</b> <b>{tiempo_txt}</b>\n\n"
+            f"⏱️ <b>Tiempo restante:</b> <b>{tiempo_txt}</b>\n\n"
             f"{bloque_btc}"
             f"🗣️ <b>¿Por qué es la mejor oportunidad?</b>\n"
             f"👉 {como_ganas}\n\n"
             f"👆 <b>¿Qué botón tocar en Polymarket?</b>\n"
             f"👉 {instruccion}\n\n"
-            f"💵 <b>Si metes $10 dólares a esta vela:</b>\n"
+            f"💵 <b>Si metes $10 dólares:</b>\n"
             f"• Inviertes: <b>$10.00</b>\n"
             f"• En <b>{tiempo_txt}</b> cobras: <b>${cobro_10:.2f}</b> (Ganas <b>+${ganancia_10:.2f} limpios</b>)\n\n"
-            f"🔗 <a href='{op['link']}'>👉 ENTRAR AHORA EN POLYMARKET</a>"
+            f"🔗 <a href='{op['link']}'>👉 ENTRAR EN POLYMARKET ({etiqueta})</a>"
         )
 
     tiempo_txt = f"{int(op['hours_left'])} horas" if op.get("days_left", 1) < 1 else f"{op['days_left']} días"
