@@ -491,7 +491,7 @@
         const ganancia10 = op.ganancia_10 || (cobro10 - 10).toFixed(2);
         const tiempoBadge = op.es_btc_5m 
           ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
-          : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`);
+          : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`));
         const catKey = op.categoria || (op.es_btc_5m ? 'btc' : 'otros');
         const estilo = estilosCategoria[catKey] || estilosCategoria.otros;
 
