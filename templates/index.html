@@ -168,6 +168,29 @@
           <input type="range" id="slider-apr" min="10" max="200" value="25" step="5" oninput="actualizarSlider('apr')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-blue-500 cursor-pointer">
         </div>
       </div>
+
+      <!-- LEYENDA DE COLORES Y FILTRO RÁPIDO POR CATEGORÍA -->
+      <div class="pt-3 border-t border-gray-800 flex flex-wrap items-center gap-2 text-xs">
+        <span class="text-gray-400 font-semibold mr-1">Color por Mercado:</span>
+        <button onclick="seleccionarCategoria('todos')" id="cat-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition">
+          🌐 Todos
+        </button>
+        <button onclick="seleccionarCategoria('btc')" id="cat-btc" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
+          🟠 ₿ Bitcoin (15m/1h)
+        </button>
+        <button onclick="seleccionarCategoria('oro')" id="cat-oro" class="px-3 py-1.5 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 text-yellow-300 font-bold hover:bg-yellow-400/25 transition">
+          🟡 🥇 Oro (Gold)
+        </button>
+        <button onclick="seleccionarCategoria('egames')" id="cat-egames" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-300 font-bold hover:bg-purple-500/25 transition">
+          🟣 🎮 eGames (Esports)
+        </button>
+        <button onclick="seleccionarCategoria('deportes')" id="cat-deportes" class="px-3 py-1.5 rounded-lg border-2 border-sky-500 bg-sky-500/15 text-sky-300 font-bold hover:bg-sky-500/25 transition">
+          🔵 ⚽ Deportes
+        </button>
+        <button onclick="seleccionarCategoria('otros')" id="cat-otros" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold hover:bg-emerald-500/25 transition">
+          🟢 🌍 Otros / Macro
+        </button>
+      </div>
     </div>
 
     <!-- LISTA DE OPORTUNIDADES -->
@@ -278,6 +301,31 @@
   <!-- SCRIPT CLIENTE -->
   <script>
     let todasLasOportunidades = [];
+    let categoriaActiva = 'todos';
+
+    function seleccionarCategoria(cat) {
+      categoriaActiva = cat;
+      // Limpiar texto del buscador si había "bitcoin" escrito antes para que no bloquee la categoría elegida
+      if (cat !== 'todos') {
+        document.getElementById('filtro-texto').value = '';
+      }
+      actualizarBotonesCategoria();
+      guardarFiltrosLocales();
+      renderizarTarjetas();
+    }
+
+    function actualizarBotonesCategoria() {
+      const cats = ['todos', 'btc', 'oro', 'egames', 'deportes', 'otros'];
+      cats.forEach(c => {
+        const el = document.getElementById('cat-' + c);
+        if (!el) return;
+        if (c === categoriaActiva) {
+          el.classList.add('ring-2', 'ring-white', 'scale-105');
+        } else {
+          el.classList.remove('ring-2', 'ring-white', 'scale-105');
+        }
+      });
+    }
 
     function actualizarSlider(tipo) {
       if (tipo === 'prob') document.getElementById('val-prob').innerText = document.getElementById('slider-prob').value + '%';
@@ -292,7 +340,8 @@
           dias: document.getElementById('slider-dias').value,
           apr: document.getElementById('slider-apr').value,
           bankroll: document.getElementById('user-bankroll').value,
-          texto: document.getElementById('filtro-texto').value
+          texto: document.getElementById('filtro-texto').value,
+          categoria: categoriaActiva
         };
         localStorage.setItem('polyedge_filtros_v1', JSON.stringify(estado));
       } catch (e) {}
@@ -319,7 +368,16 @@
           document.getElementById('user-bankroll').value = estado.bankroll;
         }
         if (typeof estado.texto === 'string') {
-          document.getElementById('filtro-texto').value = estado.texto;
+          // Si antes se había quedado escrito 'bitcoin', limpiarlo para que vea todos los colores
+          if (estado.texto.toLowerCase().trim() === 'bitcoin') {
+            document.getElementById('filtro-texto').value = '';
+          } else {
+            document.getElementById('filtro-texto').value = estado.texto;
+          }
+        }
+        if (estado.categoria) {
+          categoriaActiva = estado.categoria;
+          actualizarBotonesCategoria();
         }
       } catch (e) {}
     }
@@ -383,8 +441,11 @@
       const bankroll = parseFloat(document.getElementById('user-bankroll').value) || 1000;
 
       const filtradas = todasLasOportunidades.filter(o => {
+        if (categoriaActiva !== 'todos' && (o.categoria || 'otros') !== categoriaActiva) {
+          return false;
+        }
         if (!query) return true;
-        return o.question.toLowerCase().includes(query) || o.outcome.toLowerCase().includes(query);
+        return o.question.toLowerCase().includes(query) || o.outcome.toLowerCase().includes(query) || (o.categoria_label || '').toLowerCase().includes(query);
       });
 
       if (filtradas.length === 0) {
@@ -392,6 +453,34 @@
         noResults.classList.remove('hidden');
         return;
       }
+
+      const estilosCategoria = {
+        btc: {
+          border: 'border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.28)]',
+          badge: 'bg-orange-500/20 text-orange-300 border border-orange-500/50',
+          label: '🟠 ₿ BITCOIN'
+        },
+        oro: {
+          border: 'border-2 border-yellow-400 shadow-[0_0_18px_rgba(250,204,21,0.28)]',
+          badge: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50',
+          label: '🟡 🥇 ORO (GOLD)'
+        },
+        egames: {
+          border: 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.28)]',
+          badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/50',
+          label: '🟣 🎮 EGAMES'
+        },
+        deportes: {
+          border: 'border-2 border-sky-500 shadow-[0_0_14px_rgba(14,165,233,0.22)]',
+          badge: 'bg-sky-500/20 text-sky-300 border border-sky-500/50',
+          label: '🔵 ⚽ DEPORTES'
+        },
+        otros: {
+          border: 'border-2 border-emerald-500/75 shadow-[0_0_12px_rgba(16,185,129,0.18)]',
+          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
+          label: '🟢 🌍 MACRO / OTROS'
+        }
+      };
 
       noResults.classList.add('hidden');
       container.innerHTML = filtradas.map(op => {
@@ -403,18 +492,26 @@
         const tiempoBadge = op.es_btc_5m 
           ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
           : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`);
-        const borderClass = op.es_btc_5m ? 'border-amber-500/70 neon-glow' : 'border-gray-800';
+        const catKey = op.categoria || (op.es_btc_5m ? 'btc' : 'otros');
+        const estilo = estilosCategoria[catKey] || estilosCategoria.otros;
 
         return `
-          <div class="glass-card rounded-xl p-5 border ${borderClass} flex flex-col justify-between hover:border-emerald-500/50 transition duration-200">
+          <div class="glass-card rounded-xl p-5 ${estilo.border} flex flex-col justify-between transition duration-200">
             <div>
-              <!-- HEADER TARJETA -->
+              <!-- ETIQUETA DE COLOR POR MERCADO -->
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${estilo.badge}">
+                  ${op.categoria_label || estilo.label}
+                </span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded ${op.es_btc_5m ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40' : 'bg-gray-800 text-gray-300'}">
+                  ${tiempoBadge}
+                </span>
+              </div>
+
+              <!-- HEADER PROBABILIDAD -->
               <div class="flex items-start justify-between gap-3 mb-3">
                 <span class="text-xs font-bold px-2.5 py-1 rounded-md ${op.probability >= 70 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
-                  ${op.probability}% Probabilidad ${op.es_btc_5m && op.probability < 70 ? '(Calentando)' : ''}
-                </span>
-                <span class="text-xs font-semibold px-2 py-0.5 rounded ${op.es_btc_5m ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-gray-800 text-gray-300'}">
-                  ${tiempoBadge}
+                  ${op.probability}% Probabilidad ${op.probability < 70 ? '(En Vivo)' : ''}
                 </span>
               </div>
 
