@@ -39,6 +39,48 @@ def parse_polymarket_date(date_str):
     except Exception:
         return None
 
+def detectar_categoria(question, slug="", es_btc_5m=False):
+    """
+    Clasifica cada oportunidad en una categoría visual con su color de borde:
+    - 'btc': Naranja (Bitcoin 15m / 1h)
+    - 'oro': Color Oro / Dorado (Oro XAUUSD / Gold GC / Plata / Petróleo)
+    - 'egames': Morado Neón (Counter-Strike, Dota 2, LoL, Valorant, Esports)
+    - 'deportes': Azul Cielo (Fútbol, NBA, NFL, NHL, Tenis, UFC)
+    - 'otros': Verde Esmeralda (Política, FED, Economía, Geopolítica)
+    """
+    if es_btc_5m:
+        return "btc", "₿ BITCOIN"
+
+    q = (question or "").lower()
+    s = (slug or "").lower()
+    texto = f"{q} {s}"
+
+    # 1. Oro y Materias Primas
+    if (("gold" in q and "golden" not in q) or "xauusd" in texto or "gold (gc)" in q or "silver (si)" in q or "crude oil" in q or "wti" in q):
+        if "gold" in q or "xauusd" in texto:
+            return "oro", "🥇 ORO (GOLD)"
+        return "oro", "🛢️ MATERIAS PRIMAS"
+
+    # 2. eGames / Esports
+    egames_keywords = [
+        "counter-strike", "cs2", "cs:go", "dota 2", "dota2", "league of legends",
+        "valorant", "esports", "esport", "(bo3)", "(bo5)", "map 1 winner", "map 2 winner",
+        "map 3 winner", "game 1 winner", "game 2 winner", "game 3 winner", "pgl ", "dreamleague",
+        "blast ", "iem ", "lck ", "lpl ", "vct ", "1win essence", "tipsport"
+    ]
+    if any(k in texto for k in egames_keywords):
+        return "egames", "🎮 EGAMES"
+
+    # 3. Deportes tradicionales
+    sports_keywords = [
+        " vs. ", " vs ", "nba-", "nfl-", "nhl-", "mlb-", "atp-", "wta-", "ufc-", "unl-",
+        "epl-", "ucl-", "laliga", "serie-a", "bundesliga", "spread:", "win on 2026"
+    ]
+    if any(k in texto for k in sports_keywords):
+        return "deportes", "⚽ DEPORTES"
+
+    return "otros", "🌍 MACRO / OTROS"
+
 def _calc_ema(vals, span):
     if not vals:
         return 0.0
@@ -64,13 +106,6 @@ def _calc_rsi(vals, period=7):
     return 100.0 - (100.0 / (1.0 + rs))
 
 def analizar_btc_15m_y_1h(true_ts):
-    """
-    Analiza simultáneamente las temporalidades de 15 Minutos (15m) y 1 Hora (1h) de Bitcoin:
-    - Usa velas de 1m y 5m de BTC-USD en tiempo real.
-    - Calcula apertura, precio actual, TWAP (para 15m), distancia al cierre (para 1h),
-      EMA 5/12, RSI 7 e Impulso de 15m y 1h.
-    - Detecta si hay DOBLE CONFIRMACIÓN (cuando 15m y 1h apuntan hacia el mismo lado).
-    """
     try:
         req_1m = urllib.request.Request("https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60", headers={"User-Agent": "Mozilla/5.0"})
         req_5m = urllib.request.Request("https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=300", headers={"User-Agent": "Mozilla/5.0"})
@@ -116,7 +151,7 @@ def analizar_btc_15m_y_1h(true_ts):
 
         elapsed_15m = max(min(true_ts - slot_15m, 890), 0)
         prog_15m = elapsed_15m / 900.0
-        escala_15m = max(current_btc * 0.0008, 45.0) # ~50 USD movimiento típico en 15m
+        escala_15m = max(current_btc * 0.0008, 45.0)
 
         twap_score_15m = math.tanh((diff_twap_15m * 0.60 + diff_spot_15m * 0.40) / escala_15m)
         trend_score_15m = math.tanh(((ema5_5m - ema12_5m) * 0.6 + mom_15m * 0.4) / escala_15m)
@@ -140,9 +175,8 @@ def analizar_btc_15m_y_1h(true_ts):
 
         elapsed_1h = max(min(true_ts - slot_1h, 3590), 0)
         prog_1h = elapsed_1h / 3600.0
-        escala_1h = max(current_btc * 0.0015, 90.0) # ~100 USD movimiento típico en 1h
+        escala_1h = max(current_btc * 0.0015, 90.0)
 
-        # En 1H Polymarket resuelve por Close >= Open
         pos_score_1h = math.tanh(diff_spot_1h / escala_1h)
         trend_score_1h = math.tanh(((ema8_5m - ema21_5m) * 0.6 + mom_1h * 0.4) / escala_1h)
         raw_1h = pos_score_1h * (0.35 + 0.50 * prog_1h) + trend_score_1h * (0.65 - 0.50 * prog_1h)
@@ -152,7 +186,6 @@ def analizar_btc_15m_y_1h(true_ts):
         dir_1h = "UP" if prob_up_1h >= 0.5 else "DOWN"
         doble_confirmacion = (dir_15m == dir_1h)
 
-        # Bono de confianza cuando 15m y 1h están alineados en la misma dirección
         if doble_confirmacion:
             if dir_15m == "UP":
                 prob_up_15m = min(prob_up_15m + 0.03, 0.95)
@@ -202,7 +235,6 @@ def analizar_btc_15m_y_1h(true_ts):
         return None
 
 def _procesar_evento_btc(ev, true_ts, etiqueta_periodo, datos_tecnicos, prob_min, prob_max, include_warming_up, min_secs_alert):
-    """Construye la tarjeta de oportunidad para un evento de Bitcoin (15m o 1h)."""
     markets = ev.get("markets") or []
     if not markets:
         return None
@@ -240,22 +272,23 @@ def _procesar_evento_btc(ev, true_ts, etiqueta_periodo, datos_tecnicos, prob_min
 
     for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
         p_market = float(p_str)
-        if p_market <= 0.03 or p_market >= 0.96:
+        if not include_warming_up and (p_market <= 0.03 or p_market >= 0.96):
             continue
+        p_safe = max(min(p_market, 0.99), 0.01)
         es_up = opcion.lower() == "up"
         if datos_tecnicos:
             p_model = datos_tecnicos["prob_up_model"] if es_up else datos_tecnicos["prob_down_model"]
-            p_efectiva = max(p_market, p_model * 0.60 + p_market * 0.40)
+            p_efectiva = max(p_safe, p_model * 0.60 + p_safe * 0.40) if p_safe <= 0.95 else p_model
         else:
-            p_model = p_market
-            p_efectiva = p_market
+            p_model = p_safe
+            p_efectiva = p_safe
 
-        roi = ((1.0 - p_market) / p_market) * 100.0
-        ev_ratio = p_efectiva * (1.0 / p_market) - 1.0
+        roi = ((1.0 - p_safe) / p_safe) * 100.0
+        ev_ratio = p_efectiva * (1.0 / p_safe) - 1.0
         score = (p_efectiva * 100.0) + (ev_ratio * 25.0)
         if score > mejor_score:
             mejor_score = score
-            mejor_candidato = (idx, opcion, p_market, p_model, p_efectiva, roi, ev_ratio)
+            mejor_candidato = (idx, opcion, p_safe, p_model, p_efectiva, roi, ev_ratio)
 
     if not mejor_candidato:
         return None
@@ -279,10 +312,11 @@ def _procesar_evento_btc(ev, true_ts, etiqueta_periodo, datos_tecnicos, prob_min
     badge_doble = " 🔥 [DOBLE CONFIRMACIÓN 15M+1H]" if doble_conf else ""
 
     razon_analisis = datos_tecnicos["razones"] if datos_tecnicos else "Tendencia confirmada"
+    open_ref = datos_tecnicos["open_5m"] if datos_tecnicos else 0
     como_ganas = (
         f"🏆 MEJOR DIRECCIÓN: {direccion_es}{badge_doble}. "
         f"Ganas si al cerrar este periodo ({tiempo_corto}) Bitcoin termina "
-        f"{'ARRIBA' if es_up else 'ABAJO'} de su apertura (${datos_tecnicos['open_5m']:,.2f}). "
+        f"{'ARRIBA' if es_up else 'ABAJO'} de su apertura (${open_ref:,.2f}). "
         f"📊 {razon_analisis}."
     )
     instruccion_boton = (
@@ -311,6 +345,8 @@ def _procesar_evento_btc(ev, true_ts, etiqueta_periodo, datos_tecnicos, prob_min
         "tiempo_exacto": tiempo_corto,
         "etiqueta_vela": etiqueta_periodo + (" 🔥 ALINEADO" if doble_conf else ""),
         "es_btc_5m": True,
+        "categoria": "btc",
+        "categoria_label": "₿ BITCOIN",
         "doble_confirmacion": doble_conf,
         "btc_live": datos_tecnicos,
         "apr": round(apr, 1),
@@ -329,11 +365,6 @@ def _procesar_evento_btc(ev, true_ts, etiqueta_periodo, datos_tecnicos, prob_min
     }
 
 def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=False):
-    """
-    Escanea los mercados de BITCOIN 15 MINUTOS (15m) y BITCOIN 1 HORA (1h),
-    evaluando cuál dirección (SUBE o BAJA) tiene la mayor probabilidad real y
-    destacando cuando hay DOBLE CONFIRMACIÓN (15m y 1h alineados).
-    """
     true_ts = obtener_utc_real()
     analisis = analizar_btc_15m_y_1h(true_ts)
     datos_15m = analisis["15m"] if analisis else None
@@ -341,12 +372,9 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
 
     resultados = []
 
-    # 1. Buscar mercado activo de BITCOIN 15 MINUTOS (btc-updown-15m-{slot_15m})
+    # 1. BITCOIN 15 MINUTOS (btc-updown-15m-{slot_15m})
     slot_15m = (true_ts // 900) * 900
-    secs_left_15m = (slot_15m + 900) - true_ts
-    slots_15m = [slot_15m]
-    if secs_left_15m < 120 and include_warming_up:
-        slots_15m.append(slot_15m + 900)
+    slots_15m = [slot_15m, slot_15m + 900] if include_warming_up else [slot_15m]
 
     for s_15 in slots_15m:
         slug_15 = f"btc-updown-15m-{s_15}"
@@ -361,35 +389,34 @@ def get_btc_5m_opportunities(prob_min=0.70, prob_max=0.95, include_warming_up=Fa
                 )
                 if op_15:
                     resultados.append(op_15)
+                    break # Quedarnos con la primera vela de 15m activa válida
         except Exception as e:
             print(f"[Error escaneando BTC 15m]: {e}")
 
-    # 2. Buscar mercado activo de BITCOIN 1 HORA (bitcoin-up-or-down-...-et)
-    try:
-        now_dt = datetime.fromtimestamp(true_ts, tz=timezone.utc)
-        min_d = now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-        max_d = (now_dt + timedelta(hours=2, minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ")
-        url_1h = f"https://gamma-api.polymarket.com/events?limit=40&active=true&closed=false&end_date_min={min_d}&end_date_max={max_d}"
-        req_1h = urllib.request.Request(url_1h, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req_1h, timeout=8) as resp_1h:
-            evs_1h = json.loads(resp_1h.read().decode("utf-8"))
-
-        # Filtrar eventos horarios de Bitcoin Up or Down
-        btc_1h_events = [
-            e for e in evs_1h
-            if (e.get("slug", "").startswith("bitcoin-up-or-down-") or e.get("slug", "").startswith("btc-updown-1h-"))
-        ]
-        # Ordenar por fecha de cierre más próxima (la hora actual en curso)
-        btc_1h_events.sort(key=lambda e: e.get("endDate", ""))
-        for ev_h in btc_1h_events[:1]:
-            op_1h = _procesar_evento_btc(
-                ev_h, true_ts, "BITCOIN 1 HORA", datos_1h,
-                prob_min, prob_max, include_warming_up, min_secs_alert=300
-            )
-            if op_1h:
-                resultados.append(op_1h)
-    except Exception as e:
-        print(f"[Error escaneando BTC 1h]: {e}")
+    # 2. BITCOIN 1 HORA (construir el slug determinístico en hora ET: bitcoin-up-or-down-{mes}-{dia}-{año}-{hora}{am/pm}-et)
+    slot_1h = (true_ts // 3600) * 3600
+    for h_ts in [slot_1h, slot_1h + 3600]:
+        try:
+            et_dt = datetime.fromtimestamp(h_ts, tz=timezone(timedelta(hours=-5)))
+            mes = et_dt.strftime("%B").lower()
+            dia = et_dt.day
+            anio = et_dt.year
+            hora12 = et_dt.strftime("%I").lstrip("0")
+            ampm = et_dt.strftime("%p").lower()
+            slug_1h = f"bitcoin-up-or-down-{mes}-{dia}-{anio}-{hora12}{ampm}-et"
+            req_1h = urllib.request.Request(f"https://gamma-api.polymarket.com/events?slug={slug_1h}", headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req_1h, timeout=7) as resp_1h:
+                data_1h = json.loads(resp_1h.read().decode("utf-8"))
+            if data_1h:
+                op_1h = _procesar_evento_btc(
+                    data_1h[0], true_ts, "BITCOIN 1 HORA", datos_1h,
+                    prob_min, prob_max, include_warming_up, min_secs_alert=300
+                )
+                if op_1h:
+                    resultados.append(op_1h)
+                    break
+        except Exception as e:
+            print(f"[Error escaneando BTC 1h]: {e}")
 
     if not include_warming_up:
         return [r for r in resultados if r["cumple_70"]]
@@ -445,7 +472,7 @@ def generar_explicacion_simple(question, outcome, price, roi):
                 como_ganas = f"Ganas si NO ocurre esto: «{q_clean}»."
                 boton_txt = f"Toca el botón 'No' (el que cuesta ~{centavos}¢)."
     else:
-        como_ganas = f"¡Súper simple! Ganas si «{out_clean}» gana el partido o evento."
+        como_ganas = f"¡Súper simple! Ganas si «{out_clean}» gana el partido o la partida."
         boton_txt = f"Toca directamente el botón con el nombre «{out_clean}» (el que cuesta ~{centavos}¢)."
 
     return {
@@ -470,38 +497,67 @@ def get_polymarket_opportunities(custom_filters=None):
     # 1. Obtener oportunidades de BITCOIN 15 MINUTOS y 1 HORA
     oportunidades_btc = get_btc_5m_opportunities(prob_min=prob_min, prob_max=prob_max, include_warming_up=True)
 
-    url = "https://gamma-api.polymarket.com/markets?limit=250&active=true&closed=false&order=volume24hr&ascending=false"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-    
-    try:
-        with urllib.request.urlopen(req, timeout=12) as response:
-            markets = json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        print(f"[Error de conexión con Polymarket API]: {e}")
-        return oportunidades_btc
+    # 2. Escanear top 500 mercados + eventos de Oro (XAUUSD / GC) y Petróleo (WTI)
+    markets = []
+    for offset in [0, 250]:
+        url = f"https://gamma-api.polymarket.com/markets?limit=250&offset={offset}&active=true&closed=false&order=volume24hr&ascending=false"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                markets.extend(json.loads(response.read().decode("utf-8")))
+        except Exception as e:
+            print(f"[Error de conexión con Polymarket API offset {offset}]: {e}")
+
+    # Incluir directamente los eventos oficiales de Oro (XAUUSD noviembre y Gold GC diciembre)
+    for g_slug in ["what-price-will-xauusd-hit-in-november-2026", "what-will-gold-gc-hit-by-end-of-december"]:
+        try:
+            r_g = urllib.request.Request(f"https://gamma-api.polymarket.com/events?slug={g_slug}", headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(r_g, timeout=5) as resp_g:
+                ev_g = json.loads(resp_g.read().decode("utf-8"))
+                if ev_g and ev_g[0].get("markets"):
+                    for mg in ev_g[0]["markets"]:
+                        mg["events"] = [{"slug": ev_g[0].get("slug")}]
+                        if not mg.get("endDate"):
+                            mg["endDate"] = ev_g[0].get("endDate")
+                        markets.append(mg)
+        except Exception:
+            pass
 
     ahora = datetime.now(timezone.utc)
     oportunidades = []
+    vistos_ids = set()
 
     for m in markets:
         try:
-            if m.get("acceptingOrders") is False:
+            m_id = m.get("id")
+            if m_id in vistos_ids:
+                continue
+            vistos_ids.add(m_id)
+
+            if m.get("acceptingOrders") is False or m.get("closed") is True:
                 continue
 
             question_text = m.get("question") or ""
             q_lower = question_text.lower()
 
-            # Para Bitcoin, usamos exclusivamente nuestro motor de 15 Minutos y 1 Hora
             if "bitcoin" in q_lower or "btc" in q_lower:
                 continue
 
             if ocultar_spreads and q_lower.startswith("spread:"):
                 continue
 
+            events_list = m.get("events") or []
+            event_slug = events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None
+            market_slug = m.get("slug") or ""
+            canonical_slug = event_slug or market_slug
+
+            cat_key, cat_label = detectar_categoria(question_text, canonical_slug, es_btc_5m=False)
+
             vol_24h = float(m.get("volume24hr") or m.get("volumeNum") or 0)
             liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
 
-            if vol_24h < min_vol or liq < min_liq:
+            min_v_req = 100 if cat_key == "oro" else min_vol
+            if vol_24h < min_v_req or liq < min_liq:
                 continue
 
             raw_prices = m.get("outcomePrices")
@@ -529,23 +585,21 @@ def get_polymarket_opportunities(custom_filters=None):
 
             dias_restantes = max(segundos / 86400, 0.04)
 
-            if dias_restantes > max_days:
+            max_d_req = max(max_days, 50) if cat_key == "oro" else max_days
+            if dias_restantes > max_d_req:
                 continue
-
-            events_list = m.get("events") or []
-            event_slug = events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None
-            market_slug = m.get("slug") or ""
-            canonical_slug = event_slug or market_slug
 
             link = f"https://polymarket.com/event/{canonical_slug}" if canonical_slug else "https://polymarket.com"
 
             for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
                 p = float(p_str)
-                if prob_min <= p <= prob_max:
+                prob_min_cat = min(prob_min, 0.55) if cat_key == "egames" else prob_min
+                if prob_min_cat <= p <= prob_max:
                     roi = ((1.0 - p) / p) * 100
                     apr = (roi / dias_restantes) * 365
 
-                    if apr < min_apr:
+                    min_apr_req = 10.0 if cat_key in ["oro", "egames"] else min_apr
+                    if apr < min_apr_req:
                         continue
 
                     p_est = min(p + 0.02, 0.99)
@@ -569,6 +623,8 @@ def get_polymarket_opportunities(custom_filters=None):
                         "days_left": round(dias_restantes, 1),
                         "hours_left": max(round(dias_restantes * 24, 0), 1),
                         "es_btc_5m": False,
+                        "categoria": cat_key,
+                        "categoria_label": cat_label,
                         "apr": round(apr, 1),
                         "volume_24h": round(vol_24h, 2),
                         "liquidity": round(liq, 2),
