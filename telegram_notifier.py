@@ -102,9 +102,10 @@ def format_opportunity_alert(op):
         )
 
     tiempo_txt = f"{int(op['hours_left'])} horas" if op.get("days_left", 1) < 1 else f"{op['days_left']} días"
+    cat_label = op.get("categoria_label", "POLYMARKET")
 
     texto = (
-        f"🎯 <b>SEÑAL FÁCIL POLYMARKET ({op['probability']}% Probabilidad)</b>\n\n"
+        f"🎯 <b>SEÑAL {cat_label} ({op['probability']}% Probabilidad)</b>\n\n"
         f"📌 <b>Evento:</b> {op['question']}\n\n"
         f"🗣️ <b>¿Cómo ganas esta apuesta?</b>\n"
         f"👉 {como_ganas}\n\n"
