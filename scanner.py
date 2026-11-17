@@ -571,7 +571,7 @@ def get_polymarket_opportunities(custom_filters=None):
             if len(precios) != len(opciones):
                 continue
 
-            end_date_str = m.get("endDateIso") or m.get("endDate")
+            end_date_str = m.get("endDate") or m.get("endDateIso")
             if not end_date_str:
                 continue
 
@@ -582,6 +582,16 @@ def get_polymarket_opportunities(custom_filters=None):
             segundos = (end_date - ahora).total_seconds()
             if segundos <= 0:
                 continue
+
+            # Verificar si el partido/partida ya comenzó en vivo (gameStartTime)
+            en_vivo_ahora = False
+            game_start_str = m.get("gameStartTime")
+            if game_start_str:
+                gs_dt = parse_polymarket_date(game_start_str.replace(" ", "T"))
+                if gs_dt and gs_dt <= ahora:
+                    en_vivo_ahora = True
+                    # Si ya está en vivo, una partida BO3 o partido suele resolverse en ~1 a 2 horas
+                    segundos = min(segundos, 5400)
 
             dias_restantes = max(segundos / 86400, 0.04)
 
@@ -622,6 +632,7 @@ def get_polymarket_opportunities(custom_filters=None):
                         "roi": round(roi, 2),
                         "days_left": round(dias_restantes, 1),
                         "hours_left": max(round(dias_restantes * 24, 0), 1),
+                        "en_vivo_ahora": en_vivo_ahora,
                         "es_btc_5m": False,
                         "categoria": cat_key,
                         "categoria_label": cat_label,
