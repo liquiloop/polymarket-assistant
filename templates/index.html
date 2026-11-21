@@ -175,20 +175,26 @@
         <button onclick="seleccionarCategoria('todos')" id="cat-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition">
           🌐 Todos
         </button>
-        <button onclick="seleccionarCategoria('btc')" id="cat-btc" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
-          🟠 ₿ Bitcoin (15m/1h)
+        <button onclick="seleccionarCategoria('basket')" id="cat-basket" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
+          🟠 🏀 Basket (O/U)
+        </button>
+        <button onclick="seleccionarCategoria('hockey')" id="cat-hockey" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-300 font-bold hover:bg-cyan-400/25 transition">
+          🩵 🏒 Hockey (O/U)
+        </button>
+        <button onclick="seleccionarCategoria('nfl')" id="cat-nfl" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold hover:bg-emerald-500/25 transition">
+          🟢 🏈 NFL (O/U)
+        </button>
+        <button onclick="seleccionarCategoria('voleibol')" id="cat-voleibol" class="px-3 py-1.5 rounded-lg border-2 border-pink-500 bg-pink-500/15 text-pink-300 font-bold hover:bg-pink-500/25 transition">
+          🌸 🏐 Voleibol (O/U)
         </button>
         <button onclick="seleccionarCategoria('oro')" id="cat-oro" class="px-3 py-1.5 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 text-yellow-300 font-bold hover:bg-yellow-400/25 transition">
           🟡 🥇 Oro (Gold)
         </button>
         <button onclick="seleccionarCategoria('egames')" id="cat-egames" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-300 font-bold hover:bg-purple-500/25 transition">
-          🟣 🎮 eGames (Esports)
+          🟣 🎮 eGames
         </button>
-        <button onclick="seleccionarCategoria('deportes')" id="cat-deportes" class="px-3 py-1.5 rounded-lg border-2 border-sky-500 bg-sky-500/15 text-sky-300 font-bold hover:bg-sky-500/25 transition">
-          🔵 ⚽ Deportes
-        </button>
-        <button onclick="seleccionarCategoria('otros')" id="cat-otros" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold hover:bg-emerald-500/25 transition">
-          🟢 🌍 Otros / Macro
+        <button onclick="seleccionarCategoria('otros')" id="cat-otros" class="px-3 py-1.5 rounded-lg border-2 border-sky-500 bg-sky-500/15 text-sky-300 font-bold hover:bg-sky-500/25 transition">
+          🔵 ⚽ Otros / Macro
         </button>
       </div>
     </div>
@@ -315,7 +321,7 @@
     }
 
     function actualizarBotonesCategoria() {
-      const cats = ['todos', 'btc', 'oro', 'egames', 'deportes', 'otros'];
+      const cats = ['todos', 'basket', 'hockey', 'nfl', 'voleibol', 'oro', 'egames', 'otros'];
       cats.forEach(c => {
         const el = document.getElementById('cat-' + c);
         if (!el) return;
@@ -376,7 +382,11 @@
           }
         }
         if (estado.categoria) {
-          categoriaActiva = estado.categoria;
+          if (estado.categoria === 'btc' || estado.categoria === 'deportes') {
+            categoriaActiva = 'todos';
+          } else {
+            categoriaActiva = estado.categoria;
+          }
           actualizarBotonesCategoria();
         }
       } catch (e) {}
@@ -455,10 +465,25 @@
       }
 
       const estilosCategoria = {
-        btc: {
+        basket: {
           border: 'border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.28)]',
           badge: 'bg-orange-500/20 text-orange-300 border border-orange-500/50',
-          label: '🟠 ₿ BITCOIN'
+          label: '🟠 🏀 BASKET (O/U)'
+        },
+        hockey: {
+          border: 'border-2 border-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.28)]',
+          badge: 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/50',
+          label: '🩵 🏒 HOCKEY (O/U)'
+        },
+        nfl: {
+          border: 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.28)]',
+          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50',
+          label: '🟢 🏈 NFL (O/U)'
+        },
+        voleibol: {
+          border: 'border-2 border-pink-500 shadow-[0_0_18px_rgba(236,72,153,0.28)]',
+          badge: 'bg-pink-500/20 text-pink-300 border border-pink-500/50',
+          label: '🌸 🏐 VOLEIBOL (O/U)'
         },
         oro: {
           border: 'border-2 border-yellow-400 shadow-[0_0_18px_rgba(250,204,21,0.28)]',
@@ -470,15 +495,10 @@
           badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/50',
           label: '🟣 🎮 EGAMES'
         },
-        deportes: {
-          border: 'border-2 border-sky-500 shadow-[0_0_14px_rgba(14,165,233,0.22)]',
-          badge: 'bg-sky-500/20 text-sky-300 border border-sky-500/50',
-          label: '🔵 ⚽ DEPORTES'
-        },
         otros: {
-          border: 'border-2 border-emerald-500/75 shadow-[0_0_12px_rgba(16,185,129,0.18)]',
-          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
-          label: '🟢 🌍 MACRO / OTROS'
+          border: 'border-2 border-sky-500/80 shadow-[0_0_14px_rgba(14,165,233,0.20)]',
+          badge: 'bg-sky-500/20 text-sky-300 border border-sky-500/40',
+          label: '🔵 ⚽ OTROS / MACRO'
         }
       };
 
