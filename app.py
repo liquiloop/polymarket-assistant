@@ -126,6 +126,79 @@ def api_send_opportunity():
     ok, status = send_telegram_message(msg)
     return jsonify({"ok": ok, "message": status})
 
+@app.route("/api/check-pinned", methods=["POST"])
+def api_check_pinned():
+    """
+    Recibe una lista de oportunidades fijadas por el usuario (con el switch activo)
+    y consulta directamente en Polymarket el precio actual y si ya ganaron (WIN).
+    """
+    import urllib.request
+    import json
+    from concurrent.futures import ThreadPoolExecutor
+
+    data = request.get_json() or {}
+    items = data.get("items") or []
+    if not items:
+        return jsonify({"success": True, "updates": {}})
+
+    def _check_one(item):
+        op_id = item.get("id")
+        market_id = item.get("market_id")
+        target_outcome = (item.get("outcome") or "").strip().lower()
+        if not op_id or not market_id:
+            return op_id, None
+        try:
+            url = f"https://gamma-api.polymarket.com/markets/{market_id}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                m = json.loads(resp.read().decode("utf-8"))
+            raw_prices = m.get("outcomePrices")
+            raw_outcomes = m.get("outcomes")
+            precios = json.loads(raw_prices) if isinstance(raw_prices, str) else (raw_prices or [])
+            opciones = json.loads(raw_outcomes) if isinstance(raw_outcomes, str) else (raw_outcomes or [])
+
+            current_price = None
+            for op_name, p_str in zip(opciones, precios):
+                if str(op_name).strip().lower() == target_outcome:
+                    current_price = float(p_str)
+                    break
+
+            if current_price is None and "_" in str(op_id):
+                try:
+                    idx = int(str(op_id).split("_")[-1])
+                    if 0 <= idx < len(precios):
+                        current_price = float(precios[idx])
+                except Exception:
+                    pass
+
+            if current_price is None:
+                return op_id, None
+
+            closed = bool(m.get("closed"))
+            estado = "EN_JUEGO"
+            if current_price >= 0.985 or (closed and current_price >= 0.90):
+                estado = "WIN"
+            elif current_price <= 0.015 or (closed and current_price <= 0.10):
+                estado = "LOSS"
+
+            return op_id, {
+                "current_price": round(current_price, 4),
+                "current_centavos": round(current_price * 100, 1),
+                "current_probability": round(current_price * 100, 1),
+                "closed": closed,
+                "estado_resultado": estado
+            }
+        except Exception:
+            return op_id, None
+
+    updates = {}
+    with ThreadPoolExecutor(max_workers=6) as executor:
+        for op_id, res in executor.map(_check_one, items[:30]):
+            if op_id and res:
+                updates[op_id] = res
+
+    return jsonify({"success": True, "updates": updates})
+
 @app.route("/api/detect-telegram-chat", methods=["POST"])
 def api_detect_telegram_chat():
     import urllib.request
