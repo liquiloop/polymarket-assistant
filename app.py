@@ -9,7 +9,7 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from config import load_config, save_config
-from scanner import get_polymarket_opportunities, get_btc_5m_opportunities
+from scanner import get_polymarket_opportunities
 from ai_analyst import analizar_oportunidad
 from telegram_notifier import send_telegram_message, check_and_notify_opportunities, format_opportunity_alert
 
@@ -20,9 +20,8 @@ _worker_started = False
 _worker_lock = threading.Lock()
 
 def background_scanner_worker():
-    print("[*] Servicio de escaneo rápido (Bitcoin 5m + Mercados) ACTIVO...")
+    print("[*] Servicio de escaneo automático (Basket, Hockey, NFL, Voleibol O/U) ACTIVO...")
     time.sleep(5)
-    last_general_scan = 0
     while True:
         try:
             cfg = load_config()
@@ -31,29 +30,18 @@ def background_scanner_worker():
             chat_id = os.environ.get("TELEGRAM_CHAT_ID") or cfg.get("TELEGRAM_CHAT_ID", "").strip()
 
             if token and chat_id:
-                # 1. Escaneo ultrarrápido de BITCOIN 5 MINUTOS (cada 25 segundos)
                 prob_min = float(cfg.get("MIN_PROBABILITY", 0.70))
-                btc_ops = get_btc_5m_opportunities(prob_min=prob_min, prob_max=0.95, include_warming_up=False)
-                if btc_ops:
-                    notified_btc = check_and_notify_opportunities(btc_ops)
-                    if notified_btc > 0:
-                        print(f"[+] [BTC 5m] Se enviaron {notified_btc} señales de Bitcoin 5 min a Telegram.")
+                ops = get_polymarket_opportunities()
+                # Filtrar solo las que ya cumplan >= prob_min para enviar a Telegram
+                valid_ops = [o for o in ops if o.get("probability", 0) >= prob_min * 100]
+                notified = check_and_notify_opportunities(valid_ops[:15])
+                if notified > 0:
+                    print(f"[+] Se enviaron {notified} alertas nuevas a Telegram.")
 
-                # 2. Escaneo de mercados generales (cada 15 minutos)
-                now = time.time()
-                if now - last_general_scan >= general_interval:
-                    last_general_scan = now
-                    ops = get_polymarket_opportunities()
-                    # Filtrar solo las que ya cumplan >= prob_min
-                    valid_ops = [o for o in ops if o.get("probability", 0) >= prob_min * 100]
-                    notified = check_and_notify_opportunities(valid_ops)
-                    if notified > 0:
-                        print(f"[+] [General] Se enviaron {notified} alertas nuevas a Telegram.")
-
-            time.sleep(25)
+            time.sleep(general_interval)
         except Exception as e:
             print(f"[!] Error en escáner de segundo plano: {e}")
-            time.sleep(25)
+            time.sleep(60)
 
 def start_background_thread():
     global _worker_started
