@@ -175,6 +175,9 @@
         <button onclick="seleccionarCategoria('todos')" id="cat-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition">
           🌐 Todos
         </button>
+        <button onclick="seleccionarCategoria('fijadas')" id="cat-fijadas" class="px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-400/15 text-amber-300 font-bold hover:bg-amber-400/25 transition">
+          📌 Mis Fijadas (<span id="count-fijadas">0</span>)
+        </button>
         <button onclick="seleccionarCategoria('basket')" id="cat-basket" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
           🟠 🏀 Basket (O/U)
         </button>
@@ -308,11 +311,94 @@
   <script>
     let todasLasOportunidades = [];
     let categoriaActiva = 'todos';
+    let tarjetasFijadas = {}; // Mapa id -> objeto oportunidad fijada
+
+    function cargarFijadasLocales() {
+      try {
+        const raw = localStorage.getItem('polyedge_fijadas_v1');
+        if (raw) {
+          tarjetasFijadas = JSON.parse(raw) || {};
+        }
+      } catch (e) {
+        tarjetasFijadas = {};
+      }
+      actualizarContadorFijadas();
+    }
+
+    function guardarFijadasLocales() {
+      try {
+        localStorage.setItem('polyedge_fijadas_v1', JSON.stringify(tarjetasFijadas));
+      } catch (e) {}
+      actualizarContadorFijadas();
+    }
+
+    function actualizarContadorFijadas() {
+      const el = document.getElementById('count-fijadas');
+      if (el) el.innerText = Object.keys(tarjetasFijadas).length;
+    }
+
+    function toggleSwitchFijar(opId) {
+      if (tarjetasFijadas[opId]) {
+        // Si estaba activado el switch y lo apaga, se quita de las fijadas
+        delete tarjetasFijadas[opId];
+        guardarFijadasLocales();
+        renderizarTarjetas();
+      } else {
+        // Buscar la tarjeta en las oportunidades actuales y fijarla
+        const encontrada = todasLasOportunidades.find(o => o.id === opId);
+        if (encontrada) {
+          const copia = JSON.parse(JSON.stringify(encontrada));
+          copia.entry_centavos = copia.centavos || Math.round(copia.price * 100);
+          copia.fijada_ts = Date.now();
+          copia.estado_resultado = copia.probability >= 98.5 ? 'WIN' : 'EN_JUEGO';
+          tarjetasFijadas[opId] = copia;
+          guardarFijadasLocales();
+          renderizarTarjetas();
+          verificarEstadoFijadas();
+        }
+      }
+    }
+
+    async function verificarEstadoFijadas() {
+      const ids = Object.keys(tarjetasFijadas);
+      if (ids.length === 0) return;
+      const items = ids.map(id => ({
+        id: id,
+        market_id: tarjetasFijadas[id].market_id,
+        outcome: tarjetasFijadas[id].outcome
+      }));
+      try {
+        const resp = await fetch('/api/check-pinned', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({items})
+        });
+        const data = await resp.json();
+        if (data.success && data.updates) {
+          let huboCambio = false;
+          for (const [id, info] of Object.entries(data.updates)) {
+            if (tarjetasFijadas[id]) {
+              tarjetasFijadas[id].price = info.current_price;
+              tarjetasFijadas[id].centavos = Math.round(info.current_centavos);
+              tarjetasFijadas[id].probability = info.current_probability;
+              tarjetasFijadas[id].estado_resultado = info.estado_resultado;
+              tarjetasFijadas[id].closed = info.closed;
+              huboCambio = true;
+            }
+          }
+          if (huboCambio) {
+            guardarFijadasLocales();
+            renderizarTarjetas();
+          }
+        }
+      } catch (e) {
+        console.error("Error verificando fijadas:", e);
+      }
+    }
 
     function seleccionarCategoria(cat) {
       categoriaActiva = cat;
-      // Limpiar texto del buscador si había "bitcoin" escrito antes para que no bloquee la categoría elegida
-      if (cat !== 'todos') {
+      if (cat !== 'todos' && cat !== 'fijadas') {
         document.getElementById('filtro-texto').value = '';
       }
       actualizarBotonesCategoria();
@@ -321,7 +407,7 @@
     }
 
     function actualizarBotonesCategoria() {
-      const cats = ['todos', 'basket', 'hockey', 'nfl', 'voleibol', 'oro', 'egames', 'otros'];
+      const cats = ['todos', 'fijadas', 'basket', 'hockey', 'nfl', 'voleibol', 'oro', 'egames', 'otros'];
       cats.forEach(c => {
         const el = document.getElementById('cat-' + c);
         if (!el) return;
@@ -413,6 +499,7 @@
         const resp = await fetch(`/api/opportunities?prob_min=${pMin}&max_days=${dMax}&min_apr=${aMin}`);
         const data = await resp.json();
         todasLasOportunidades = data.opportunities || [];
+        await verificarEstadoFijadas();
         actualizarStats(todasLasOportunidades);
         renderizarTarjetas();
       } catch (err) {
@@ -450,7 +537,37 @@
       const query = document.getElementById('filtro-texto').value.toLowerCase().trim();
       const bankroll = parseFloat(document.getElementById('user-bankroll').value) || 1000;
 
-      const filtradas = todasLasOportunidades.filter(o => {
+      // Combinar las tarjetas fijadas (con el switch activo) + las oportunidades del escáner sin duplicar
+      const listaCombinada = [];
+      const idsIncluidos = new Set();
+
+      // 1. Poner primero todas las tarjetas que el usuario tiene fijadas con el switch
+      Object.values(tarjetasFijadas).forEach(fijada => {
+        // Si también viene en el escáner vivo, actualizar datos pero conservar estado_resultado y entry_centavos
+        const enVivo = todasLasOportunidades.find(o => o.id === fijada.id);
+        if (enVivo && fijada.estado_resultado !== 'WIN' && fijada.estado_resultado !== 'LOSS') {
+          fijada.price = enVivo.price;
+          fijada.centavos = enVivo.centavos;
+          fijada.probability = enVivo.probability;
+          if (fijada.probability >= 98.5) fijada.estado_resultado = 'WIN';
+        }
+        listaCombinada.push(fijada);
+        idsIncluidos.add(fijada.id);
+      });
+
+      // 2. Agregar el resto de oportunidades del escáner
+      todasLasOportunidades.forEach(op => {
+        if (!idsIncluidos.has(op.id)) {
+          listaCombinada.push(op);
+          idsIncluidos.add(op.id);
+        }
+      });
+
+      const filtradas = listaCombinada.filter(o => {
+        const estaFijada = Boolean(tarjetasFijadas[o.id]);
+        if (categoriaActiva === 'fijadas') {
+          return estaFijada;
+        }
         if (categoriaActiva !== 'todos' && (o.categoria || 'otros') !== categoriaActiva) {
           return false;
         }
@@ -504,34 +621,74 @@
 
       noResults.classList.add('hidden');
       container.innerHTML = filtradas.map(op => {
-        const apuestaSugeridaUSD = ((op.kelly_pct / 100) * bankroll).toFixed(1);
-        const gananciaEstimadaUSD = (apuestaSugeridaUSD * (op.roi / 100)).toFixed(1);
+        const estaFijada = Boolean(tarjetasFijadas[op.id]);
+        const estadoRes = estaFijada ? (tarjetasFijadas[op.id].estado_resultado || 'EN_JUEGO') : null;
+        const entryCentavos = estaFijada ? (tarjetasFijadas[op.id].entry_centavos || op.centavos) : null;
         const centavos = op.centavos || Math.round(op.price * 100);
         const cobro10 = op.cobro_10 || (10 * (1 + op.roi / 100)).toFixed(2);
         const ganancia10 = op.ganancia_10 || (cobro10 - 10).toFixed(2);
         const tiempoBadge = op.es_btc_5m 
           ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
           : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`));
-        const catKey = op.categoria || (op.es_btc_5m ? 'btc' : 'otros');
+        const catKey = op.categoria || 'otros';
         const estilo = estilosCategoria[catKey] || estilosCategoria.otros;
+
+        // Banner especial cuando el switch está activo y el resultado es WIN o está en seguimiento
+        let bannerResultado = '';
+        if (estaFijada) {
+          if (estadoRes === 'WIN' || op.probability >= 98.5) {
+            bannerResultado = `
+              <div class="mb-3 p-3 rounded-xl bg-gradient-to-r from-emerald-600/40 to-teal-500/40 border-2 border-emerald-400 text-center shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse">
+                <div class="text-base font-black text-emerald-300 tracking-wide">🏆 ¡WIN! — RESULTADO A FAVOR</div>
+                <div class="text-xs text-white mt-0.5">Entraste a <b>${entryCentavos}¢</b> ➔ Pagó <b>100¢ ($1.00)</b> · Apaga el switch arriba para quitarla</div>
+              </div>
+            `;
+          } else if (estadoRes === 'LOSS') {
+            bannerResultado = `
+              <div class="mb-3 p-2.5 rounded-xl bg-red-950/60 border border-red-500 text-center">
+                <div class="text-sm font-bold text-red-300">❌ Resultado en contra (Cerrado)</div>
+                <div class="text-[11px] text-gray-300">Apaga el switch arriba para quitarla de tu lista</div>
+              </div>
+            `;
+          } else {
+            const diffCents = centavos - entryCentavos;
+            const diffTxt = diffCents > 0 ? `<span class="text-emerald-400 font-bold">(+${diffCents}¢ a tu favor 📈)</span>` : (diffCents < 0 ? `<span class="text-amber-400">(${diffCents}¢)</span>` : `<span class="text-gray-400">(Sin cambio)</span>`);
+            bannerResultado = `
+              <div class="mb-3 p-2 rounded-lg bg-amber-500/15 border border-amber-400/50 flex items-center justify-between text-xs">
+                <span class="text-amber-300 font-bold">📌 Fijada en seguimiento</span>
+                <span class="text-gray-200">Fijada a <b>${entryCentavos}¢</b> ➔ Ahora: <b>${centavos}¢</b> ${diffTxt}</span>
+              </div>
+            `;
+          }
+        }
 
         return `
           <div class="glass-card rounded-xl p-5 ${estilo.border} flex flex-col justify-between transition duration-200">
             <div>
-              <!-- ETIQUETA DE COLOR POR MERCADO -->
-              <div class="flex items-center justify-between gap-2 mb-2">
+              <!-- ETIQUETA DE COLOR + SWITCH FIJAR -->
+              <div class="flex items-center justify-between gap-2 mb-2.5">
                 <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${estilo.badge}">
                   ${op.categoria_label || estilo.label}
                 </span>
-                <span class="text-xs font-semibold px-2 py-0.5 rounded ${op.es_btc_5m ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40' : 'bg-gray-800 text-gray-300'}">
-                  ${tiempoBadge}
-                </span>
+
+                <!-- SWITCH INTERACTIVO PARA FIJAR / QUITAR DE LA LISTA -->
+                <button onclick="toggleSwitchFijar('${op.id}')" class="flex items-center gap-2 px-2.5 py-1 rounded-full border transition cursor-pointer ${estaFijada ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200' : 'bg-gray-800/90 border-gray-700 text-gray-400 hover:border-gray-500'}" title="Activa el switch para no quitarla de la lista hasta que veas si es WIN">
+                  <span class="text-[11px] font-bold">${estaFijada ? (estadoRes === 'WIN' || op.probability >= 98.5 ? '🏆 WIN (Fijada)' : '📌 Fijada') : 'Fijar'}</span>
+                  <div class="w-8 h-4 rounded-full relative transition ${estaFijada ? 'bg-emerald-500' : 'bg-gray-600'}">
+                    <div class="w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${estaFijada ? 'right-0.5' : 'left-0.5'}"></div>
+                  </div>
+                </button>
               </div>
 
-              <!-- HEADER PROBABILIDAD -->
-              <div class="flex items-start justify-between gap-3 mb-3">
+              ${bannerResultado}
+
+              <!-- HEADER PROBABILIDAD Y TIEMPO -->
+              <div class="flex items-center justify-between gap-2 mb-3">
                 <span class="text-xs font-bold px-2.5 py-1 rounded-md ${op.probability >= 70 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
                   ${op.probability}% Probabilidad ${op.probability < 70 ? '(En Vivo)' : ''}
+                </span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">
+                  ${tiempoBadge}
                 </span>
               </div>
 
@@ -734,6 +891,7 @@
 
     // Inicializar al cargar
     document.addEventListener('DOMContentLoaded', () => {
+      cargarFijadasLocales();
       cargarFiltrosLocales();
       escanearMercados(false);
       // Auto-refresco cada 25 segundos para mantener la señal firme sin cambios bruscos
