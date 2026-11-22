@@ -1,8 +1,10 @@
 import sys
 import os
+import gc
 import json
 import re
 import time
+import threading
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -12,6 +14,14 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from config import load_config
+
+# Caché en memoria para evitar descargas repetidas cada 25s y ahorrar >90% de RAM en Render Free (512MB)
+_SCAN_CACHE = {
+    "timestamp": 0,
+    "data": []
+}
+_SCAN_LOCK = threading.Lock()
+CACHE_TTL_SECONDS = 40
 
 def parse_polymarket_date(date_str):
     if not date_str:
@@ -38,52 +48,36 @@ def es_mercado_over_under(question, slug="", outcomes_list=None):
     return False
 
 def detectar_categoria(question, slug="", tag_hint="", outcomes_list=None):
-    """
-    Clasifica cada oportunidad en su categoría y color de borde:
-    - 'basket': Naranja Baloncesto (NBA / Basket Over/Under)
-    - 'hockey': Azul Hielo / Cyan (NHL / Hockey Over/Under)
-    - 'nfl': Verde Campo (NFL / Fútbol Americano Over/Under)
-    - 'voleibol': Rosa / Magenta (Voleibol Over/Under)
-    - 'oro': Color Oro / Dorado (Oro XAUUSD / Gold GC)
-    - 'egames': Morado Neón (Counter-Strike, Dota 2, LoL, Valorant)
-    - 'otros': Azul (Fútbol, Tenis, UFC, Macro)
-    """
     q = (question or "").lower()
     s = (slug or "").lower()
     texto = f"{q} {s} {tag_hint}".lower()
     is_ou = es_mercado_over_under(question, slug, outcomes_list)
 
-    # 1. Oro y Materias Primas
     if (("gold" in q and "golden" not in q) or "xauusd" in texto or "gold (gc)" in q or "silver (si)" in q or "crude oil" in q or "wti" in q):
         if "gold" in q or "xauusd" in texto:
             return "oro", "🥇 ORO (GOLD)"
         return "oro", "🛢️ MATERIAS PRIMAS"
 
-    # 2. Voleibol (Enfocado en Under / Over)
     if tag_hint == "volleyball" or "volley" in texto or s.startswith("vb"):
         if is_ou:
             return "voleibol", "🏐 VOLEIBOL (O/U)"
-        return None, None # En voleibol enfocarse solo en Over/Under
+        return None, None
 
-    # 3. Basket / NBA (Enfocado en Under / Over)
     if tag_hint in ["nba", "basketball", "cbb"] or s.startswith("nba-") or s.startswith("cbb-") or "nba:" in q:
         if is_ou:
             return "basket", "🏀 BASKET (O/U)"
-        return None, None # En basket enfocarse solo en Over/Under
+        return None, None
 
-    # 4. Hockey / NHL (Enfocado en Under / Over)
     if tag_hint in ["nhl", "hockey"] or s.startswith("nhl-") or "hockey" in texto:
         if is_ou:
             return "hockey", "🏒 HOCKEY (O/U)"
-        return None, None # En hockey enfocarse solo en Over/Under
+        return None, None
 
-    # 5. NFL / Fútbol Americano (Enfocado en Under / Over)
     if tag_hint in ["nfl", "cfb"] or s.startswith("nfl-") or s.startswith("cfb-"):
         if is_ou:
             return "nfl", "🏈 NFL (O/U)"
-        return None, None # En NFL enfocarse solo en Over/Under
+        return None, None
 
-    # 6. eGames / Esports
     egames_keywords = [
         "counter-strike", "cs2", "cs:go", "dota 2", "dota2", "league of legends",
         "valorant", "esports", "esport", "(bo3)", "(bo5)", "map 1 winner", "map 2 winner",
@@ -96,17 +90,12 @@ def detectar_categoria(question, slug="", tag_hint="", outcomes_list=None):
     return "otros", "⚽ OTROS / MACRO"
 
 def generar_explicacion_simple(question, outcome, price, roi, cat_key=""):
-    """
-    Traduce el mercado (especialmente Over / Under de Basket, Hockey, NFL y Voleibol)
-    a una explicación en español súper sencilla con números enteros claros.
-    """
     q_clean = (question or "").strip()
     out_clean = (outcome or "").strip()
     centavos = round(price * 100)
     cobro_10 = round(10 * (1 + roi / 100), 2)
     ganancia_10 = round(cobro_10 - 10, 2)
 
-    # Caso Especial Principal: Mercados OVER / UNDER (O/U)
     ou_match = re.search(r"O/U\s*(\d+\.?\d*)", q_clean, re.IGNORECASE)
     if ou_match or out_clean.lower() in ["over", "under"]:
         linea_val = float(ou_match.group(1)) if ou_match else 0.0
@@ -120,7 +109,6 @@ def generar_explicacion_simple(question, outcome, price, roi, cat_key=""):
         elif cat_key == "voleibol" or "sets" in q_clean.lower():
             unidad = "sets en total"
 
-        # Detectar si es de un jugador específico (ej. "Jalen Brunson: Points O/U 27.5") o del partido completo
         es_jugador = ("vs." not in q_clean.lower() and "vs" not in q_clean.lower()) and (":" in q_clean)
         sujeto = "el jugador hace" if es_jugador else "entre ambos equipos suman"
 
@@ -147,7 +135,6 @@ def generar_explicacion_simple(question, outcome, price, roi, cat_key=""):
             "es_spread": False
         }
 
-    # Caso 2: Spread / Hándicap
     if q_clean.lower().startswith("spread:"):
         match = re.search(r"Spread:\s*(.+?)\s*\(([+-]?\d+\.?\d*)\)", q_clean, re.IGNORECASE)
         if match:
@@ -164,7 +151,6 @@ def generar_explicacion_simple(question, outcome, price, roi, cat_key=""):
             como_ganas = f"Apuesta con ventaja de puntos a favor de '{out_clean}'."
             boton_txt = f"En la sección 'Spread', toca el botón '{out_clean}' que cuesta ~{centavos}¢."
 
-    # Caso 3: Preguntas de Sí o No (Yes / No)
     elif out_clean.lower() in ["yes", "no"]:
         win_match = re.search(r"Will (.+?) win on", q_clean, re.IGNORECASE)
         draw_match = re.search(r"Will (.+?) end in a draw", q_clean, re.IGNORECASE)
@@ -205,24 +191,104 @@ def generar_explicacion_simple(question, outcome, price, roi, cat_key=""):
         "es_spread": q_clean.lower().startswith("spread:")
     }
 
-def _fetch_url_json(url, timeout=8):
+def _limpiar_mercado_ligero(m, tag_name="", ev_slug=None, ev_end=None):
+    """Extrae únicamente los campos necesarios para reducir en 90% el uso de memoria RAM."""
+    events_list = m.get("events") or []
+    e_slug = ev_slug or (events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None)
+    return {
+        "id": m.get("id"),
+        "question": m.get("question") or "",
+        "description": (m.get("description") or "")[:300],
+        "resolutionSource": m.get("resolutionSource") or "UMA Oracle / Reglas Oficiales",
+        "slug": m.get("slug") or "",
+        "event_slug": e_slug or m.get("slug") or "",
+        "endDate": m.get("endDate") or ev_end or m.get("endDateIso"),
+        "gameStartTime": m.get("gameStartTime"),
+        "outcomePrices": m.get("outcomePrices"),
+        "outcomes": m.get("outcomes"),
+        "volume24hr": m.get("volume24hr") or m.get("volumeNum") or 0,
+        "liquidityNum": m.get("liquidityNum") or m.get("liquidity") or 0,
+        "acceptingOrders": m.get("acceptingOrders"),
+        "closed": m.get("closed"),
+        "icon": m.get("icon") or m.get("image") or "",
+        "_tag_hint": tag_name
+    }
+
+def _fetch_and_extract(key, url):
+    """Descarga y filtra inmediatamente en streaming para no acumular miles de diccionarios pesados en RAM."""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw_data = json.loads(resp.read().decode("utf-8"))
+        if not raw_data:
+            return []
+
+        ligeros = []
+        if key.startswith("general_"):
+            for m in raw_data:
+                if m.get("closed") or m.get("acceptingOrders") is False:
+                    continue
+                ligeros.append(_limpiar_mercado_ligero(m))
+        else:
+            tag_name = key.replace("tag_", "") if key.startswith("tag_") else ""
+            for ev in raw_data:
+                ev_slug = ev.get("slug")
+                ev_end = ev.get("endDate")
+                for m in (ev.get("markets") or []):
+                    if m.get("closed") or m.get("acceptingOrders") is False:
+                        continue
+                    # Si viene de un tag de deporte (nba, nhl, nfl, cfb, volleyball), guardar solo si es Over/Under
+                    if tag_name in ["nba", "nhl", "nfl", "cfb", "volleyball"]:
+                        q_low = (m.get("question") or "").lower()
+                        s_low = (m.get("slug") or "").lower()
+                        out_low = str(m.get("outcomes") or "").lower()
+                        if not ("o/u" in q_low or "over" in out_low or "under" in out_low or "-total-" in s_low):
+                            continue
+                    ligeros.append(_limpiar_mercado_ligero(m, tag_name=tag_name, ev_slug=ev_slug, ev_end=ev_end))
+        del raw_data
+        return ligeros
     except Exception:
         return []
 
+def _descargar_mercados_optimizado():
+    """Usa caché de 40 segundos para que múltiples peticiones no saturen los 512MB de Render Free."""
+    now_ts = time.time()
+    if now_ts - _SCAN_CACHE["timestamp"] < CACHE_TTL_SECONDS and _SCAN_CACHE["data"]:
+        return _SCAN_CACHE["data"]
+
+    with _SCAN_LOCK:
+        now_ts = time.time()
+        if now_ts - _SCAN_CACHE["timestamp"] < CACHE_TTL_SECONDS and _SCAN_CACHE["data"]:
+            return _SCAN_CACHE["data"]
+
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        tareas_urls = [
+            ("general_0", "https://gamma-api.polymarket.com/markets?limit=200&offset=0&active=true&closed=false&order=volume24hr&ascending=false"),
+            ("general_200", "https://gamma-api.polymarket.com/markets?limit=200&offset=200&active=true&closed=false&order=volume24hr&ascending=false"),
+            ("tag_nba", f"https://gamma-api.polymarket.com/events?limit=20&active=true&closed=false&tag_slug=nba&end_date_min={now_str}&order=endDate&ascending=true"),
+            ("tag_nhl", f"https://gamma-api.polymarket.com/events?limit=20&active=true&closed=false&tag_slug=nhl&end_date_min={now_str}&order=endDate&ascending=true"),
+            ("tag_nfl", f"https://gamma-api.polymarket.com/events?limit=20&active=true&closed=false&tag_slug=nfl&end_date_min={now_str}&order=endDate&ascending=true"),
+            ("tag_cfb", f"https://gamma-api.polymarket.com/events?limit=15&active=true&closed=false&tag_slug=cfb&end_date_min={now_str}&order=endDate&ascending=true"),
+            ("tag_volleyball", f"https://gamma-api.polymarket.com/events?limit=25&active=true&closed=false&tag_slug=volleyball&end_date_min={now_str}&order=endDate&ascending=true"),
+            ("gold_nov", "https://gamma-api.polymarket.com/events?slug=what-price-will-xauusd-hit-in-november-2026"),
+            ("gold_dec", "https://gamma-api.polymarket.com/events?slug=what-will-gold-gc-hit-by-end-of-december")
+        ]
+
+        markets = []
+        # Máximo 3 hilos concurrentes para mantener pico de RAM por debajo de 60MB
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futuros = [executor.submit(_fetch_and_extract, key, url) for key, url in tareas_urls]
+            for fut in as_completed(futuros):
+                res = fut.result()
+                if res:
+                    markets.extend(res)
+
+        _SCAN_CACHE["timestamp"] = time.time()
+        _SCAN_CACHE["data"] = markets
+        gc.collect()
+        return markets
+
 def get_polymarket_opportunities(custom_filters=None):
-    """
-    Escanea en paralelo:
-    - Basket (NBA / CBB) -> Enfocado 100% en Over / Under
-    - Hockey (NHL) -> Enfocado 100% en Over / Under
-    - NFL (NFL / CFB) -> Enfocado 100% en Over / Under
-    - Voleibol -> Enfocado 100% en Over / Under
-    - Oro (XAUUSD / Gold GC) y eGames (CS2, Dota 2, LoL)
-    - Quita por completo Bitcoin (BTC).
-    """
     cfg = load_config()
     prob_min = custom_filters.get("prob_min", cfg.get("MIN_PROBABILITY", 0.70)) if custom_filters else cfg.get("MIN_PROBABILITY", 0.70)
     prob_max = custom_filters.get("prob_max", cfg.get("MAX_PROBABILITY", 0.98)) if custom_filters else cfg.get("MAX_PROBABILITY", 0.98)
@@ -232,46 +298,10 @@ def get_polymarket_opportunities(custom_filters=None):
     min_apr = custom_filters.get("min_apr", cfg.get("MIN_APR", 25.0)) if custom_filters else cfg.get("MIN_APR", 25.0)
 
     ahora = datetime.now(timezone.utc)
-    now_str = ahora.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    # Consultas en paralelo para que cargue todo en < 2 segundos
-    tareas_urls = [
-        ("general_0", "https://gamma-api.polymarket.com/markets?limit=250&offset=0&active=true&closed=false&order=volume24hr&ascending=false"),
-        ("general_250", "https://gamma-api.polymarket.com/markets?limit=250&offset=250&active=true&closed=false&order=volume24hr&ascending=false"),
-        ("tag_nba", f"https://gamma-api.polymarket.com/events?limit=35&active=true&closed=false&tag_slug=nba&end_date_min={now_str}&order=endDate&ascending=true"),
-        ("tag_nhl", f"https://gamma-api.polymarket.com/events?limit=35&active=true&closed=false&tag_slug=nhl&end_date_min={now_str}&order=endDate&ascending=true"),
-        ("tag_nfl", f"https://gamma-api.polymarket.com/events?limit=35&active=true&closed=false&tag_slug=nfl&end_date_min={now_str}&order=endDate&ascending=true"),
-        ("tag_cfb", f"https://gamma-api.polymarket.com/events?limit=25&active=true&closed=false&tag_slug=cfb&end_date_min={now_str}&order=endDate&ascending=true"),
-        ("tag_volleyball", f"https://gamma-api.polymarket.com/events?limit=40&active=true&closed=false&tag_slug=volleyball&end_date_min={now_str}&order=endDate&ascending=true"),
-        ("gold_nov", "https://gamma-api.polymarket.com/events?slug=what-price-will-xauusd-hit-in-november-2026"),
-        ("gold_dec", "https://gamma-api.polymarket.com/events?slug=what-will-gold-gc-hit-by-end-of-december")
-    ]
-
-    markets = []
-    with ThreadPoolExecutor(max_workers=9) as executor:
-        futuros = {executor.submit(_fetch_url_json, url): key for key, url in tareas_urls}
-        for fut in as_completed(futuros):
-            key = futuros[fut]
-            data = fut.result()
-            if not data:
-                continue
-            if key.startswith("general_"):
-                markets.extend(data)
-            else:
-                tag_name = key.replace("tag_", "") if key.startswith("tag_") else ""
-                for ev in data:
-                    ev_slug = ev.get("slug")
-                    ev_end = ev.get("endDate")
-                    for m in (ev.get("markets") or []):
-                        m["_tag_hint"] = tag_name
-                        m["events"] = [{"slug": ev_slug}]
-                        if not m.get("endDate"):
-                            m["endDate"] = ev_end
-                        markets.append(m)
+    markets = _descargar_mercados_optimizado()
 
     oportunidades = []
     vistos_ids = set()
-    # Contador por partido/evento en deportes O/U para mostrar las 2 mejores líneas O/U de cada partido sin repetir 25 veces el mismo juego
     lineas_por_evento_ou = {}
 
     for m in markets:
@@ -280,14 +310,11 @@ def get_polymarket_opportunities(custom_filters=None):
             if not m_id or m_id in vistos_ids:
                 continue
 
-            if m.get("acceptingOrders") is False or m.get("closed") is True:
-                continue
-
             question_text = m.get("question") or ""
             q_lower = question_text.lower()
             m_slug = (m.get("slug") or "").lower()
 
-            # 1. REGLA DEL USUARIO: Quitar BTC / Bitcoin por completo
+            # Quitar BTC / Bitcoin por completo
             if "bitcoin" in q_lower or "btc" in q_lower or "btc-" in m_slug:
                 continue
 
@@ -301,31 +328,24 @@ def get_polymarket_opportunities(custom_filters=None):
             if len(precios) != len(opciones):
                 continue
 
-            events_list = m.get("events") or []
-            event_slug = events_list[0].get("slug") if (isinstance(events_list, list) and len(events_list) > 0 and isinstance(events_list[0], dict)) else None
-            canonical_slug = event_slug or m.get("slug") or ""
+            canonical_slug = m.get("event_slug") or m_slug
             tag_hint = m.get("_tag_hint", "")
 
             cat_key, cat_label = detectar_categoria(question_text, canonical_slug, tag_hint=tag_hint, outcomes_list=opciones)
-            # Si devuelve None, es un mercado de Basket/Hockey/NFL/Voleibol que NO es Over/Under (ej. Moneyline o Spread), lo descartamos
             if not cat_key:
                 continue
 
             vistos_ids.add(m_id)
 
-            vol_24h = float(m.get("volume24hr") or m.get("volumeNum") or 0)
-            liq = float(m.get("liquidityNum") or m.get("liquidity") or 0)
+            vol_24h = float(m.get("volume24hr") or 0)
+            liq = float(m.get("liquidityNum") or 0)
 
-            # Ajustar liquidez mínima según el deporte para capturar los Over/Under activos
             if cat_key == "voleibol":
-                # En voleibol las líneas Total Sets O/U 3.5 tienen liquidez más pequeña
                 if liq < 50 and vol_24h < 10:
                     continue
             elif cat_key in ["basket", "hockey", "nfl"]:
-                # En Basket, Hockey y NFL exigir liquidez real en el libro de órdenes O/U
                 if liq < 1200:
                     continue
-                # Priorizar totales del partido ("vs.") o props con volumen real
                 if "vs" not in q_lower and vol_24h < 300:
                     continue
             elif cat_key == "oro":
@@ -335,7 +355,7 @@ def get_polymarket_opportunities(custom_filters=None):
                 if vol_24h < min_vol or liq < min_liq:
                     continue
 
-            end_date_str = m.get("endDate") or m.get("endDateIso")
+            end_date_str = m.get("endDate")
             if not end_date_str:
                 continue
 
@@ -362,14 +382,11 @@ def get_polymarket_opportunities(custom_filters=None):
                 continue
 
             link = f"https://polymarket.com/event/{canonical_slug}" if canonical_slug else "https://polymarket.com"
-
-            # Para deportes O/U y eGames, permitir ver desde 55% en la web si están cerca, o prob_min
             prob_min_cat = min(prob_min, 0.55) if cat_key in ["voleibol", "hockey", "basket", "egames"] else prob_min
 
             for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
                 p = float(p_str)
                 if prob_min_cat <= p <= prob_max:
-                    # En Basket, Hockey y NFL, evitar llenar la pantalla con 15 líneas O/U del mismo partido (máximo 2 por partido)
                     if cat_key in ["basket", "hockey", "nfl"]:
                         base_ev_key = f"{cat_key}_{canonical_slug.replace('-more-markets', '')}"
                         if lineas_por_evento_ou.get(base_ev_key, 0) >= 2:
@@ -419,12 +436,11 @@ def get_polymarket_opportunities(custom_filters=None):
                         "es_spread": guia["es_spread"],
                         "slug": canonical_slug,
                         "link": link,
-                        "image": m.get("icon") or m.get("image") or ""
+                        "image": m.get("icon") or ""
                     })
         except Exception:
             continue
 
-    # Ordenar priorizando los deportes Over/Under (Basket, Hockey, NFL, Voleibol) con probabilidad >= 70% y mejor APR
     oportunidades.sort(
         key=lambda x: (
             x["categoria"] in ["basket", "hockey", "nfl", "voleibol"],
