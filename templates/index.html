@@ -478,6 +478,115 @@
       } catch (e) {}
     }
 
+    async function cargarPlayBCDirecto(pMin) {
+      try {
+        const base = 'https://api-k-c7818b61-623.sptpub.com/api/v4/live/brand/2103509236163162112/es';
+        const r0 = await fetch(`${base}/0`);
+        const init = await r0.json();
+        const vTop = (init.top_events_versions || [0])[0];
+        const vRest = (init.rest_events_versions || [0])[0];
+        const [d1, d2] = await Promise.all([
+          vTop ? fetch(`${base}/${vTop}`).then(r => r.json()) : Promise.resolve({}),
+          vRest ? fetch(`${base}/${vRest}`).then(r => r.json()) : Promise.resolve({})
+        ]);
+        const allEvs = Object.assign({}, d1.events || {}, d2.events || {});
+        const sports = Object.assign({}, d1.sports || {}, d2.sports || {});
+        const categories = Object.assign({}, d1.categories || {}, d2.categories || {});
+        const tournaments = Object.assign({}, d1.tournaments || {}, d2.tournaments || {});
+        const egameSports = new Set(['109', '111', '137', '153', '300', '302', '303', '304', '305', '307', '309', '322']);
+        const extraidas = [];
+
+        for (const [eid, ev] of Object.entries(allEvs)) {
+          const desc = ev.desc || {};
+          const sp = String(desc.sport || '');
+          if (!egameSports.has(sp) || !ev.markets) continue;
+          const comps = (desc.competitors || []).map(c => c.name || '');
+          if (comps.length < 2) continue;
+          const spInfo = sports[sp] || {};
+          const spName = spInfo.name || 'eGames';
+          const spSlug = spInfo.slug || 'esports';
+          const cSlug = (categories[String(desc.category)] || {}).slug || 'all';
+          const tInfo = tournaments[String(desc.tournament)] || {};
+          const tSlug = tInfo.slug || 'all';
+          const tName = tInfo.name || '';
+          const evSlug = desc.slug || 'match';
+          const sc = ev.score || {};
+          const marcador = `${sc.home_score || 0} - ${sc.away_score || 0}`;
+          const urlBc = `https://playbc.fun/es/sports/${spSlug}/${cSlug}/${tSlug}/${evSlug}-${eid}`;
+
+          let mejorOp = null;
+          let mejorScore = -1;
+          for (const [mType, specDict] of Object.entries(ev.markets)) {
+            if (!specDict || typeof specDict !== 'object') continue;
+            for (const [spec, outDict] of Object.entries(specDict)) {
+              if (!outDict || typeof outDict !== 'object') continue;
+              for (const [outId, outData] of Object.entries(outDict)) {
+                if (!outData || outData.b) continue;
+                const k = parseFloat(outData.k || 0);
+                if (k < 1.05 || k > 1.54) continue;
+                const pImpl = 1.0 / k;
+                if (pImpl < Math.min(pMin, 0.65)) continue;
+                const roi = (k - 1.0) * 100;
+                let labelBoton = '';
+                let comoGanas = '';
+                if (spec.includes('total=') && (outId === '12' || outId === '13')) {
+                  const mTot = spec.match(/total=(\d+\.?\d*)/);
+                  if (!mTot) continue;
+                  const lv = parseFloat(mTot[1]);
+                  if (Math.round(lv * 100) % 50 !== 0) continue;
+                  if (outId === '12') {
+                    labelBoton = `Más de ${lv} (Cuota ${k.toFixed(2)})`;
+                    comoGanas = `📈 MÁS DE ${lv} en PlayBC [En vivo: ${marcador}]: Ganas si suman ${Math.floor(lv) + 1} o más goles/puntos.`;
+                  } else {
+                    labelBoton = `Menos de ${lv} (Cuota ${k.toFixed(2)})`;
+                    comoGanas = `📉 MENOS DE ${lv} en PlayBC [En vivo: ${marcador}]: Ganas si hacen ${Math.floor(lv)} o menos goles/puntos.`;
+                  }
+                } else if (spec === '' && ['1', '2', '3', '4', '5'].includes(outId)) {
+                  const gNom = mType === '1' ? (outId === '1' ? comps[0] : (outId === '3' ? comps[1] : 'Empate')) : (outId === '4' ? comps[0] : comps[1]);
+                  labelBoton = `${gNom} (Cuota ${k.toFixed(2)})`;
+                  comoGanas = `🎮 EN VIVO PLAYBC [${marcador}]: Ganas si «${gNom}» gana la partida (${tName}).`;
+                } else {
+                  continue;
+                }
+                if (pImpl > mejorScore) {
+                  mejorScore = pImpl;
+                  const cobro10 = (10 * k).toFixed(2);
+                  mejorOp = {
+                    id: `bc_${eid}_${mType}_${outId}`,
+                    market_id: `bc_${eid}`,
+                    question: `🎮 [BC.GAME - ${spName}] ${comps[0]} vs. ${comps[1]} (En Vivo: ${marcador})`,
+                    outcome: labelBoton,
+                    probability: parseFloat((pImpl * 100).toFixed(1)),
+                    price: parseFloat(pImpl.toFixed(4)),
+                    centavos: Math.round(pImpl * 100),
+                    cuota_bc: k.toFixed(2),
+                    roi: parseFloat(roi.toFixed(2)),
+                    days_left: 0.04,
+                    hours_left: 1,
+                    en_vivo_ahora: true,
+                    es_playbc: true,
+                    categoria: 'egames',
+                    categoria_label: `🟣 🎮 BC.GAME (${spName})`,
+                    apr: Math.round((roi / 0.04) * 365),
+                    kelly_pct: 2.5,
+                    como_ganas: comoGanas,
+                    instruccion_boton: `En PlayBC toca el botón «${labelBoton}» (Partida en vivo: ${marcador}).`,
+                    cobro_10: cobro10,
+                    ganancia_10: (cobro10 - 10).toFixed(2),
+                    link: urlBc
+                  };
+                }
+              }
+            }
+          }
+          if (mejorOp) extraidas.push(mejorOp);
+        }
+        return extraidas.slice(0, 25);
+      } catch (e) {
+        return [];
+      }
+    }
+
     async function escanearMercados(silencioso = false) {
       const btn = document.getElementById('btn-scan');
       const icon = document.getElementById('scan-icon');
@@ -498,7 +607,12 @@
       try {
         const resp = await fetch(`/api/opportunities?prob_min=${pMin}&max_days=${dMax}&min_apr=${aMin}`);
         const data = await resp.json();
-        todasLasOportunidades = data.opportunities || [];
+        let opsServidor = data.opportunities || [];
+        if (!opsServidor.some(o => o.es_playbc)) {
+          const bcDirectas = await cargarPlayBCDirecto(pMin);
+          opsServidor = [...bcDirectas, ...opsServidor];
+        }
+        todasLasOportunidades = opsServidor;
         await verificarEstadoFijadas();
         actualizarStats(todasLasOportunidades);
         renderizarTarjetas();
