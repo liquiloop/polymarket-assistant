@@ -142,11 +142,52 @@ def api_check_pinned():
         return jsonify({"success": True, "updates": {}})
 
     def _check_one(item):
+        import gzip
         op_id = item.get("id")
-        market_id = item.get("market_id")
+        market_id = str(item.get("market_id") or "")
         target_outcome = (item.get("outcome") or "").strip().lower()
         if not op_id or not market_id:
             return op_id, None
+
+        # Soporte para partidas fijadas de PlayBC (BC.GAME)
+        if market_id.startswith("bc_"):
+            try:
+                eid = market_id.replace("bc_", "")
+                parts = str(op_id).split("_")
+                m_type = parts[2] if len(parts) >= 4 else ""
+                out_id = parts[3] if len(parts) >= 4 else ""
+                url_bc = f"https://api-k-c7818b61-623.sptpub.com/api/v4/live/brand/2103509236163162112/event/es/{eid}"
+                headers_bc = {"User-Agent": "Mozilla/5.0", "Origin": "https://playbc.fun", "Referer": "https://playbc.fun/"}
+                req_bc = urllib.request.Request(url_bc, headers=headers_bc)
+                with urllib.request.urlopen(req_bc, timeout=5) as resp_bc:
+                    raw_bc = resp_bc.read()
+                    if raw_bc[:2] == b"\x1f\x8b":
+                        raw_bc = gzip.decompress(raw_bc)
+                    data_bc = json.loads(raw_bc.decode("utf-8"))
+                ev_bc = (data_bc.get("events") or {}).get(eid) or {}
+                markets_bc = ev_bc.get("markets") or {}
+                spec_dict = markets_bc.get(m_type) or {}
+                found_k = None
+                for _, out_dict in spec_dict.items():
+                    if isinstance(out_dict, dict) and out_id in out_dict:
+                        k_val = float(out_dict[out_id].get("k") or 0)
+                        if k_val > 1.0:
+                            found_k = k_val
+                            break
+                if found_k:
+                    p_now = min(max(1.0 / found_k, 0.01), 0.99)
+                    estado = "WIN" if p_now >= 0.96 else ("LOSS" if p_now <= 0.08 else "EN_JUEGO")
+                    return op_id, {
+                        "current_price": round(p_now, 4),
+                        "current_centavos": round(p_now * 100, 1),
+                        "current_probability": round(p_now * 100, 1),
+                        "closed": False,
+                        "estado_resultado": estado
+                    }
+            except Exception:
+                pass
+            return op_id, None
+
         try:
             url = f"https://gamma-api.polymarket.com/markets/{market_id}"
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
