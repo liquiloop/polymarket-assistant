@@ -116,47 +116,29 @@ def obtener_egames_playbc(prob_min=0.70, prob_max=0.96):
                                 como_ganas = ""
                                 es_ou = False
 
-                                # 1. Mercado Total (Over / Under)
+                                # Enfocar los eGames de PlayBC 100% en Total (Over / Under)
                                 if "total=" in spec and out_id in ["12", "13"]:
                                     m_tot = re.search(r"total=(\d+\.?\d*)", spec)
                                     if not m_tot:
                                         continue
                                     linea_v = float(m_tot.group(1))
-                                    # Evitar líneas con cuartos (.25 / .75) para mayor claridad
                                     if round(linea_v * 100) % 50 != 0:
                                         continue
                                     es_ou = True
-                                    min_over = int(linea_v) + 1
+                                    min_over = int(linea_v) + 1 if (linea_v % 1 != 0) else int(linea_v + 1)
                                     max_under = int(linea_v) if (linea_v % 1 != 0) else int(linea_v - 1)
                                     if out_id == "12":
-                                        label_boton = f"Más de {linea_v:g} (Cuota {k:.2f})"
+                                        label_boton = f"Más de {linea_v:g} / Over (Cuota {k:.2f})"
                                         como_ganas = (
-                                            f"📈 MÁS DE {linea_v:g} (Over) en PlayBC [Marcador en vivo: {marcador}]: "
+                                            f"📈 APUESTA DE MÁS DE (OVER {linea_v:g}) en PlayBC [Marcador en vivo: {marcador}]: "
                                             f"Ganas si en la partida suman {min_over} o más goles/puntos/rondas."
                                         )
                                     else:
-                                        label_boton = f"Menos de {linea_v:g} (Cuota {k:.2f})"
+                                        label_boton = f"Menos de {linea_v:g} / Under (Cuota {k:.2f})"
                                         como_ganas = (
-                                            f"📉 MENOS DE {linea_v:g} (Under) en PlayBC [Marcador en vivo: {marcador}]: "
+                                            f"📉 APUESTA DE MENOS DE (UNDER {linea_v:g}) en PlayBC [Marcador en vivo: {marcador}]: "
                                             f"Ganas si en la partida hacen {max_under} o menos goles/puntos/rondas."
                                         )
-
-                                # 2. Mercado Ganador (2-way o 1x2)
-                                elif spec == "" and out_id in ["1", "2", "3", "4", "5"]:
-                                    if m_type == "1":
-                                        if out_id == "1":
-                                            ganador_nom = comp1
-                                        elif out_id == "3":
-                                            ganador_nom = comp2
-                                        else:
-                                            ganador_nom = "Empate"
-                                    else:
-                                        ganador_nom = comp1 if out_id == "4" else comp2
-                                    label_boton = f"{ganador_nom} (Cuota {k:.2f})"
-                                    como_ganas = (
-                                        f"🎮 PARTIDA EN VIVO EN PLAYBC [Marcador actual: {marcador}]: "
-                                        f"Ganas si «{ganador_nom}» gana la partida ({t_name})."
-                                    )
                                 else:
                                     continue
 
