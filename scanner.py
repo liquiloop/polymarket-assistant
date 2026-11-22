@@ -1,6 +1,7 @@
 import sys
 import os
 import gc
+import gzip
 import json
 import re
 import time
@@ -16,6 +17,215 @@ if current_dir not in sys.path:
 from config import load_config
 
 # Caché en memoria para evitar descargas repetidas cada 25s y ahorrar >90% de RAM en Render Free (512MB)
+_BC_CACHE = {
+    "timestamp": 0,
+    "data": []
+}
+
+def obtener_egames_playbc(prob_min=0.70, prob_max=0.96):
+    """
+    Conecta directamente al feed en vivo de https://playbc.fun/es/sports (Betby API)
+    y extrae las mejores oportunidades en vivo de eGames (eFútbol, FC 27, eBaloncesto,
+    Counter-Strike, Dota 2, eLucha, eTenis, etc.) con probabilidad >= prob_min.
+    """
+    now_ts = time.time()
+    # Caché de 25 segundos para ligereza y velocidad
+    if now_ts - _BC_CACHE["timestamp"] < 25 and _BC_CACHE["data"]:
+        raw_ops = _BC_CACHE["data"]
+    else:
+        base = "https://api-k-c7818b61-623.sptpub.com/api/v4/live/brand/2103509236163162112/es"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Origin": "https://playbc.fun",
+            "Referer": "https://playbc.fun/"
+        }
+
+        def _get_bc_json(url):
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                raw = resp.read()
+                if raw[:2] == b"\x1f\x8b":
+                    raw = gzip.decompress(raw)
+                return json.loads(raw.decode("utf-8"))
+
+        try:
+            init = _get_bc_json(f"{base}/0")
+            v_top = (init.get("top_events_versions") or [0])[0]
+            v_rest = (init.get("rest_events_versions") or [0])[0]
+            d1 = _get_bc_json(f"{base}/{v_top}") if v_top else {}
+            d2 = _get_bc_json(f"{base}/{v_rest}") if v_rest else {}
+
+            all_evs = {**(d1.get("events") or {}), **(d2.get("events") or {})}
+            sports = {**(d1.get("sports") or {}), **(d2.get("sports") or {})}
+            categories = {**(d1.get("categories") or {}), **(d2.get("categories") or {})}
+            tournaments = {**(d1.get("tournaments") or {}), **(d2.get("tournaments") or {})}
+
+            egame_sports = {"109", "111", "137", "153", "300", "302", "303", "304", "305", "307", "309", "322"}
+            extraidas = []
+
+            for eid, ev in all_evs.items():
+                try:
+                    desc = ev.get("desc") or {}
+                    sp = str(desc.get("sport", ""))
+                    if sp not in egame_sports:
+                        continue
+                    markets = ev.get("markets") or {}
+                    if not markets:
+                        continue
+
+                    sp_info = sports.get(sp) or {}
+                    sp_name = sp_info.get("name", "eGames")
+                    sp_slug = sp_info.get("slug", "esports")
+                    c_slug = (categories.get(str(desc.get("category"))) or {}).get("slug", "all")
+                    t_info = tournaments.get(str(desc.get("tournament"))) or {}
+                    t_slug = t_info.get("slug", "all")
+                    t_name = t_info.get("name", "")
+                    ev_slug = desc.get("slug", "match")
+
+                    comps = [c.get("name", "") for c in (desc.get("competitors") or [])]
+                    if len(comps) < 2:
+                        continue
+                    comp1, comp2 = comps[0], comps[1]
+
+                    sc = ev.get("score") or {}
+                    hs = sc.get("home_score", "0")
+                    aws = sc.get("away_score", "0")
+                    marcador = f"{hs} - {aws}"
+                    url_bc = f"https://playbc.fun/es/sports/{sp_slug}/{c_slug}/{t_slug}/{ev_slug}-{eid}"
+
+                    # Elegir la mejor cuota (>= 65% prob, es decir cuota k entre 1.05 y 1.54) de esta partida
+                    mejor_op_evento = None
+                    mejor_prob_ev = -1.0
+
+                    for m_type, spec_dict in markets.items():
+                        if not isinstance(spec_dict, dict):
+                            continue
+                        for spec, outcomes_dict in spec_dict.items():
+                            if not isinstance(outcomes_dict, dict):
+                                continue
+                            for out_id, out_data in outcomes_dict.items():
+                                if not isinstance(out_data, dict) or out_data.get("b"):
+                                    continue
+                                k = float(out_data.get("k") or 0)
+                                if k < 1.05 or k > 1.54:
+                                    continue
+
+                                p_impl = 1.0 / k
+                                roi = (k - 1.0) * 100.0
+                                label_boton = ""
+                                como_ganas = ""
+                                es_ou = False
+
+                                # 1. Mercado Total (Over / Under)
+                                if "total=" in spec and out_id in ["12", "13"]:
+                                    m_tot = re.search(r"total=(\d+\.?\d*)", spec)
+                                    if not m_tot:
+                                        continue
+                                    linea_v = float(m_tot.group(1))
+                                    # Evitar líneas con cuartos (.25 / .75) para mayor claridad
+                                    if round(linea_v * 100) % 50 != 0:
+                                        continue
+                                    es_ou = True
+                                    min_over = int(linea_v) + 1
+                                    max_under = int(linea_v) if (linea_v % 1 != 0) else int(linea_v - 1)
+                                    if out_id == "12":
+                                        label_boton = f"Más de {linea_v:g} (Cuota {k:.2f})"
+                                        como_ganas = (
+                                            f"📈 MÁS DE {linea_v:g} (Over) en PlayBC [Marcador en vivo: {marcador}]: "
+                                            f"Ganas si en la partida suman {min_over} o más goles/puntos/rondas."
+                                        )
+                                    else:
+                                        label_boton = f"Menos de {linea_v:g} (Cuota {k:.2f})"
+                                        como_ganas = (
+                                            f"📉 MENOS DE {linea_v:g} (Under) en PlayBC [Marcador en vivo: {marcador}]: "
+                                            f"Ganas si en la partida hacen {max_under} o menos goles/puntos/rondas."
+                                        )
+
+                                # 2. Mercado Ganador (2-way o 1x2)
+                                elif spec == "" and out_id in ["1", "2", "3", "4", "5"]:
+                                    if m_type == "1":
+                                        if out_id == "1":
+                                            ganador_nom = comp1
+                                        elif out_id == "3":
+                                            ganador_nom = comp2
+                                        else:
+                                            ganador_nom = "Empate"
+                                    else:
+                                        ganador_nom = comp1 if out_id == "4" else comp2
+                                    label_boton = f"{ganador_nom} (Cuota {k:.2f})"
+                                    como_ganas = (
+                                        f"🎮 PARTIDA EN VIVO EN PLAYBC [Marcador actual: {marcador}]: "
+                                        f"Ganas si «{ganador_nom}» gana la partida ({t_name})."
+                                    )
+                                else:
+                                    continue
+
+                                # Priorizar probabilidades entre 70% y 92% (cuotas 1.09 a 1.43)
+                                score_pref = p_impl if (0.70 <= p_impl <= 0.92) else (p_impl * 0.8)
+                                if score_pref > mejor_prob_ev:
+                                    mejor_prob_ev = score_pref
+                                    cobro_10 = round(10.0 * k, 2)
+                                    ganancia_10 = round(cobro_10 - 10.0, 2)
+                                    instruccion_boton = (
+                                        f"En PlayBC toca el botón «{label_boton}» "
+                                        f"(Partida en vivo: {marcador})."
+                                    )
+                                    mejor_op_evento = {
+                                        "id": f"bc_{eid}_{m_type}_{out_id}",
+                                        "market_id": f"bc_{eid}",
+                                        "bc_event_id": str(eid),
+                                        "bc_spec": spec,
+                                        "bc_out_id": str(out_id),
+                                        "question": f"🎮 [BC.GAME - {sp_name}] {comp1} vs. {comp2} (En Vivo: {marcador})",
+                                        "description": f"Torneo: {t_name} | Marcador en vivo: {marcador} | Plataforma: PlayBC (BC.GAME)",
+                                        "resolution_source": "PlayBC / BC.GAME Oficial En Vivo",
+                                        "outcome": label_boton,
+                                        "probability": round(p_impl * 100, 1),
+                                        "price": round(p_impl, 4),
+                                        "centavos": round(p_impl * 100),
+                                        "cuota_bc": round(k, 2),
+                                        "roi": round(roi, 2),
+                                        "days_left": 0.04,
+                                        "hours_left": 1,
+                                        "en_vivo_ahora": True,
+                                        "es_btc_5m": False,
+                                        "es_playbc": True,
+                                        "categoria": "egames",
+                                        "categoria_label": f"🟣 🎮 BC.GAME ({sp_name})",
+                                        "apr": round((roi / 0.04) * 365, 1),
+                                        "volume_24h": 25000,
+                                        "liquidity": 25000,
+                                        "kelly_pct": 2.5,
+                                        "como_ganas": como_ganas,
+                                        "instruccion_boton": instruccion_boton,
+                                        "cobro_10": cobro_10,
+                                        "ganancia_10": ganancia_10,
+                                        "es_ou": es_ou,
+                                        "es_spread": False,
+                                        "slug": f"{ev_slug}-{eid}",
+                                        "link": url_bc,
+                                        "image": ""
+                                    }
+
+                    if mejor_op_evento:
+                        extraidas.append(mejor_op_evento)
+                except Exception:
+                    continue
+
+            del d1, d2, all_evs
+            _BC_CACHE["timestamp"] = time.time()
+            _BC_CACHE["data"] = extraidas
+            raw_ops = extraidas
+        except Exception as e:
+            print(f"[Error escaneando PlayBC eGames]: {e}")
+            raw_ops = _BC_CACHE["data"] or []
+
+    prob_min_pct = min(prob_min, 0.65) * 100.0
+    prob_max_pct = prob_max * 100.0
+    filtradas = [o for o in raw_ops if prob_min_pct <= o["probability"] <= prob_max_pct]
+    filtradas.sort(key=lambda x: (x["probability"] >= 70.0, x["roi"]), reverse=True)
+    return filtradas[:25]
+
 _SCAN_CACHE = {
     "timestamp": 0,
     "data": []
@@ -299,8 +509,9 @@ def get_polymarket_opportunities(custom_filters=None):
 
     ahora = datetime.now(timezone.utc)
     markets = _descargar_mercados_optimizado()
+    oportunidades_bc = obtener_egames_playbc(prob_min=prob_min, prob_max=prob_max)
 
-    oportunidades = []
+    oportunidades = list(oportunidades_bc)
     vistos_ids = set()
     lineas_por_evento_ou = {}
 
