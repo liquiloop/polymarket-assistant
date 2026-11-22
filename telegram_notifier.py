@@ -101,21 +101,22 @@ def format_opportunity_alert(op):
             f"🔗 <a href='{op['link']}'>👉 ENTRAR EN POLYMARKET ({etiqueta})</a>"
         )
 
-    tiempo_txt = f"{int(op['hours_left'])} horas" if op.get("days_left", 1) < 1 else f"{op['days_left']} días"
+    tiempo_txt = "En Vivo (~5-10 min)" if op.get("es_playbc") else (f"{int(op['hours_left'])} horas" if op.get("days_left", 1) < 1 else f"{op['days_left']} días")
     cat_label = op.get("categoria_label", "POLYMARKET")
+    plataforma_txt = "PLAYBC (BC.GAME)" if op.get("es_playbc") else "POLYMARKET"
 
     texto = (
         f"🎯 <b>SEÑAL {cat_label} ({op['probability']}% Probabilidad)</b>\n\n"
         f"📌 <b>Evento:</b> {op['question']}\n\n"
         f"🗣️ <b>¿Cómo ganas esta apuesta?</b>\n"
         f"👉 {como_ganas}\n\n"
-        f"👆 <b>¿Qué botón tocar en Polymarket?</b>\n"
+        f"👆 <b>¿Qué botón tocar en {plataforma_txt}?</b>\n"
         f"👉 {instruccion}\n\n"
         f"💵 <b>Ejemplo si metes $10 dólares:</b>\n"
         f"• Pones: <b>$10.00</b>\n"
         f"• Si aciertas cobras: <b>${cobro_10:.2f}</b> (Ganas <b>+${ganancia_10:.2f} limpios</b>)\n"
         f"• Tiempo estimado para cobrar: <b>~{tiempo_txt}</b>\n\n"
-        f"🔗 <a href='{op['link']}'>👉 ABRIR EVENTO EN POLYMARKET</a>"
+        f"🔗 <a href='{op['link']}'>👉 ABRIR PARTIDA EN {plataforma_txt}</a>"
     )
     return texto
 
