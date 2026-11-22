@@ -534,18 +534,17 @@
                   if (!mTot) continue;
                   const lv = parseFloat(mTot[1]);
                   if (Math.round(lv * 100) % 50 !== 0) continue;
+                  const minOver = (lv % 1 !== 0) ? (Math.floor(lv) + 1) : (lv + 1);
+                  const maxUnder = (lv % 1 !== 0) ? Math.floor(lv) : (lv - 1);
                   if (outId === '12') {
-                    labelBoton = `Más de ${lv} (Cuota ${k.toFixed(2)})`;
-                    comoGanas = `📈 MÁS DE ${lv} en PlayBC [En vivo: ${marcador}]: Ganas si suman ${Math.floor(lv) + 1} o más goles/puntos.`;
+                    labelBoton = `Más de ${lv} / Over (Cuota ${k.toFixed(2)})`;
+                    comoGanas = `📈 APUESTA DE MÁS DE (OVER ${lv}) [Marcador en vivo: ${marcador}]: Ganas si entre ambos suman ${minOver} o más goles/puntos/rondas en la partida.`;
                   } else {
-                    labelBoton = `Menos de ${lv} (Cuota ${k.toFixed(2)})`;
-                    comoGanas = `📉 MENOS DE ${lv} en PlayBC [En vivo: ${marcador}]: Ganas si hacen ${Math.floor(lv)} o menos goles/puntos.`;
+                    labelBoton = `Menos de ${lv} / Under (Cuota ${k.toFixed(2)})`;
+                    comoGanas = `📉 APUESTA DE MENOS DE (UNDER ${lv}) [Marcador en vivo: ${marcador}]: Ganas si entre ambos hacen ${maxUnder} o menos goles/puntos/rondas en la partida.`;
                   }
-                } else if (spec === '' && ['1', '2', '3', '4', '5'].includes(outId)) {
-                  const gNom = mType === '1' ? (outId === '1' ? comps[0] : (outId === '3' ? comps[1] : 'Empate')) : (outId === '4' ? comps[0] : comps[1]);
-                  labelBoton = `${gNom} (Cuota ${k.toFixed(2)})`;
-                  comoGanas = `🎮 EN VIVO PLAYBC [${marcador}]: Ganas si «${gNom}» gana la partida (${tName}).`;
                 } else {
+                  // Enfocar los eGames de BC.GAME 100% en Over / Under (Más de / Menos de)
                   continue;
                 }
                 if (pImpl > mejorScore) {
