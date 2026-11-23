@@ -64,12 +64,8 @@
       <div class="flex items-center space-x-3">
         <div class="hidden sm:flex items-center space-x-2 bg-gray-800/80 px-3 py-1.5 rounded-lg border border-gray-700/60 text-xs">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-gray-300">API Polymarket En Vivo</span>
+          <span class="text-gray-300">PlayBC & Polymarket En Vivo</span>
         </div>
-        <button onclick="abrirConfigModal()" class="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium border border-gray-700 transition flex items-center gap-2">
-          <i class="fa-solid fa-gear"></i>
-          <span class="hidden sm:inline">Ajustes & Telegram</span>
-        </button>
         <button onclick="escanearMercados()" id="btn-scan" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-emerald-600/25">
           <i class="fa-solid fa-arrows-rotate" id="scan-icon"></i>
           <span>Escanear Ahora</span>
@@ -171,33 +167,33 @@
 
       <!-- LEYENDA DE COLORES Y FILTRO RÁPIDO POR CATEGORÍA -->
       <div class="pt-3 border-t border-gray-800 flex flex-wrap items-center gap-2 text-xs">
-        <span class="text-gray-400 font-semibold mr-1">Color por Mercado:</span>
+        <span class="text-gray-400 font-semibold mr-1">Mercados:</span>
         <button onclick="seleccionarCategoria('todos')" id="cat-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition">
           🌐 Todos
         </button>
         <button onclick="seleccionarCategoria('fijadas')" id="cat-fijadas" class="px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-400/15 text-amber-300 font-bold hover:bg-amber-400/25 transition">
           📌 Mis Fijadas (<span id="count-fijadas">0</span>)
         </button>
-        <button onclick="seleccionarCategoria('basket')" id="cat-basket" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
-          🟠 🏀 Basket (O/U)
+        <button onclick="seleccionarCategoria('esoccer')" id="cat-esoccer" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold hover:bg-emerald-500/25 transition">
+          🟢 ⚽🤖 eSoccer (BC)
+        </button>
+        <button onclick="seleccionarCategoria('ebasketball')" id="cat-ebasketball" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
+          🟠 🏀🤖 eBasketball (BC)
+        </button>
+        <button onclick="seleccionarCategoria('epenalty')" id="cat-epenalty" class="px-3 py-1.5 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 text-yellow-300 font-bold hover:bg-yellow-400/25 transition">
+          🟡 🥅🤖 eSoccer: Penalty (BC)
+        </button>
+        <button onclick="seleccionarCategoria('efighting')" id="cat-efighting" class="px-3 py-1.5 rounded-lg border-2 border-red-500 bg-red-500/15 text-red-300 font-bold hover:bg-red-500/25 transition">
+          🔴 🥊🤖 eFighting (BC)
+        </button>
+        <button onclick="seleccionarCategoria('etennis')" id="cat-etennis" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-300 font-bold hover:bg-purple-500/25 transition">
+          🟣 🎾🤖 eTennis (BC)
+        </button>
+        <button onclick="seleccionarCategoria('basket')" id="cat-basket" class="px-3 py-1.5 rounded-lg border-2 border-blue-500 bg-blue-500/15 text-blue-300 font-bold hover:bg-blue-500/25 transition">
+          🔵 🏀 Basket NBA (O/U)
         </button>
         <button onclick="seleccionarCategoria('hockey')" id="cat-hockey" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-300 font-bold hover:bg-cyan-400/25 transition">
-          🩵 🏒 Hockey (O/U)
-        </button>
-        <button onclick="seleccionarCategoria('nfl')" id="cat-nfl" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold hover:bg-emerald-500/25 transition">
-          🟢 🏈 NFL (O/U)
-        </button>
-        <button onclick="seleccionarCategoria('voleibol')" id="cat-voleibol" class="px-3 py-1.5 rounded-lg border-2 border-pink-500 bg-pink-500/15 text-pink-300 font-bold hover:bg-pink-500/25 transition">
-          🌸 🏐 Voleibol (O/U)
-        </button>
-        <button onclick="seleccionarCategoria('oro')" id="cat-oro" class="px-3 py-1.5 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 text-yellow-300 font-bold hover:bg-yellow-400/25 transition">
-          🟡 🥇 Oro (Gold)
-        </button>
-        <button onclick="seleccionarCategoria('egames')" id="cat-egames" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-300 font-bold hover:bg-purple-500/25 transition">
-          🟣 🎮 eGames
-        </button>
-        <button onclick="seleccionarCategoria('otros')" id="cat-otros" class="px-3 py-1.5 rounded-lg border-2 border-sky-500 bg-sky-500/15 text-sky-300 font-bold hover:bg-sky-500/25 transition">
-          🔵 ⚽ Otros / Macro
+          🩵 🏒 Hockey NHL (O/U)
         </button>
       </div>
     </div>
@@ -362,37 +358,78 @@
     async function verificarEstadoFijadas() {
       const ids = Object.keys(tarjetasFijadas);
       if (ids.length === 0) return;
-      const items = ids.map(id => ({
-        id: id,
-        market_id: tarjetasFijadas[id].market_id,
-        outcome: tarjetasFijadas[id].outcome
-      }));
-      try {
-        const resp = await fetch('/api/check-pinned', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({items})
-        });
-        const data = await resp.json();
-        if (data.success && data.updates) {
-          let huboCambio = false;
-          for (const [id, info] of Object.entries(data.updates)) {
-            if (tarjetasFijadas[id]) {
-              tarjetasFijadas[id].price = info.current_price;
-              tarjetasFijadas[id].centavos = Math.round(info.current_centavos);
-              tarjetasFijadas[id].probability = info.current_probability;
-              tarjetasFijadas[id].estado_resultado = info.estado_resultado;
-              tarjetasFijadas[id].closed = info.closed;
+
+      let huboCambio = false;
+
+      // 1. Verificar partidas fijadas de BC.GAME directamente desde el navegador
+      const bcIds = ids.filter(id => String(tarjetasFijadas[id].market_id || '').startsWith('bc_'));
+      for (const id of bcIds) {
+        try {
+          const item = tarjetasFijadas[id];
+          const eid = String(item.market_id).replace('bc_', '');
+          const parts = String(id).split('_');
+          const mType = parts[2] || '';
+          const outId = parts[3] || '';
+          const urlBc = `https://api-k-c7818b61-623.sptpub.com/api/v4/live/brand/2103509236163162112/event/es/${eid}`;
+          const rBc = await fetch(urlBc);
+          if (rBc.ok) {
+            const dataBc = await rBc.json();
+            const evBc = (dataBc.events || {})[eid] || {};
+            const specDict = (evBc.markets || {})[mType] || {};
+            let foundK = null;
+            for (const outDict of Object.values(specDict)) {
+              if (outDict && outDict[outId] && !outDict[outId].b) {
+                const kv = parseFloat(outDict[outId].k || 0);
+                if (kv > 1.0) { foundK = kv; break; }
+              }
+            }
+            if (foundK) {
+              const pNow = Math.min(Math.max(1.0 / foundK, 0.01), 0.99);
+              item.price = parseFloat(pNow.toFixed(4));
+              item.centavos = Math.round(pNow * 100);
+              item.probability = parseFloat((pNow * 100).toFixed(1));
+              item.cuota_bc = foundK.toFixed(2);
+              if (pNow >= 0.95) item.estado_resultado = 'WIN';
+              else if (pNow <= 0.08) item.estado_resultado = 'LOSS';
               huboCambio = true;
             }
           }
-          if (huboCambio) {
-            guardarFijadasLocales();
-            renderizarTarjetas();
+        } catch (e) {}
+      }
+
+      // 2. Verificar partidas fijadas de Polymarket en el servidor
+      const polyIds = ids.filter(id => !String(tarjetasFijadas[id].market_id || '').startsWith('bc_'));
+      if (polyIds.length > 0) {
+        const items = polyIds.map(id => ({
+          id: id,
+          market_id: tarjetasFijadas[id].market_id,
+          outcome: tarjetasFijadas[id].outcome
+        }));
+        try {
+          const resp = await fetch('/api/check-pinned', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({items})
+          });
+          const data = await resp.json();
+          if (data.success && data.updates) {
+            for (const [id, info] of Object.entries(data.updates)) {
+              if (tarjetasFijadas[id]) {
+                tarjetasFijadas[id].price = info.current_price;
+                tarjetasFijadas[id].centavos = Math.round(info.current_centavos);
+                tarjetasFijadas[id].probability = info.current_probability;
+                tarjetasFijadas[id].estado_resultado = info.estado_resultado;
+                tarjetasFijadas[id].closed = info.closed;
+                huboCambio = true;
+              }
+            }
           }
-        }
-      } catch (e) {
-        console.error("Error verificando fijadas:", e);
+        } catch (e) {}
+      }
+
+      if (huboCambio) {
+        guardarFijadasLocales();
+        renderizarTarjetas();
       }
     }
 
@@ -407,7 +444,7 @@
     }
 
     function actualizarBotonesCategoria() {
-      const cats = ['todos', 'fijadas', 'basket', 'hockey', 'nfl', 'voleibol', 'oro', 'egames', 'otros'];
+      const cats = ['todos', 'fijadas', 'esoccer', 'ebasketball', 'epenalty', 'efighting', 'etennis', 'basket', 'hockey'];
       cats.forEach(c => {
         const el = document.getElementById('cat-' + c);
         if (!el) return;
@@ -468,7 +505,8 @@
           }
         }
         if (estado.categoria) {
-          if (estado.categoria === 'btc' || estado.categoria === 'deportes') {
+          const validas = ['todos', 'fijadas', 'esoccer', 'ebasketball', 'epenalty', 'efighting', 'etennis', 'basket', 'hockey'];
+          if (!validas.includes(estado.categoria)) {
             categoriaActiva = 'todos';
           } else {
             categoriaActiva = estado.categoria;
@@ -480,28 +518,57 @@
 
     async function cargarPlayBCDirecto(pMin) {
       try {
-        const base = 'https://api-k-c7818b61-623.sptpub.com/api/v4/live/brand/2103509236163162112/es';
-        const r0 = await fetch(`${base}/0`);
-        const init = await r0.json();
-        const vTop = (init.top_events_versions || [0])[0];
-        const vRest = (init.rest_events_versions || [0])[0];
-        const [d1, d2] = await Promise.all([
-          vTop ? fetch(`${base}/${vTop}`).then(r => r.json()) : Promise.resolve({}),
-          vRest ? fetch(`${base}/${vRest}`).then(r => r.json()) : Promise.resolve({})
-        ]);
-        const allEvs = Object.assign({}, d1.events || {}, d2.events || {});
-        const sports = Object.assign({}, d1.sports || {}, d2.sports || {});
-        const categories = Object.assign({}, d1.categories || {}, d2.categories || {});
-        const tournaments = Object.assign({}, d1.tournaments || {}, d2.tournaments || {});
-        const egameSports = new Set(['109', '111', '137', '153', '300', '302', '303', '304', '305', '307', '309', '322']);
+        const allEvs = {};
+        const sports = {};
+        const categories = {};
+        const tournaments = {};
+
+        // Consultar tanto partidas EN VIVO (live) como PRÓXIMAS (prematch) en PlayBC
+        for (const mode of ['live', 'prematch']) {
+          try {
+            const base = `https://api-k-c7818b61-623.sptpub.com/api/v4/${mode}/brand/2103509236163162112/es`;
+            const r0 = await fetch(`${base}/0`);
+            const init = await r0.json();
+            const versions = [...(init.top_events_versions || []), ...(init.rest_events_versions || [])].slice(0, 2);
+            const payloads = await Promise.all(versions.map(v => fetch(`${base}/${v}`).then(r => r.json()).catch(() => ({}))));
+            for (const d of payloads) {
+              Object.assign(sports, d.sports || {});
+              Object.assign(categories, d.categories || {});
+              Object.assign(tournaments, d.tournaments || {});
+              for (const [eid, ev] of Object.entries(d.events || {})) {
+                if (!allEvs[eid]) {
+                  ev._is_live = (mode === 'live');
+                  allEvs[eid] = ev;
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Mapeo de los 5 deportes de BC pedidos en las fotos
+        const mapaDeportesBC = {
+          '300': { cat: 'esoccer', label: '🟢 ⚽🤖 eSoccer (BC)' },
+          '137': { cat: 'esoccer', label: '🟢 ⚽🤖 eSoccer FC27 (BC)' },
+          '309': { cat: 'esoccer', label: '🟢 ⚽🤖 eSoccer Volta (BC)' },
+          '302': { cat: 'ebasketball', label: '🟠 🏀🤖 eBasketball (BC)' },
+          '153': { cat: 'ebasketball', label: '🟠 🏀🤖 eBasketball 2K (BC)' },
+          '307': { cat: 'epenalty', label: '🟡 🥅🤖 eSoccer: Penalty (BC)' },
+          '304': { cat: 'efighting', label: '🔴 🥊🤖 eFighting (BC)' },
+          '303': { cat: 'etennis', label: '🟣 🎾🤖 eTennis (BC)' }
+        };
+
         const extraidas = [];
+        const pUmbral = Math.min(pMin, 0.58);
 
         for (const [eid, ev] of Object.entries(allEvs)) {
           const desc = ev.desc || {};
           const sp = String(desc.sport || '');
-          if (!egameSports.has(sp) || !ev.markets) continue;
+          const infoCat = mapaDeportesBC[sp];
+          if (!infoCat || !ev.markets) continue;
+
           const comps = (desc.competitors || []).map(c => c.name || '');
           if (comps.length < 2) continue;
+
           const spInfo = sports[sp] || {};
           const spName = spInfo.name || 'eGames';
           const spSlug = spInfo.slug || 'esports';
@@ -511,11 +578,15 @@
           const tName = tInfo.name || '';
           const evSlug = desc.slug || 'match';
           const sc = ev.score || {};
-          const marcador = `${sc.home_score || 0} - ${sc.away_score || 0}`;
+          const esVivo = Boolean(ev._is_live);
+          const marcador = esVivo ? `${sc.home_score ?? 0} - ${sc.away_score ?? 0}` : 'Por Empezar';
           const urlBc = `https://playbc.fun/es/sports/${spSlug}/${cSlug}/${tSlug}/${evSlug}-${eid}`;
 
-          let mejorOp = null;
-          let mejorScore = -1;
+          let mejorOU = null;
+          let mejorScoreOU = -1;
+          let mejorGanador = null;
+          let mejorScoreGanador = -1;
+
           for (const [mType, specDict] of Object.entries(ev.markets)) {
             if (!specDict || typeof specDict !== 'object') continue;
             for (const [spec, outDict] of Object.entries(specDict)) {
@@ -523,12 +594,13 @@
               for (const [outId, outData] of Object.entries(outDict)) {
                 if (!outData || outData.b) continue;
                 const k = parseFloat(outData.k || 0);
-                if (k < 1.05 || k > 1.54) continue;
+                if (k < 1.05 || k > 1.72) continue;
                 const pImpl = 1.0 / k;
-                if (pImpl < Math.min(pMin, 0.65)) continue;
+                if (pImpl < pUmbral) continue;
                 const roi = (k - 1.0) * 100;
-                let labelBoton = '';
-                let comoGanas = '';
+                const cobro10 = (10 * k).toFixed(2);
+
+                // 1. Prioridad Principal: Over / Under (total=)
                 if (spec.includes('total=') && (outId === '12' || outId === '13')) {
                   const mTot = spec.match(/total=(\d+\.?\d*)/);
                   if (!mTot) continue;
@@ -536,51 +608,92 @@
                   if (Math.round(lv * 100) % 50 !== 0) continue;
                   const minOver = (lv % 1 !== 0) ? (Math.floor(lv) + 1) : (lv + 1);
                   const maxUnder = (lv % 1 !== 0) ? Math.floor(lv) : (lv - 1);
+                  let labelBoton = '';
+                  let comoGanas = '';
                   if (outId === '12') {
                     labelBoton = `Más de ${lv} / Over (Cuota ${k.toFixed(2)})`;
-                    comoGanas = `📈 APUESTA DE MÁS DE (OVER ${lv}) [Marcador en vivo: ${marcador}]: Ganas si entre ambos suman ${minOver} o más goles/puntos/rondas en la partida.`;
+                    comoGanas = `📈 APUESTA DE MÁS DE (OVER ${lv}) [${marcador}]: Ganas si entre ambos suman ${minOver} o más goles/puntos/rondas en la partida.`;
                   } else {
                     labelBoton = `Menos de ${lv} / Under (Cuota ${k.toFixed(2)})`;
-                    comoGanas = `📉 APUESTA DE MENOS DE (UNDER ${lv}) [Marcador en vivo: ${marcador}]: Ganas si entre ambos hacen ${maxUnder} o menos goles/puntos/rondas en la partida.`;
+                    comoGanas = `📉 APUESTA DE MENOS DE (UNDER ${lv}) [${marcador}]: Ganas si entre ambos hacen ${maxUnder} o menos goles/puntos/rondas en la partida.`;
                   }
-                } else {
-                  // Enfocar los eGames de BC.GAME 100% en Over / Under (Más de / Menos de)
-                  continue;
+                  const pref = (pImpl >= 0.70 && pImpl <= 0.92) ? (pImpl + 0.5) : pImpl;
+                  if (pref > mejorScoreOU) {
+                    mejorScoreOU = pref;
+                    mejorOU = {
+                      id: `bc_${eid}_${mType}_${outId}`,
+                      market_id: `bc_${eid}`,
+                      question: `${comps[0]} vs. ${comps[1]} (${esVivo ? 'En Vivo: ' + marcador : 'Próximo'})`,
+                      outcome: labelBoton,
+                      probability: parseFloat((pImpl * 100).toFixed(1)),
+                      price: parseFloat(pImpl.toFixed(4)),
+                      centavos: Math.round(pImpl * 100),
+                      cuota_bc: k.toFixed(2),
+                      roi: parseFloat(roi.toFixed(2)),
+                      days_left: 0.04,
+                      hours_left: 1,
+                      en_vivo_ahora: esVivo,
+                      es_playbc: true,
+                      categoria: infoCat.cat,
+                      categoria_label: infoCat.label,
+                      apr: Math.round((roi / 0.04) * 365),
+                      kelly_pct: 2.5,
+                      como_ganas: comoGanas,
+                      instruccion_boton: `En PlayBC busca «Total (${lv})» y toca el botón «${labelBoton}».`,
+                      cobro_10: cobro10,
+                      ganancia_10: (cobro10 - 10).toFixed(2),
+                      link: urlBc
+                    };
+                  }
                 }
-                if (pImpl > mejorScore) {
-                  mejorScore = pImpl;
-                  const cobro10 = (10 * k).toFixed(2);
-                  mejorOp = {
-                    id: `bc_${eid}_${mType}_${outId}`,
-                    market_id: `bc_${eid}`,
-                    question: `🎮 [BC.GAME - ${spName}] ${comps[0]} vs. ${comps[1]} (En Vivo: ${marcador})`,
-                    outcome: labelBoton,
-                    probability: parseFloat((pImpl * 100).toFixed(1)),
-                    price: parseFloat(pImpl.toFixed(4)),
-                    centavos: Math.round(pImpl * 100),
-                    cuota_bc: k.toFixed(2),
-                    roi: parseFloat(roi.toFixed(2)),
-                    days_left: 0.04,
-                    hours_left: 1,
-                    en_vivo_ahora: true,
-                    es_playbc: true,
-                    categoria: 'egames',
-                    categoria_label: `🟣 🎮 BC.GAME (${spName})`,
-                    apr: Math.round((roi / 0.04) * 365),
-                    kelly_pct: 2.5,
-                    como_ganas: comoGanas,
-                    instruccion_boton: `En PlayBC toca el botón «${labelBoton}» (Partida en vivo: ${marcador}).`,
-                    cobro_10: cobro10,
-                    ganancia_10: (cobro10 - 10).toFixed(2),
-                    link: urlBc
-                  };
+                // 2. Respaldo para eFighting / eTennis / Partidas sin línea O/U activa
+                else if ((spec === '' || spec.startsWith('roundnr=') || spec.startsWith('gamenr=')) && ['1', '3', '4', '5'].includes(outId)) {
+                  const gNom = (outId === '1' || outId === '4') ? comps[0] : comps[1];
+                  const subSpec = spec ? ` (${spec.replace('roundnr=', 'Round ').replace('gamenr=', 'Game ')})` : '';
+                  const labelBoton = `${gNom}${subSpec} (Cuota ${k.toFixed(2)})`;
+                  const comoGanas = `🎮 PARTIDA EN PLAYBC [${marcador}]: Ganas si «${gNom}» gana${subSpec} en ${tName || spName}.`;
+                  const pref = (pImpl >= 0.70 && pImpl <= 0.92) ? (pImpl + 0.5) : pImpl;
+                  if (pref > mejorScoreGanador) {
+                    mejorScoreGanador = pref;
+                    mejorGanador = {
+                      id: `bc_${eid}_${mType}_${outId}`,
+                      market_id: `bc_${eid}`,
+                      question: `${comps[0]} vs. ${comps[1]} (${esVivo ? 'En Vivo: ' + marcador : 'Próximo'})`,
+                      outcome: labelBoton,
+                      probability: parseFloat((pImpl * 100).toFixed(1)),
+                      price: parseFloat(pImpl.toFixed(4)),
+                      centavos: Math.round(pImpl * 100),
+                      cuota_bc: k.toFixed(2),
+                      roi: parseFloat(roi.toFixed(2)),
+                      days_left: 0.04,
+                      hours_left: 1,
+                      en_vivo_ahora: esVivo,
+                      es_playbc: true,
+                      categoria: infoCat.cat,
+                      categoria_label: infoCat.label,
+                      apr: Math.round((roi / 0.04) * 365),
+                      kelly_pct: 2.5,
+                      como_ganas: comoGanas,
+                      instruccion_boton: `En PlayBC toca el botón «${labelBoton}».`,
+                      cobro_10: cobro10,
+                      ganancia_10: (cobro10 - 10).toFixed(2),
+                      link: urlBc
+                    };
+                  }
                 }
               }
             }
           }
-          if (mejorOp) extraidas.push(mejorOp);
+
+          if (mejorOU) {
+            extraidas.push(mejorOU);
+          } else if (mejorGanador) {
+            extraidas.push(mejorGanador);
+          }
         }
-        return extraidas.slice(0, 25);
+
+        extraidas.sort((a, b) => (b.en_vivo_ahora - a.en_vivo_ahora) || (b.probability - a.probability));
+        return extraidas;
       } catch (e) {
         return [];
       }
@@ -695,40 +808,40 @@
       }
 
       const estilosCategoria = {
-        basket: {
+        esoccer: {
+          border: 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.28)]',
+          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50',
+          label: '🟢 ⚽🤖 eSoccer (BC)'
+        },
+        ebasketball: {
           border: 'border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.28)]',
           badge: 'bg-orange-500/20 text-orange-300 border border-orange-500/50',
-          label: '🟠 🏀 BASKET (O/U)'
+          label: '🟠 🏀🤖 eBasketball (BC)'
+        },
+        epenalty: {
+          border: 'border-2 border-yellow-400 shadow-[0_0_18px_rgba(250,204,21,0.28)]',
+          badge: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50',
+          label: '🟡 🥅🤖 eSoccer: Penalty (BC)'
+        },
+        efighting: {
+          border: 'border-2 border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.28)]',
+          badge: 'bg-red-500/20 text-red-300 border border-red-500/50',
+          label: '🔴 🥊🤖 eFighting (BC)'
+        },
+        etennis: {
+          border: 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.28)]',
+          badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/50',
+          label: '🟣 🎾🤖 eTennis (BC)'
+        },
+        basket: {
+          border: 'border-2 border-blue-500 shadow-[0_0_18px_rgba(59,130,246,0.28)]',
+          badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/50',
+          label: '🔵 🏀 BASKET NBA (O/U)'
         },
         hockey: {
           border: 'border-2 border-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.28)]',
           badge: 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/50',
-          label: '🩵 🏒 HOCKEY (O/U)'
-        },
-        nfl: {
-          border: 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.28)]',
-          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50',
-          label: '🟢 🏈 NFL (O/U)'
-        },
-        voleibol: {
-          border: 'border-2 border-pink-500 shadow-[0_0_18px_rgba(236,72,153,0.28)]',
-          badge: 'bg-pink-500/20 text-pink-300 border border-pink-500/50',
-          label: '🌸 🏐 VOLEIBOL (O/U)'
-        },
-        oro: {
-          border: 'border-2 border-yellow-400 shadow-[0_0_18px_rgba(250,204,21,0.28)]',
-          badge: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50',
-          label: '🟡 🥇 ORO (GOLD)'
-        },
-        egames: {
-          border: 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.28)]',
-          badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/50',
-          label: '🟣 🎮 EGAMES'
-        },
-        otros: {
-          border: 'border-2 border-sky-500/80 shadow-[0_0_14px_rgba(14,165,233,0.20)]',
-          badge: 'bg-sky-500/20 text-sky-300 border border-sky-500/40',
-          label: '🔵 ⚽ OTROS / MACRO'
+          label: '🩵 🏒 HOCKEY NHL (O/U)'
         }
       };
 
@@ -743,8 +856,8 @@
         const tiempoBadge = op.es_btc_5m 
           ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
           : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`));
-        const catKey = op.categoria || 'otros';
-        const estilo = estilosCategoria[catKey] || estilosCategoria.otros;
+        const catKey = op.categoria || 'esoccer';
+        const estilo = estilosCategoria[catKey] || estilosCategoria.esoccer;
 
         // Banner especial cuando el switch está activo y el resultado es WIN o está en seguimiento
         let bannerResultado = '';
