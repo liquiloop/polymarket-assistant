@@ -646,8 +646,8 @@
                     };
                   }
                 }
-                // 2. Respaldo para eFighting / eTennis / Partidas sin línea O/U activa
-                else if ((spec === '' || spec.startsWith('roundnr=') || spec.startsWith('gamenr=')) && ['1', '3', '4', '5'].includes(outId)) {
+                // 2. Respaldo solo para eFighting y eTennis cuando BC.GAME no publica línea O/U en esa pelea/partido
+                else if ((infoCat.cat === 'efighting' || infoCat.cat === 'etennis') && (spec === '' || spec.startsWith('roundnr=') || spec.startsWith('gamenr=')) && ['1', '3', '4', '5'].includes(outId)) {
                   const gNom = (outId === '1' || outId === '4') ? comps[0] : comps[1];
                   const subSpec = spec ? ` (${spec.replace('roundnr=', 'Round ').replace('gamenr=', 'Game ')})` : '';
                   const labelBoton = `${gNom}${subSpec} (Cuota ${k.toFixed(2)})`;
