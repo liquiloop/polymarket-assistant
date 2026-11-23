@@ -361,42 +361,7 @@
 
       let huboCambio = false;
 
-      // 1. Verificar partidas fijadas de BC.GAME directamente desde el navegador
-      const bcIds = ids.filter(id => String(tarjetasFijadas[id].market_id || '').startsWith('bc_'));
-      for (const id of bcIds) {
-        try {
-          const item = tarjetasFijadas[id];
-          const eid = String(item.market_id).replace('bc_', '');
-          const parts = String(id).split('_');
-          const mType = parts[2] || '';
-          const outId = parts[3] || '';
-          const urlBc = `https://api-k-c7818b61-623.sptpub.com/api/v4/live/brand/2103509236163162112/event/es/${eid}`;
-          const rBc = await fetch(urlBc);
-          if (rBc.ok) {
-            const dataBc = await rBc.json();
-            const evBc = (dataBc.events || {})[eid] || {};
-            const specDict = (evBc.markets || {})[mType] || {};
-            let foundK = null;
-            for (const outDict of Object.values(specDict)) {
-              if (outDict && outDict[outId] && !outDict[outId].b) {
-                const kv = parseFloat(outDict[outId].k || 0);
-                if (kv > 1.0) { foundK = kv; break; }
-              }
-            }
-            if (foundK) {
-              const pNow = Math.min(Math.max(1.0 / foundK, 0.01), 0.99);
-              item.price = parseFloat(pNow.toFixed(4));
-              item.centavos = Math.round(pNow * 100);
-              item.probability = parseFloat((pNow * 100).toFixed(1));
-              item.cuota_bc = foundK.toFixed(2);
-              if (pNow >= 0.95) item.estado_resultado = 'WIN';
-              else if (pNow <= 0.08) item.estado_resultado = 'LOSS';
-              huboCambio = true;
-            }
-          }
-        } catch (e) {}
-      }
-
+      // 1. Las partidas fijadas de BC.GAME se actualizan directamente con el snapshot de allEvs (HTTP 200) en cargarPlayBCDirecto
       // 2. Verificar partidas fijadas de Polymarket en el servidor
       const polyIds = ids.filter(id => !String(tarjetasFijadas[id].market_id || '').startsWith('bc_'));
       if (polyIds.length > 0) {
@@ -579,7 +544,33 @@
           const evSlug = desc.slug || 'match';
           const sc = ev.score || {};
           const esVivo = Boolean(ev._is_live);
-          const marcador = esVivo ? `${sc.home_score ?? 0} - ${sc.away_score ?? 0}` : 'Por Empezar';
+          const hsNum = parseInt(sc.home_score ?? 0, 10) || 0;
+          const asNum = parseInt(sc.away_score ?? 0, 10) || 0;
+          const totalActual = hsNum + asNum;
+          const marcador = esVivo ? `${hsNum} - ${asNum}` : 'Por Empezar';
+
+          // Calcular tiempo / periodo real de la partida rápida de BC.GAME (duran 5 a 10 minutos, NO 1-2 horas)
+          let tiempoBcBadge = '';
+          if (esVivo) {
+            const pScores = sc.period_scores || [];
+            const clockTime = ((ev.state || {}).clock || {}).match_time || '';
+            const numPeriodo = pScores.length;
+            let faseTxt = 'En Juego';
+            if (infoCat.cat === 'esoccer') {
+              faseTxt = numPeriodo >= 2 ? '2ª Parte' : '1ª Parte';
+            } else if (infoCat.cat === 'ebasketball') {
+              faseTxt = numPeriodo > 0 ? `${numPeriodo}º Cuarto` : 'En Juego';
+            } else if (infoCat.cat === 'efighting') {
+              faseTxt = numPeriodo > 0 ? `Round ${numPeriodo}` : 'Peleando';
+            } else if (infoCat.cat === 'etennis') {
+              faseTxt = numPeriodo > 0 ? `Set ${numPeriodo}` : 'En Juego';
+            }
+            tiempoBcBadge = `🔴 EN VIVO (${faseTxt}${clockTime && clockTime !== '0:00' && clockTime !== '00:00' ? ' · ' + clockTime : ''} · ~3-8 min)`;
+          } else {
+            const sched = desc.scheduled || 0;
+            const minsFaltan = sched > 0 ? Math.max(Math.round((sched - Date.now() / 1000) / 60), 1) : 5;
+            tiempoBcBadge = `⏳ EMPIEZA EN ~${minsFaltan} MIN`;
+          }
           const urlBc = `https://playbc.fun/es/sports/${spSlug}/${cSlug}/${tSlug}/${evSlug}-${eid}`;
 
           let mejorOU = null;
@@ -623,6 +614,15 @@
                     mejorOU = {
                       id: `bc_${eid}_${mType}_${outId}`,
                       market_id: `bc_${eid}`,
+                      bc_eid: String(eid),
+                      bc_mtype: String(mType),
+                      bc_spec: String(spec),
+                      bc_outid: String(outId),
+                      linea_ou: lv,
+                      tipo_ou: (outId === '12' ? 'OVER' : 'UNDER'),
+                      ultimo_total: totalActual,
+                      ultimo_marcador: marcador,
+                      tiempo_bc_badge: tiempoBcBadge,
                       question: `${comps[0]} vs. ${comps[1]} (${esVivo ? 'En Vivo: ' + marcador : 'Próximo'})`,
                       outcome: labelBoton,
                       probability: parseFloat((pImpl * 100).toFixed(1)),
@@ -658,6 +658,12 @@
                     mejorGanador = {
                       id: `bc_${eid}_${mType}_${outId}`,
                       market_id: `bc_${eid}`,
+                      bc_eid: String(eid),
+                      bc_mtype: String(mType),
+                      bc_spec: String(spec),
+                      bc_outid: String(outId),
+                      ultimo_marcador: marcador,
+                      tiempo_bc_badge: tiempoBcBadge,
                       question: `${comps[0]} vs. ${comps[1]} (${esVivo ? 'En Vivo: ' + marcador : 'Próximo'})`,
                       outcome: labelBoton,
                       probability: parseFloat((pImpl * 100).toFixed(1)),
@@ -690,6 +696,97 @@
           } else if (mejorGanador) {
             extraidas.push(mejorGanador);
           }
+        }
+
+        // Actualizar en vivo todas las tarjetas de BC.GAME que el usuario tenga fijadas con el Switch
+        let cambioEnFijadasBC = false;
+        for (const [idFij, itemFij] of Object.entries(tarjetasFijadas)) {
+          if (!String(itemFij.market_id || '').startsWith('bc_')) continue;
+          if (itemFij.estado_resultado === 'WIN' || itemFij.estado_resultado === 'LOSS') continue;
+
+          const eid = itemFij.bc_eid || String(itemFij.market_id).replace('bc_', '');
+          const evVivo = allEvs[eid];
+
+          if (evVivo) {
+            const sc = evVivo.score || {};
+            const hs = parseInt(sc.home_score ?? 0, 10) || 0;
+            const as = parseInt(sc.away_score ?? 0, 10) || 0;
+            const tot = hs + as;
+            const marc = `${hs} - ${as}`;
+            itemFij.ultimo_total = tot;
+            itemFij.ultimo_marcador = marc;
+            itemFij.en_vivo_ahora = Boolean(evVivo._is_live);
+            itemFij.question = itemFij.question.replace(/\(En Vivo:.*?\)|\(Próximo\)/, `(En Vivo: ${marc})`);
+
+            // 1. Si es Over (Más de X.5) y la suma de goles/puntos ya superó la línea, es WIN matemático inmediato
+            if (itemFij.tipo_ou === 'OVER' && typeof itemFij.linea_ou === 'number' && tot > itemFij.linea_ou) {
+              itemFij.estado_resultado = 'WIN';
+              itemFij.probability = 100;
+              itemFij.centavos = 100;
+              itemFij.tiempo_bc_badge = `🏆 GANADA EN VIVO (${marc})`;
+              cambioEnFijadasBC = true;
+              continue;
+            }
+            // 2. Si es Under (Menos de X.5) y la suma ya superó la línea, se perdió
+            if (itemFij.tipo_ou === 'UNDER' && typeof itemFij.linea_ou === 'number' && tot > itemFij.linea_ou) {
+              itemFij.estado_resultado = 'LOSS';
+              itemFij.tiempo_bc_badge = `❌ LÍNEA SUPERADA (${marc})`;
+              cambioEnFijadasBC = true;
+              continue;
+            }
+
+            // 3. Revisar cómo va la cuota en vivo
+            const parts = String(idFij).split('_');
+            const mType = itemFij.bc_mtype || parts[2] || '';
+            const outId = itemFij.bc_outid || parts[3] || '';
+            const specDict = ((evVivo.markets || {})[mType]) || {};
+            for (const [spKey, outDict] of Object.entries(specDict)) {
+              if (itemFij.bc_spec && spKey !== itemFij.bc_spec) continue;
+              if (outDict && outDict[outId] && !outDict[outId].b) {
+                const kv = parseFloat(outDict[outId].k || 0);
+                if (kv > 1.0) {
+                  const pNow = Math.min(Math.max(1.0 / kv, 0.01), 0.99);
+                  itemFij.price = parseFloat(pNow.toFixed(4));
+                  itemFij.centavos = Math.round(pNow * 100);
+                  itemFij.probability = parseFloat((pNow * 100).toFixed(1));
+                  itemFij.cuota_bc = kv.toFixed(2);
+                  if (pNow >= 0.95) itemFij.estado_resultado = 'WIN';
+                  else if (pNow <= 0.06) itemFij.estado_resultado = 'LOSS';
+                  cambioEnFijadasBC = true;
+                }
+              }
+            }
+          } else if (itemFij.en_vivo_ahora) {
+            // La partida ya terminó y salió del listado en vivo: verificar marcador final
+            if (itemFij.tipo_ou === 'UNDER' && typeof itemFij.linea_ou === 'number') {
+              if ((itemFij.ultimo_total ?? 0) < itemFij.linea_ou) {
+                itemFij.estado_resultado = 'WIN';
+                itemFij.probability = 100;
+                itemFij.centavos = 100;
+                itemFij.tiempo_bc_badge = `🏁 FINALIZADA (${itemFij.ultimo_marcador || 'OK'})`;
+                cambioEnFijadasBC = true;
+              }
+            } else if (itemFij.tipo_ou === 'OVER' && typeof itemFij.linea_ou === 'number') {
+              if ((itemFij.ultimo_total ?? 0) > itemFij.linea_ou) {
+                itemFij.estado_resultado = 'WIN';
+                itemFij.probability = 100;
+                itemFij.centavos = 100;
+              } else {
+                itemFij.estado_resultado = 'LOSS';
+              }
+              itemFij.tiempo_bc_badge = `🏁 FINALIZADA (${itemFij.ultimo_marcador || ''})`;
+              cambioEnFijadasBC = true;
+            } else if (itemFij.probability >= 80) {
+              itemFij.estado_resultado = 'WIN';
+              itemFij.probability = 100;
+              itemFij.centavos = 100;
+              itemFij.tiempo_bc_badge = `🏁 FINALIZADA`;
+              cambioEnFijadasBC = true;
+            }
+          }
+        }
+        if (cambioEnFijadasBC) {
+          guardarFijadasLocales();
         }
 
         extraidas.sort((a, b) => (b.en_vivo_ahora - a.en_vivo_ahora) || (b.probability - a.probability));
@@ -853,9 +950,11 @@
         const centavos = op.centavos || Math.round(op.price * 100);
         const cobro10 = op.cobro_10 || (10 * (1 + op.roi / 100)).toFixed(2);
         const ganancia10 = op.ganancia_10 || (cobro10 - 10).toFixed(2);
-        const tiempoBadge = op.es_btc_5m 
-          ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
-          : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`));
+        const tiempoBadge = op.tiempo_bc_badge
+          ? op.tiempo_bc_badge
+          : (op.es_btc_5m 
+            ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
+            : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`)));
         const catKey = op.categoria || 'esoccer';
         const estilo = estilosCategoria[catKey] || estilosCategoria.esoccer;
 
@@ -863,26 +962,29 @@
         let bannerResultado = '';
         if (estaFijada) {
           if (estadoRes === 'WIN' || op.probability >= 98.5) {
+            const detalleWin = op.es_playbc
+              ? `Marcador: <b>${op.ultimo_marcador || 'Final'}</b> · Cuota Ganada: <b>${op.cuota_bc || ''}</b> (Con $10 cobras <b>$${op.cobro_10}</b>)`
+              : `Entraste a <b>${entryCentavos}¢</b> ➔ Pagó <b>100¢ ($1.00)</b>`;
             bannerResultado = `
               <div class="mb-3 p-3 rounded-xl bg-gradient-to-r from-emerald-600/40 to-teal-500/40 border-2 border-emerald-400 text-center shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse">
                 <div class="text-base font-black text-emerald-300 tracking-wide">🏆 ¡WIN! — RESULTADO A FAVOR</div>
-                <div class="text-xs text-white mt-0.5">Entraste a <b>${entryCentavos}¢</b> ➔ Pagó <b>100¢ ($1.00)</b> · Apaga el switch arriba para quitarla</div>
+                <div class="text-xs text-white mt-0.5">${detalleWin} · Apaga el switch arriba para quitarla</div>
               </div>
             `;
           } else if (estadoRes === 'LOSS') {
             bannerResultado = `
               <div class="mb-3 p-2.5 rounded-xl bg-red-950/60 border border-red-500 text-center">
-                <div class="text-sm font-bold text-red-300">❌ Resultado en contra (Cerrado)</div>
+                <div class="text-sm font-bold text-red-300">❌ Resultado en contra ${op.ultimo_marcador ? '(' + op.ultimo_marcador + ')' : '(Cerrado)'}</div>
                 <div class="text-[11px] text-gray-300">Apaga el switch arriba para quitarla de tu lista</div>
               </div>
             `;
           } else {
             const diffCents = centavos - entryCentavos;
-            const diffTxt = diffCents > 0 ? `<span class="text-emerald-400 font-bold">(+${diffCents}¢ a tu favor 📈)</span>` : (diffCents < 0 ? `<span class="text-amber-400">(${diffCents}¢)</span>` : `<span class="text-gray-400">(Sin cambio)</span>`);
+            const diffTxt = diffCents > 0 ? `<span class="text-emerald-400 font-bold">(+${diffCents}% a tu favor 📈)</span>` : (diffCents < 0 ? `<span class="text-amber-400">(${diffCents}%)</span>` : `<span class="text-gray-400">(En juego)</span>`);
             bannerResultado = `
               <div class="mb-3 p-2 rounded-lg bg-amber-500/15 border border-amber-400/50 flex items-center justify-between text-xs">
-                <span class="text-amber-300 font-bold">📌 Fijada en seguimiento</span>
-                <span class="text-gray-200">Fijada a <b>${entryCentavos}¢</b> ➔ Ahora: <b>${centavos}¢</b> ${diffTxt}</span>
+                <span class="text-amber-300 font-bold">📌 Fijada ${op.ultimo_marcador ? '[' + op.ultimo_marcador + ']' : ''}</span>
+                <span class="text-gray-200">Inicio: <b>${entryCentavos}%</b> ➔ Ahora: <b>${centavos}%</b> ${diffTxt}</span>
               </div>
             `;
           }
