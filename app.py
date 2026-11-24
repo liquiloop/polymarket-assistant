@@ -59,6 +59,28 @@ def api_config():
     else:
         return jsonify(load_config())
 
+STATS_FILE = os.path.join(current_dir, "win_loss_stats.json")
+
+@app.route("/api/stats", methods=["GET", "POST"])
+def api_stats():
+    import json
+    if request.method == "POST":
+        data = request.get_json() or {}
+        try:
+            with open(STATS_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+        except Exception:
+            pass
+        return jsonify({"success": True})
+    else:
+        if os.path.exists(STATS_FILE):
+            try:
+                with open(STATS_FILE, "r", encoding="utf-8") as f:
+                    return jsonify(json.load(f))
+            except Exception:
+                pass
+        return jsonify({})
+
 @app.route("/api/check-pinned", methods=["POST"])
 def api_check_pinned():
     """
