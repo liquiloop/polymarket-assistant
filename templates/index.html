@@ -77,47 +77,82 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- KPI STATS -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="glass-card rounded-xl p-4 border border-gray-800 flex items-center space-x-4">
-        <div class="p-3 bg-emerald-500/10 rounded-lg text-emerald-400 text-xl">
-          <i class="fa-solid fa-bullseye"></i>
+    <!-- KPI STATS + PANEL DE EFECTIVIDAD (AVERAGE WIN / LOSS POR JUEGO) -->
+    <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2.5 bg-emerald-500/15 text-emerald-400 rounded-lg text-lg">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              📊 Efectividad Real del Bot (Average Ganadas vs. Perdidas)
+              <span id="badge-auditando" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">Auto-Aprendizaje Activo</span>
+            </h2>
+            <p class="text-xs text-gray-400">Evalúa automáticamente todas las señales ≥70% que predice el bot y detecta qué juegos son más positivos</p>
+          </div>
         </div>
-        <div>
-          <div class="text-xs text-gray-400 font-medium">Oportunidades ≥70%</div>
-          <div class="text-2xl font-bold text-white" id="stat-total">--</div>
+
+        <div class="flex items-center gap-3">
+          <!-- SWITCH AUTO-DESCARTAR PERDEDORES -->
+          <button onclick="toggleAutoDescartar()" id="btn-autodescartar" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 text-xs font-bold transition cursor-pointer" title="Oculta automáticamente los juegos o torneos que tengan menos de 50% de acierto tras 3+ partidas">
+            <i class="fa-solid fa-brain"></i>
+            <span id="txt-autodescartar">Auto-Descartar Perdedores: ON</span>
+          </button>
+          <button onclick="reiniciarEstadisticas()" class="px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-xs border border-gray-700 transition" title="Reiniciar contador de Ganadas y Perdidas">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
         </div>
       </div>
 
-      <div class="glass-card rounded-xl p-4 border border-gray-800 flex items-center space-x-4">
-        <div class="p-3 bg-teal-500/10 rounded-lg text-teal-400 text-xl">
-          <i class="fa-solid fa-fire"></i>
+      <!-- RESUMEN GLOBAL -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-gray-400">🏆 Predicciones Ganadas</div>
+            <div class="text-2xl font-black text-emerald-400" id="stat-global-wins">0</div>
+          </div>
+          <i class="fa-solid fa-circle-check text-2xl text-emerald-500/40"></i>
         </div>
-        <div>
-          <div class="text-xs text-gray-400 font-medium">Mayor APR Anualizado</div>
-          <div class="text-2xl font-bold text-emerald-400" id="stat-max-apr">--</div>
+
+        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-gray-400">❌ Predicciones Perdidas</div>
+            <div class="text-2xl font-black text-red-400" id="stat-global-losses">0</div>
+          </div>
+          <i class="fa-solid fa-circle-xmark text-2xl text-red-500/40"></i>
+        </div>
+
+        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-gray-400">🎯 Average / Efectividad</div>
+            <div class="text-2xl font-black text-white" id="stat-global-winrate">--%</div>
+          </div>
+          <i class="fa-solid fa-percent text-2xl text-blue-500/40"></i>
+        </div>
+
+        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] text-gray-400">🔥 Juego Más Positivo</div>
+            <div class="text-sm font-bold text-amber-300 truncate max-w-[140px]" id="stat-best-game">Calculando...</div>
+            <div class="text-[10px] text-gray-500" id="stat-audit-queue">0 en seguimiento</div>
+          </div>
+          <i class="fa-solid fa-fire text-2xl text-amber-500/40"></i>
         </div>
       </div>
 
-      <div class="glass-card rounded-xl p-4 border border-gray-800 flex items-center space-x-4">
-        <div class="p-3 bg-blue-500/10 rounded-lg text-blue-400 text-xl">
-          <i class="fa-solid fa-percent"></i>
-        </div>
-        <div>
-          <div class="text-xs text-gray-400 font-medium">Probabilidad Promedio</div>
-          <div class="text-2xl font-bold text-white" id="stat-avg-prob">--</div>
-        </div>
+      <!-- TABLA / TARJETAS DE AVERAGE POR CADA JUEGO -->
+      <div id="contenedor-stats-juegos" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
+        <!-- Se llena dinámicamente con el récord W-L y % de cada juego -->
       </div>
+    </div>
 
-      <div class="glass-card rounded-xl p-4 border border-gray-800 flex items-center space-x-4">
-        <div class="p-3 bg-purple-500/10 rounded-lg text-purple-400 text-xl">
-          <i class="fa-solid fa-clock"></i>
-        </div>
-        <div>
-          <div class="text-xs text-gray-400 font-medium">Cierre Más Próximo</div>
-          <div class="text-2xl font-bold text-purple-300" id="stat-min-time">--</div>
-        </div>
-      </div>
+    <!-- KPI SECUNDARIOS OCULTOS PARA COMPATIBILIDAD -->
+    <div class="hidden">
+      <span id="stat-total">0</span>
+      <span id="stat-max-apr">0%</span>
+      <span id="stat-avg-prob">0%</span>
+      <span id="stat-min-time">--</span>
     </div>
 
     <!-- PANEL DE CONTROL Y FILTROS -->
@@ -309,6 +344,254 @@
     let categoriaActiva = 'todos';
     let tarjetasFijadas = {}; // Mapa id -> objeto oportunidad fijada
 
+    // --- MOTOR DE AUTO-APRENDIZAJE Y AVERAGE (GANADAS VS PERDIDAS POR JUEGO) ---
+    const JUEGOS_INFO = {
+      esoccer:     { nombre: 'eSoccer',     icono: '⚽🤖', color: 'text-emerald-400', border: 'border-emerald-500/40' },
+      ebasketball: { nombre: 'eBasketball', icono: '🏀🤖', color: 'text-orange-400',  border: 'border-orange-500/40' },
+      epenalty:    { nombre: 'ePenalty',    icono: '🥅🤖', color: 'text-yellow-300',  border: 'border-yellow-400/40' },
+      efighting:   { nombre: 'eFighting',   icono: '🥊🤖', color: 'text-red-400',     border: 'border-red-500/40' },
+      etennis:     { nombre: 'eTennis',     icono: '🎾🤖', color: 'text-purple-400',  border: 'border-purple-500/40' },
+      basket:      { nombre: 'Basket NBA',  icono: '🏀',   color: 'text-blue-400',    border: 'border-blue-500/40' },
+      hockey:      { nombre: 'Hockey NHL',  icono: '🏒',   color: 'text-cyan-300',    border: 'border-cyan-400/40' }
+    };
+
+    let statsPorJuego = {};
+    let statsPorTorneo = {};
+    let idsYaContados = {};
+    let colaAuditoria = {}; // Partidas >=70% que el bot está auditando automáticamente
+    let autoDescartarActivo = true;
+
+    function inicializarEstructuraStats() {
+      Object.keys(JUEGOS_INFO).forEach(k => {
+        if (!statsPorJuego[k]) statsPorJuego[k] = { wins: 0, losses: 0, racha_loss: 0 };
+      });
+    }
+
+    async function cargarEstadisticasAprendizaje() {
+      try {
+        const raw = localStorage.getItem('polyedge_stats_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          statsPorJuego = parsed.statsPorJuego || {};
+          statsPorTorneo = parsed.statsPorTorneo || {};
+          idsYaContados = parsed.idsYaContados || {};
+          colaAuditoria = parsed.colaAuditoria || {};
+          if (typeof parsed.autoDescartarActivo === 'boolean') {
+            autoDescartarActivo = parsed.autoDescartarActivo;
+          }
+        }
+        // Intentar sincronizar con el servidor si el navegador estaba vacío
+        const totalLocal = Object.values(statsPorJuego).reduce((a, b) => a + (b.wins || 0) + (b.losses || 0), 0);
+        if (totalLocal === 0) {
+          const resp = await fetch('/api/stats');
+          if (resp.ok) {
+            const srv = await resp.json();
+            if (srv && srv.statsPorJuego) {
+              statsPorJuego = srv.statsPorJuego;
+              statsPorTorneo = srv.statsPorTorneo || {};
+              idsYaContados = srv.idsYaContados || {};
+            }
+          }
+        }
+      } catch (e) {}
+      inicializarEstructuraStats();
+      actualizarBotonAutoDescartar();
+      renderizarPanelEfectividad();
+    }
+
+    function guardarEstadisticasAprendizaje() {
+      try {
+        // Limpiar idsYaContados y colaAuditoria si crecen mucho
+        const keysIds = Object.keys(idsYaContados);
+        if (keysIds.length > 400) {
+          keysIds.slice(0, 150).forEach(k => delete idsYaContados[k]);
+        }
+        const payload = {
+          statsPorJuego,
+          statsPorTorneo,
+          idsYaContados,
+          colaAuditoria,
+          autoDescartarActivo
+        };
+        localStorage.setItem('polyedge_stats_v1', JSON.stringify(payload));
+        fetch('/api/stats', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ statsPorJuego, statsPorTorneo, idsYaContados })
+        }).catch(() => {});
+      } catch (e) {}
+      renderizarPanelEfectividad();
+    }
+
+    function registrarResultadoPrediccion(op, resultado) {
+      if (!op || !op.id || idsYaContados[op.id]) return;
+      if (resultado !== 'WIN' && resultado !== 'LOSS') return;
+
+      const cat = op.categoria || 'esoccer';
+      if (!statsPorJuego[cat]) statsPorJuego[cat] = { wins: 0, losses: 0, racha_loss: 0 };
+
+      idsYaContados[op.id] = resultado;
+      if (resultado === 'WIN') {
+        statsPorJuego[cat].wins += 1;
+        statsPorJuego[cat].racha_loss = 0;
+      } else {
+        statsPorJuego[cat].losses += 1;
+        statsPorJuego[cat].racha_loss = (statsPorJuego[cat].racha_loss || 0) + 1;
+      }
+
+      if (op.sub_torneo) {
+        const tKey = `${cat}_${op.sub_torneo}`;
+        if (!statsPorTorneo[tKey]) statsPorTorneo[tKey] = { wins: 0, losses: 0, racha_loss: 0 };
+        if (resultado === 'WIN') {
+          statsPorTorneo[tKey].wins += 1;
+          statsPorTorneo[tKey].racha_loss = 0;
+        } else {
+          statsPorTorneo[tKey].losses += 1;
+          statsPorTorneo[tKey].racha_loss = (statsPorTorneo[tKey].racha_loss || 0) + 1;
+        }
+      }
+
+      delete colaAuditoria[op.id];
+      guardarEstadisticasAprendizaje();
+    }
+
+    function esJuegoOPartidaDescartada(op) {
+      if (!autoDescartarActivo) return false;
+      const cat = op.categoria || 'esoccer';
+      const st = statsPorJuego[cat];
+      if (st) {
+        const tot = st.wins + st.losses;
+        const wr = tot > 0 ? (st.wins / tot) * 100 : 100;
+        // Si un juego tiene 4+ partidas evaluadas y menos de 45% de acierto (o 3 pérdidas seguidas sin victorias), se descarta
+        if ((tot >= 4 && wr < 45) || (st.racha_loss >= 3 && st.wins === 0)) {
+          return true;
+        }
+      }
+      if (op.sub_torneo) {
+        const tst = statsPorTorneo[`${cat}_${op.sub_torneo}`];
+        if (tst) {
+          const tTot = tst.wins + tst.losses;
+          const tWr = tTot > 0 ? (tst.wins / tTot) * 100 : 100;
+          if ((tTot >= 3 && tWr < 40) || tst.racha_loss >= 3) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function toggleAutoDescartar() {
+      autoDescartarActivo = !autoDescartarActivo;
+      actualizarBotonAutoDescartar();
+      guardarEstadisticasAprendizaje();
+      renderizarTarjetas();
+    }
+
+    function actualizarBotonAutoDescartar() {
+      const btn = document.getElementById('btn-autodescartar');
+      const txt = document.getElementById('txt-autodescartar');
+      if (!btn || !txt) return;
+      if (autoDescartarActivo) {
+        btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 text-xs font-bold transition cursor-pointer';
+        txt.innerText = 'Auto-Descartar Perdedores: ON';
+      } else {
+        btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-800 text-gray-400 text-xs font-bold transition cursor-pointer';
+        txt.innerText = 'Auto-Descartar Perdedores: OFF';
+      }
+    }
+
+    function reiniciarEstadisticas() {
+      statsPorJuego = {};
+      statsPorTorneo = {};
+      idsYaContados = {};
+      colaAuditoria = {};
+      inicializarEstructuraStats();
+      guardarEstadisticasAprendizaje();
+      renderizarTarjetas();
+    }
+
+    function renderizarPanelEfectividad() {
+      inicializarEstructuraStats();
+      let totalWins = 0;
+      let totalLosses = 0;
+      let mejorJuegoNombre = 'Acumulando datos...';
+      let mejorJuegoScore = -1;
+
+      const cont = document.getElementById('contenedor-stats-juegos');
+      const tarjetasHtml = [];
+
+      for (const [catKey, info] of Object.entries(JUEGOS_INFO)) {
+        const st = statsPorJuego[catKey] || { wins: 0, losses: 0, racha_loss: 0 };
+        const w = st.wins || 0;
+        const l = st.losses || 0;
+        const tot = w + l;
+        totalWins += w;
+        totalLosses += l;
+
+        const wr = tot > 0 ? Math.round((w / tot) * 100) : null;
+        const descartado = autoDescartarActivo && ((tot >= 4 && wr < 45) || (st.racha_loss >= 3 && w === 0));
+
+        if (tot >= 1) {
+          const scoreRank = (wr || 0) + Math.min(w * 3, 15);
+          if (scoreRank > mejorJuegoScore && (wr || 0) >= 50) {
+            mejorJuegoScore = scoreRank;
+            mejorJuegoNombre = `${info.icono} ${info.nombre} (${wr}%)`;
+          }
+        }
+
+        let badgeEstado = '<span class="text-[10px] text-gray-500">En espera</span>';
+        let colorWr = 'text-gray-400';
+        if (descartado) {
+          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">🚫 Descartado</span>';
+          colorWr = 'text-red-400';
+        } else if (wr !== null && wr >= 70) {
+          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">🔥 Positivo</span>';
+          colorWr = 'text-emerald-400';
+        } else if (wr !== null && wr >= 50) {
+          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">⚖️ Estable</span>';
+          colorWr = 'text-amber-300';
+        } else if (wr !== null) {
+          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">⚠️ Bajo</span>';
+          colorWr = 'text-red-400';
+        }
+
+        tarjetasHtml.push(`
+          <div onclick="seleccionarCategoria('${catKey}')" class="p-2.5 rounded-lg bg-gray-900/90 border ${descartado ? 'border-red-500/50 opacity-60' : info.border} cursor-pointer hover:bg-gray-800/80 transition flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-1 mb-1">
+              <span class="text-xs font-bold ${info.color} truncate">${info.icono} ${info.nombre}</span>
+              ${badgeEstado}
+            </div>
+            <div class="flex items-baseline justify-between mt-1">
+              <span class="text-base font-black ${colorWr}">${wr !== null ? wr + '%' : '--%'}</span>
+              <span class="text-[11px] font-mono text-gray-300">
+                <b class="text-emerald-400">${w}W</b> - <b class="text-red-400">${l}L</b>
+              </span>
+            </div>
+            <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-1.5">
+              <div class="h-full ${wr !== null && wr < 50 ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${wr !== null ? wr : 0}%"></div>
+            </div>
+          </div>
+        `);
+      }
+
+      if (cont) cont.innerHTML = tarjetasHtml.join('');
+
+      const globalTot = totalWins + totalLosses;
+      const globalWr = globalTot > 0 ? ((totalWins / globalTot) * 100).toFixed(1) + '%' : '--%';
+
+      const elW = document.getElementById('stat-global-wins');
+      const elL = document.getElementById('stat-global-losses');
+      const elWr = document.getElementById('stat-global-winrate');
+      const elBest = document.getElementById('stat-best-game');
+      const elQueue = document.getElementById('stat-audit-queue');
+
+      if (elW) elW.innerText = totalWins;
+      if (elL) elL.innerText = totalLosses;
+      if (elWr) elWr.innerText = globalWr;
+      if (elBest) elBest.innerText = mejorJuegoNombre;
+      if (elQueue) elQueue.innerText = `${Object.keys(colaAuditoria).length} partidas auditándose en vivo`;
+    }
+
     function cargarFijadasLocales() {
       try {
         const raw = localStorage.getItem('polyedge_fijadas_v1');
@@ -385,6 +668,9 @@
                 tarjetasFijadas[id].probability = info.current_probability;
                 tarjetasFijadas[id].estado_resultado = info.estado_resultado;
                 tarjetasFijadas[id].closed = info.closed;
+                if (info.estado_resultado === 'WIN' || info.estado_resultado === 'LOSS') {
+                  registrarResultadoPrediccion(tarjetasFijadas[id], info.estado_resultado);
+                }
                 huboCambio = true;
               }
             }
@@ -691,20 +977,22 @@
             }
           }
 
-          if (mejorOU) {
-            extraidas.push(mejorOU);
-          } else if (mejorGanador) {
-            extraidas.push(mejorGanador);
+          const opElegida = mejorOU || mejorGanador;
+          if (opElegida) {
+            opElegida.sub_torneo = tName || spName;
+            extraidas.push(opElegida);
+            // Auto-auditar todas las señales en vivo con probabilidad >= 70% para alimentar el Average automáticamente
+            if (opElegida.en_vivo_ahora && opElegida.probability >= 70 && !idsYaContados[opElegida.id] && !colaAuditoria[opElegida.id]) {
+              if (Object.keys(colaAuditoria).length < 80) {
+                colaAuditoria[opElegida.id] = JSON.parse(JSON.stringify(opElegida));
+              }
+            }
           }
         }
 
-        // Actualizar en vivo todas las tarjetas de BC.GAME que el usuario tenga fijadas con el Switch
-        let cambioEnFijadasBC = false;
-        for (const [idFij, itemFij] of Object.entries(tarjetasFijadas)) {
-          if (!String(itemFij.market_id || '').startsWith('bc_')) continue;
-          if (itemFij.estado_resultado === 'WIN' || itemFij.estado_resultado === 'LOSS') continue;
-
-          const eid = itemFij.bc_eid || String(itemFij.market_id).replace('bc_', '');
+        // Función auxiliar para verificar si una partida de BC.GAME (fijada o en colaAuditoria) ya ganó o perdió
+        function evaluarItemBC(idItem, itemObj) {
+          const eid = itemObj.bc_eid || String(itemObj.market_id).replace('bc_', '');
           const evVivo = allEvs[eid];
 
           if (evVivo) {
@@ -713,81 +1001,107 @@
             const as = parseInt(sc.away_score ?? 0, 10) || 0;
             const tot = hs + as;
             const marc = `${hs} - ${as}`;
-            itemFij.ultimo_total = tot;
-            itemFij.ultimo_marcador = marc;
-            itemFij.en_vivo_ahora = Boolean(evVivo._is_live);
-            itemFij.question = itemFij.question.replace(/\(En Vivo:.*?\)|\(Próximo\)/, `(En Vivo: ${marc})`);
+            itemObj.ultimo_total = tot;
+            itemObj.ultimo_marcador = marc;
+            itemObj.en_vivo_ahora = Boolean(evVivo._is_live);
+            itemObj.question = itemObj.question.replace(/\(En Vivo:.*?\)|\(Próximo\)/, `(En Vivo: ${marc})`);
 
-            // 1. Si es Over (Más de X.5) y la suma de goles/puntos ya superó la línea, es WIN matemático inmediato
-            if (itemFij.tipo_ou === 'OVER' && typeof itemFij.linea_ou === 'number' && tot > itemFij.linea_ou) {
-              itemFij.estado_resultado = 'WIN';
-              itemFij.probability = 100;
-              itemFij.centavos = 100;
-              itemFij.tiempo_bc_badge = `🏆 GANADA EN VIVO (${marc})`;
-              cambioEnFijadasBC = true;
-              continue;
+            if (itemObj.tipo_ou === 'OVER' && typeof itemObj.linea_ou === 'number' && tot > itemObj.linea_ou) {
+              itemObj.estado_resultado = 'WIN';
+              itemObj.probability = 100;
+              itemObj.centavos = 100;
+              itemObj.tiempo_bc_badge = `🏆 GANADA EN VIVO (${marc})`;
+              registrarResultadoPrediccion(itemObj, 'WIN');
+              return true;
             }
-            // 2. Si es Under (Menos de X.5) y la suma ya superó la línea, se perdió
-            if (itemFij.tipo_ou === 'UNDER' && typeof itemFij.linea_ou === 'number' && tot > itemFij.linea_ou) {
-              itemFij.estado_resultado = 'LOSS';
-              itemFij.tiempo_bc_badge = `❌ LÍNEA SUPERADA (${marc})`;
-              cambioEnFijadasBC = true;
-              continue;
+            if (itemObj.tipo_ou === 'UNDER' && typeof itemObj.linea_ou === 'number' && tot > itemObj.linea_ou) {
+              itemObj.estado_resultado = 'LOSS';
+              itemObj.tiempo_bc_badge = `❌ LÍNEA SUPERADA (${marc})`;
+              registrarResultadoPrediccion(itemObj, 'LOSS');
+              return true;
             }
 
-            // 3. Revisar cómo va la cuota en vivo
-            const parts = String(idFij).split('_');
-            const mType = itemFij.bc_mtype || parts[2] || '';
-            const outId = itemFij.bc_outid || parts[3] || '';
+            const parts = String(idItem).split('_');
+            const mType = itemObj.bc_mtype || parts[2] || '';
+            const outId = itemObj.bc_outid || parts[3] || '';
             const specDict = ((evVivo.markets || {})[mType]) || {};
             for (const [spKey, outDict] of Object.entries(specDict)) {
-              if (itemFij.bc_spec && spKey !== itemFij.bc_spec) continue;
+              if (itemObj.bc_spec && spKey !== itemObj.bc_spec) continue;
               if (outDict && outDict[outId] && !outDict[outId].b) {
                 const kv = parseFloat(outDict[outId].k || 0);
                 if (kv > 1.0) {
                   const pNow = Math.min(Math.max(1.0 / kv, 0.01), 0.99);
-                  itemFij.price = parseFloat(pNow.toFixed(4));
-                  itemFij.centavos = Math.round(pNow * 100);
-                  itemFij.probability = parseFloat((pNow * 100).toFixed(1));
-                  itemFij.cuota_bc = kv.toFixed(2);
-                  if (pNow >= 0.95) itemFij.estado_resultado = 'WIN';
-                  else if (pNow <= 0.06) itemFij.estado_resultado = 'LOSS';
-                  cambioEnFijadasBC = true;
+                  itemObj.price = parseFloat(pNow.toFixed(4));
+                  itemObj.centavos = Math.round(pNow * 100);
+                  itemObj.probability = parseFloat((pNow * 100).toFixed(1));
+                  itemObj.cuota_bc = kv.toFixed(2);
+                  if (pNow >= 0.95) {
+                    itemObj.estado_resultado = 'WIN';
+                    registrarResultadoPrediccion(itemObj, 'WIN');
+                  } else if (pNow <= 0.06) {
+                    itemObj.estado_resultado = 'LOSS';
+                    registrarResultadoPrediccion(itemObj, 'LOSS');
+                  }
+                  return true;
                 }
               }
             }
-          } else if (itemFij.en_vivo_ahora) {
-            // La partida ya terminó y salió del listado en vivo: verificar marcador final
-            if (itemFij.tipo_ou === 'UNDER' && typeof itemFij.linea_ou === 'number') {
-              if ((itemFij.ultimo_total ?? 0) < itemFij.linea_ou) {
-                itemFij.estado_resultado = 'WIN';
-                itemFij.probability = 100;
-                itemFij.centavos = 100;
-                itemFij.tiempo_bc_badge = `🏁 FINALIZADA (${itemFij.ultimo_marcador || 'OK'})`;
-                cambioEnFijadasBC = true;
-              }
-            } else if (itemFij.tipo_ou === 'OVER' && typeof itemFij.linea_ou === 'number') {
-              if ((itemFij.ultimo_total ?? 0) > itemFij.linea_ou) {
-                itemFij.estado_resultado = 'WIN';
-                itemFij.probability = 100;
-                itemFij.centavos = 100;
+          } else if (itemObj.en_vivo_ahora) {
+            if (itemObj.tipo_ou === 'UNDER' && typeof itemObj.linea_ou === 'number') {
+              if ((itemObj.ultimo_total ?? 0) < itemObj.linea_ou) {
+                itemObj.estado_resultado = 'WIN';
+                itemObj.probability = 100;
+                itemObj.centavos = 100;
+                itemObj.tiempo_bc_badge = `🏁 FINALIZADA (${itemObj.ultimo_marcador || 'OK'})`;
+                registrarResultadoPrediccion(itemObj, 'WIN');
+                return true;
               } else {
-                itemFij.estado_resultado = 'LOSS';
+                itemObj.estado_resultado = 'LOSS';
+                registrarResultadoPrediccion(itemObj, 'LOSS');
+                return true;
               }
-              itemFij.tiempo_bc_badge = `🏁 FINALIZADA (${itemFij.ultimo_marcador || ''})`;
-              cambioEnFijadasBC = true;
-            } else if (itemFij.probability >= 80) {
-              itemFij.estado_resultado = 'WIN';
-              itemFij.probability = 100;
-              itemFij.centavos = 100;
-              itemFij.tiempo_bc_badge = `🏁 FINALIZADA`;
-              cambioEnFijadasBC = true;
+            } else if (itemObj.tipo_ou === 'OVER' && typeof itemObj.linea_ou === 'number') {
+              if ((itemObj.ultimo_total ?? 0) > itemObj.linea_ou) {
+                itemObj.estado_resultado = 'WIN';
+                itemObj.probability = 100;
+                itemObj.centavos = 100;
+                registrarResultadoPrediccion(itemObj, 'WIN');
+              } else {
+                itemObj.estado_resultado = 'LOSS';
+                registrarResultadoPrediccion(itemObj, 'LOSS');
+              }
+              itemObj.tiempo_bc_badge = `🏁 FINALIZADA (${itemObj.ultimo_marcador || ''})`;
+              return true;
+            } else if (itemObj.probability >= 80) {
+              itemObj.estado_resultado = 'WIN';
+              itemObj.probability = 100;
+              itemObj.centavos = 100;
+              itemObj.tiempo_bc_badge = `🏁 FINALIZADA`;
+              registrarResultadoPrediccion(itemObj, 'WIN');
+              return true;
+            } else if (itemObj.probability <= 35) {
+              itemObj.estado_resultado = 'LOSS';
+              registrarResultadoPrediccion(itemObj, 'LOSS');
+              return true;
             }
           }
+          return false;
         }
-        if (cambioEnFijadasBC) {
-          guardarFijadasLocales();
+
+        // 1. Evaluar las tarjetas fijadas por el usuario
+        let cambioEnFijadasBC = false;
+        for (const [idFij, itemFij] of Object.entries(tarjetasFijadas)) {
+          if (!String(itemFij.market_id || '').startsWith('bc_')) continue;
+          if (itemFij.estado_resultado === 'WIN' || itemFij.estado_resultado === 'LOSS') continue;
+          if (evaluarItemBC(idFij, itemFij)) cambioEnFijadasBC = true;
         }
+        if (cambioEnFijadasBC) guardarFijadasLocales();
+
+        // 2. Evaluar automáticamente todas las partidas en la cola de auditoría para actualizar el Average de cada juego
+        for (const [idAud, itemAud] of Object.entries(colaAuditoria)) {
+          evaluarItemBC(idAud, itemAud);
+        }
+        guardarEstadisticasAprendizaje();
 
         extraidas.sort((a, b) => (b.en_vivo_ahora - a.en_vivo_ahora) || (b.probability - a.probability));
         return extraidas;
@@ -891,7 +1205,11 @@
         if (categoriaActiva === 'fijadas') {
           return estaFijada;
         }
-        if (categoriaActiva !== 'todos' && (o.categoria || 'otros') !== categoriaActiva) {
+        // Si Auto-Descartar está activo y estamos en 'todos', ocultar los juegos o torneos que repiten pérdidas
+        if (!estaFijada && categoriaActiva === 'todos' && esJuegoOPartidaDescartada(o)) {
+          return false;
+        }
+        if (categoriaActiva !== 'todos' && (o.categoria || 'esoccer') !== categoriaActiva) {
           return false;
         }
         if (!query) return true;
@@ -957,6 +1275,12 @@
             : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`)));
         const catKey = op.categoria || 'esoccer';
         const estilo = estilosCategoria[catKey] || estilosCategoria.esoccer;
+        const stCat = statsPorJuego[catKey] || { wins: 0, losses: 0 };
+        const totCat = (stCat.wins || 0) + (stCat.losses || 0);
+        const wrCat = totCat > 0 ? Math.round((stCat.wins / totCat) * 100) : null;
+        const badgeEfectividadJuego = wrCat !== null
+          ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded ${wrCat >= 70 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : (wrCat >= 50 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-red-500/20 text-red-300 border border-red-500/40')}">🎯 Juego: ${wrCat}% WIN (${stCat.wins}W-${stCat.losses}L)</span>`
+          : '';
 
         // Banner especial cuando el switch está activo y el resultado es WIN o está en seguimiento
         let bannerResultado = '';
@@ -1011,10 +1335,13 @@
               ${bannerResultado}
 
               <!-- HEADER PROBABILIDAD Y TIEMPO -->
-              <div class="flex items-center justify-between gap-2 mb-3">
-                <span class="text-xs font-bold px-2.5 py-1 rounded-md ${op.probability >= 70 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
-                  ${op.probability}% Probabilidad ${op.probability < 70 ? '(En Vivo)' : ''}
-                </span>
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold px-2.5 py-1 rounded-md ${op.probability >= 70 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
+                    ${op.probability}% Probabilidad ${op.probability < 70 ? '(En Vivo)' : ''}
+                  </span>
+                  ${badgeEfectividadJuego}
+                </div>
                 <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">
                   ${tiempoBadge}
                 </span>
@@ -1219,6 +1546,7 @@
 
     // Inicializar al cargar
     document.addEventListener('DOMContentLoaded', () => {
+      cargarEstadisticasAprendizaje();
       cargarFijadasLocales();
       cargarFiltrosLocales();
       escanearMercados(false);
