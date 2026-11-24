@@ -164,12 +164,20 @@
                  class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500">
         </div>
 
-        <!-- SIMULADOR KELLY RÁPIDO -->
-        <div class="flex items-center gap-2 bg-gray-900/90 border border-gray-700 px-3 py-1.5 rounded-lg text-xs">
-          <span class="text-gray-400">Tu Capital:</span>
-          <span class="text-gray-500">$</span>
-          <input type="number" id="user-bankroll" value="1000" onchange="guardarFiltrosLocales(); renderizarTarjetas();" class="w-20 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
-          <span class="text-gray-400 text-[11px]">(Calcula apuesta en USD)</span>
+        <!-- SIMULADOR KELLY Y MONTO AUTO-APUESTA BC -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1.5 bg-purple-950/50 border border-purple-500/50 px-3 py-1.5 rounded-lg text-xs">
+            <span class="text-purple-300 font-bold">⚡ Auto-Apuesta BC: $</span>
+            <input type="number" id="bc-stake-amount" value="1" min="0.1" step="0.5" onchange="guardarFiltrosLocales(); renderizarTarjetas();" class="w-16 bg-gray-900 border border-purple-500/40 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
+            <button onclick="toggleAutoConfirmBC()" id="btn-autoconfirm-bc" class="ml-1 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px] transition" title="Si está en AUTO, la extensión de Chrome presiona sola el botón Realizar Apuesta">
+              AUTO: ON
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 bg-gray-900/90 border border-gray-700 px-3 py-1.5 rounded-lg text-xs">
+            <span class="text-gray-400">Capital: $</span>
+            <input type="number" id="user-bankroll" value="1000" onchange="guardarFiltrosLocales(); renderizarTarjetas();" class="w-20 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
+          </div>
         </div>
       </div>
 
@@ -360,6 +368,51 @@
     let idsYaContados = {};
     let colaAuditoria = {}; // Partidas >=70% que el bot está auditando automáticamente
     let autoDescartarActivo = true;
+    let autoConfirmBC = true;
+
+    function toggleAutoConfirmBC() {
+      autoConfirmBC = !autoConfirmBC;
+      actualizarBotonAutoConfirmBC();
+      guardarFiltrosLocales();
+    }
+
+    function actualizarBotonAutoConfirmBC() {
+      const btn = document.getElementById('btn-autoconfirm-bc');
+      if (!btn) return;
+      if (autoConfirmBC) {
+        btn.className = 'ml-1 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px] transition';
+        btn.innerText = 'AUTO: ON';
+      } else {
+        btn.className = 'ml-1 px-2 py-0.5 rounded bg-gray-700 text-gray-300 font-bold text-[11px] transition';
+        btn.innerText = 'AUTO: OFF';
+      }
+    }
+
+    function abrirAutoApuestaBC(opId) {
+      const op = tarjetasFijadas[opId] || todasLasOportunidades.find(o => o.id === opId);
+      if (!op) return;
+
+      // 1. Fijar automáticamente la tarjeta con el Switch para hacerle seguimiento de WIN
+      if (!tarjetasFijadas[opId]) {
+        toggleSwitchFijar(opId);
+      }
+
+      // 2. Construir enlace con los parámetros de Auto-Apuesta para la extensión de Chrome
+      const stakeEl = document.getElementById('bc-stake-amount');
+      const stake = stakeEl ? (parseFloat(stakeEl.value) || 1) : 1;
+      const hashParams = new URLSearchParams({
+        polyedge_auto: '1',
+        tipo: op.tipo_ou || 'WIN',
+        linea: op.linea_ou !== undefined ? String(op.linea_ou) : '',
+        outid: op.bc_outid || '',
+        equipo: op.outcome || '',
+        stake: String(stake),
+        autoconfirm: autoConfirmBC ? '1' : '0'
+      });
+
+      const targetUrl = `${op.link}#${hashParams.toString()}`;
+      window.open(targetUrl, '_blank');
+    }
 
     function inicializarEstructuraStats() {
       Object.keys(JUEGOS_INFO).forEach(k => {
@@ -720,6 +773,8 @@
           dias: document.getElementById('slider-dias').value,
           apr: document.getElementById('slider-apr').value,
           bankroll: document.getElementById('user-bankroll').value,
+          bcStake: document.getElementById('bc-stake-amount') ? document.getElementById('bc-stake-amount').value : '1',
+          autoConfirmBC: autoConfirmBC,
           texto: document.getElementById('filtro-texto').value,
           categoria: categoriaActiva
         };
@@ -746,6 +801,13 @@
         }
         if (estado.bankroll) {
           document.getElementById('user-bankroll').value = estado.bankroll;
+        }
+        if (estado.bcStake && document.getElementById('bc-stake-amount')) {
+          document.getElementById('bc-stake-amount').value = estado.bcStake;
+        }
+        if (typeof estado.autoConfirmBC === 'boolean') {
+          autoConfirmBC = estado.autoConfirmBC;
+          actualizarBotonAutoConfirmBC();
         }
         if (typeof estado.texto === 'string') {
           // Si antes se había quedado escrito 'bitcoin', limpiarlo para que vea todos los colores
@@ -1420,9 +1482,16 @@
               <button onclick='analizarConIA(${JSON.stringify(op).replace(/'/g, "&apos;")})' class="py-2 px-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
                 <i class="fa-solid fa-robot text-emerald-400"></i> IA
               </button>
-              <a href="${op.link}" target="_blank" class="flex-1 py-2 px-3 rounded-lg ${op.es_playbc ? 'bg-purple-600 hover:bg-purple-500' : 'bg-emerald-600 hover:bg-emerald-500'} text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition">
-                <span>${op.es_playbc ? 'Ir a PlayBC (BC.GAME)' : 'Ir a Polymarket'}</span> <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+              ${op.es_playbc ? `
+              <button onclick="abrirAutoApuestaBC('${op.id}')" class="flex-1 py-2 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-lg shadow-purple-600/20 cursor-pointer">
+                <i class="fa-solid fa-bolt text-amber-300"></i>
+                <span>Auto-Apostar en BC ($${document.getElementById('bc-stake-amount') ? document.getElementById('bc-stake-amount').value : 1})</span>
+              </button>
+              ` : `
+              <a href="${op.link}" target="_blank" class="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                <span>Ir a Polymarket</span> <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </a>
+              `}
             </div>
           </div>
         `;
