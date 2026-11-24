@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge AI — Auto-Apuesta 1-Clic para PlayBC (BC.GAME)",
-  "version": "1.1.0",
-  "description": "Selecciona automáticamente la cuota en vivo en PlayBC (BC.GAME) aunque haya cambiado de valor, coloca el monto configurado en PolyEdge y confirma la jugada.",
+  "name": "PolyEdge AI — Auto-Apuesta Individual & Combos para PlayBC (BC.GAME)",
+  "version": "1.2.0",
+  "description": "Arma jugadas individuales o Combos de 2, 3, 4 y 5 partidos en PlayBC (BC.GAME), coloca el monto y deja listo el botón Place Bet.",
   "permissions": [],
   "content_scripts": [
     {
