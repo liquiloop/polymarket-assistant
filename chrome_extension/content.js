@@ -77,12 +77,11 @@
       }
     }
 
-    // Si no viene en el hash (ej. tras redirección de idioma o salto al Partido 2/3/4 del Combo), revisar sessionStorage
     try {
       const savedCombo = sessionStorage.getItem(COMBO_STORAGE_KEY);
       if (savedCombo) {
         const parsedCombo = JSON.parse(savedCombo);
-        if (parsedCombo && parsedCombo.active && (Date.now() - (parsedCombo.updatedAt || 0) < 65000)) {
+        if (parsedCombo && parsedCombo.active && (Date.now() - (parsedCombo.updatedAt || 0) < 75000)) {
           return { modo: "COMBO", state: parsedCombo };
         }
       }
@@ -101,11 +100,10 @@
     return null;
   }
 
-  // Capturar de inmediato al iniciar la carga del documento
   capturarEstadoInicial();
 
   // ===========================================================================
-  // 2. UTILIDADES DOM PROFUNDO (ATRAVIESA SHADOW DOM DE BETBY / #betby)
+  // 2. UTILIDADES DOM Y REACT (COMPATIBLE CON BETBY LIGHT DOM Y SHADOW DOM)
   // ===========================================================================
   function querySelectorAllDeep(selector, root = document) {
     const results = [];
@@ -183,71 +181,139 @@
     }
   }
 
+  // Setter especial para React 17/18 (_valueTracker) para que SIEMPRE reemplace el 0.50 por el monto elegido
   function setReactInputValue(inputEl, val) {
+    if (!inputEl) return;
+    const prevVal = inputEl.value;
     const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
     if (nativeSetter) {
       nativeSetter.call(inputEl, String(val));
     } else {
       inputEl.value = String(val);
     }
+    const tracker = inputEl._valueTracker;
+    if (tracker) {
+      try { tracker.setValue(prevVal); } catch (e) {}
+    }
     inputEl.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
     inputEl.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
     inputEl.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, composed: true }));
   }
 
-  function simularClickReal(el) {
+  function clickElemento(el) {
     if (!el) return;
     try {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     } catch (e) {}
-    const opts = { bubbles: true, cancelable: true, composed: true, view: window };
     try {
-      el.dispatchEvent(new PointerEvent("pointerdown", opts));
-      el.dispatchEvent(new MouseEvent("mousedown", opts));
-      el.dispatchEvent(new PointerEvent("pointerup", opts));
-      el.dispatchEvent(new MouseEvent("mouseup", opts));
       el.click();
     } catch (e) {
-      try { el.click(); } catch (e2) {}
+      const opts = { bubbles: true, cancelable: true, composed: true, view: window };
+      el.dispatchEvent(new MouseEvent("click", opts));
     }
   }
 
-  function limpiarCuponAnterior() {
-    const removeBtns = querySelectorAllDeep('[data-editor-id="betslipSelectionRemoveButton"], [data-cy="ic-delete"]');
-    removeBtns.forEach(btn => {
-      try { simularClickReal(btn); } catch (e) {}
-    });
+  function estaAbiertoElBetslip() {
+    const sel = querySelectorDeep('[data-editor-id="betslipSelection"]');
+    const inp = querySelectorDeep('[data-editor-id="betslipStakeInput"] input');
+    const del = querySelectorDeep('[data-cy="ic-delete"]');
+    return Boolean(sel || inp || del);
   }
 
   function abrirBetslipSiEstaCerrado() {
-    const inputExistente = querySelectorDeep('[data-editor-id="betslipStakeInput"] input');
-    if (inputExistente) return;
+    if (estaAbiertoElBetslip()) return true;
 
-    const posiblesBarras = querySelectorAllDeep('[data-editor-id*="betslip"], [data-editor-id*="Betslip"], div, span, button');
-    const barraBetslip = posiblesBarras.find(el => {
-      const t = (el.textContent || "").trim().toLowerCase();
-      return (t === "betslip" || t === "cupón de apuesta" || (t.startsWith("betslip") && !t.includes("quick"))) && el.children.length <= 5;
-    });
-    if (barraBetslip) {
-      simularClickReal(barraBetslip);
+    // Buscar el texto "Betslip" o "Cupón de apuesta" en la barra flotante verde abajo a la derecha (sin tocar QUICK BET)
+    const nodos = querySelectorAllDeep('div, span, button');
+    for (const el of nodos) {
+      const t = (el.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      if (!t || t.includes("quick") || t.includes("rápida")) continue;
+      const coincide = (
+        t === "betslip" ||
+        t === "cupón de apuesta" ||
+        /^betslip\s*\d*$/.test(t) ||
+        /^\d+\s*betslip$/.test(t) ||
+        /^cupón de apuesta\s*\d*$/.test(t)
+      );
+      if (coincide && el.children.length <= 4) {
+        // Hacer clic tanto en el elemento como en su contenedor izquierdo (sin incluir QUICK BET)
+        clickElemento(el);
+        const padre = el.parentElement;
+        if (padre) {
+          const tp = (padre.textContent || "").toLowerCase();
+          if (!tp.includes("quick") && !tp.includes("rápida")) {
+            try { padre.click(); } catch (e) {}
+          }
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function contarSeleccionesRealesEnBetslip() {
+    return querySelectorAllDeep('[data-editor-id="betslipSelection"]').length;
+  }
+
+  // Elimina del Betslip cualquier selección que se haya bloqueado/cerrado mientras se armaba el combo
+  function limpiarSeleccionesBloqueadasEnBetslip() {
+    let removidas = 0;
+    const items = querySelectorAllDeep('[data-editor-id="betslipSelection"]');
+    for (const item of items) {
+      const oddEl = item.querySelector('[data-editor-id="betslipSelectionOdd"]');
+      const oddVal = oddEl ? parseFloat((oddEl.textContent || "").replace(",", ".").trim()) : NaN;
+      const textoItem = (item.textContent || "").toLowerCase();
+      const bloqueada = (
+        !oddEl ||
+        isNaN(oddVal) ||
+        oddVal <= 1.0 ||
+        textoItem.includes("suspended") ||
+        textoItem.includes("closed") ||
+        textoItem.includes("suspendido") ||
+        textoItem.includes("cerrado")
+      );
+      if (bloqueada) {
+        const rmBtn = item.querySelector('[data-editor-id="betslipSelectionRemoveButton"]');
+        if (rmBtn) {
+          clickElemento(rmBtn);
+          removidas += 1;
+        }
+      }
+    }
+    return removidas;
+  }
+
+  async function vaciarBetslipPorCompleto() {
+    abrirBetslipSiEstaCerrado();
+    await new Promise(r => setTimeout(r, 250));
+    const trash = querySelectorDeep('[data-cy="ic-delete"]');
+    if (trash) {
+      clickElemento(trash);
+      await new Promise(r => setTimeout(r, 250));
+    }
+    const removeBtns = querySelectorAllDeep('[data-editor-id="betslipSelectionRemoveButton"]');
+    for (const btn of removeBtns) {
+      clickElemento(btn);
+      await new Promise(r => setTimeout(r, 120));
     }
   }
 
   function seleccionarTabComboEnBetslip() {
-    // En Betby el Betslip tiene pestañas: Single | Combo | System (o Simple | Combo / Combinada | Sistema)
-    const candidatos = querySelectorAllDeep('[data-editor-id="betslipTab"], [data-editor-id*="betslip"] button, [data-editor-id*="betslip"] div, button, div[role="tab"]');
+    const candidatos = querySelectorAllDeep('[data-editor-id="betslipTab"], [data-editor-id*="betslip"] button, [data-editor-id*="betslip"] div, button, div[role="tab"], span');
     const tabCombo = candidatos.find(el => {
       const t = (el.textContent || "").trim().toLowerCase();
       return (
         t === "combo" ||
         t === "combinada" ||
         t === "parlay" ||
-        t === "múltiple" ||
-        t.startsWith("combo ")
-      ) && t.length <= 16 && el.children.length <= 3;
+        t === "múltiple"
+      ) && el.children.length <= 2;
     });
     if (tabCombo) {
-      simularClickReal(tabCombo);
+      clickElemento(tabCombo);
+      if (tabCombo.parentElement && tabCombo.parentElement.children.length <= 3) {
+        try { tabCombo.parentElement.click(); } catch (e) {}
+      }
       return true;
     }
     return false;
@@ -260,8 +326,33 @@
       return (t.startsWith("totals") || t.startsWith("totales")) && t.length <= 16 && el.children.length <= 3;
     });
     if (tabTotals) {
-      simularClickReal(tabTotals);
+      clickElemento(tabTotals);
     }
+  }
+
+  function leerCuotaDeBoton(plate) {
+    if (!plate) return "";
+    // En Betby, el nombre está en marketCardOutcomeName y la cuota numérica está en el otro hijo / último span
+    const nameEl = plate.querySelector('[data-editor-id="marketCardOutcomeName"]');
+    const spans = Array.from(plate.querySelectorAll("span, div"));
+    for (let i = spans.length - 1; i >= 0; i--) {
+      const s = spans[i];
+      if (nameEl && (s === nameEl || nameEl.contains(s))) continue;
+      if (s.children.length === 0) {
+        const txt = (s.textContent || "").trim().replace(",", ".");
+        if (/^\d+(\.\d+)?$/.test(txt)) {
+          return txt;
+        }
+      }
+    }
+    return "";
+  }
+
+  // CRÍTICO: Verifica que el botón NO tenga candado (que tenga una cuota numérica viva > 1.01)
+  function esBotonDisponible(plate) {
+    if (!plate) return false;
+    const c = parseFloat(leerCuotaDeBoton(plate));
+    return !isNaN(c) && c > 1.01;
   }
 
   function detectarPosicionJugador(cfg) {
@@ -281,12 +372,6 @@
       }
     }
     return 1;
-  }
-
-  function leerCuotaDeBoton(plate) {
-    if (!plate) return "";
-    const oddEl = plate.querySelector('[data-editor-id="marketCardOutcomeOdds"]') || plate.lastElementChild;
-    return (oddEl ? oddEl.textContent : "").trim();
   }
 
   function buscarBotonCuota(cfg) {
@@ -315,6 +400,7 @@
       for (const card of marketCards) {
         const header = card.querySelector('div[data-editor-id="marketCardHeader"]');
         const hText = (header ? header.textContent : "").trim().toLowerCase();
+        // Solo tarjetas de Total general del partido (evitando mitades cerradas si hay principal)
         if (hText.includes("total") || hText.includes("over/under") || hText.includes("más/menos")) {
           const cardPlates = Array.from(card.querySelectorAll('div[data-editor-id="outcomePlate"]'));
           if (lineaBuscada) {
@@ -331,38 +417,27 @@
               );
             });
             if (matchingLine.length >= 2) {
-              return esOver ? matchingLine[0] : matchingLine[1];
+              const candidato = esOver ? matchingLine[0] : matchingLine[1];
+              if (esBotonDisponible(candidato)) return candidato;
             }
-            if (matchingLine.length === 1) {
+            if (matchingLine.length === 1 && esBotonDisponible(matchingLine[0])) {
               return matchingLine[0];
             }
           }
 
-          if (cardPlates.length >= 2) {
-            return esOver ? cardPlates[0] : cardPlates[1];
+          // Si la línea exacta se movió medio punto en vivo (ej. 2.5 -> 3.5), buscar la primera fila disponible (sin candado)
+          for (let r = 0; r + 1 < cardPlates.length; r += 2) {
+            const candFila = esOver ? cardPlates[r] : cardPlates[r + 1];
+            if (esBotonDisponible(candFila)) {
+              const cVal = parseFloat(leerCuotaDeBoton(candFila));
+              if (cVal >= 1.08 && cVal <= 2.15) {
+                return candFila;
+              }
+            }
           }
         }
       }
-
-      if (lineaBuscada) {
-        const matchingAll = plates.filter(p => {
-          const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
-          const nameTxt = (nameEl ? nameEl.textContent : "").trim().toLowerCase();
-          return (
-            nameTxt === lineaBuscada ||
-            nameTxt.includes(`over ${lineaBuscada}`) ||
-            nameTxt.includes(`under ${lineaBuscada}`) ||
-            nameTxt.includes(`más de ${lineaBuscada}`) ||
-            nameTxt.includes(`menos de ${lineaBuscada}`)
-          );
-        });
-        if (matchingAll.length >= 2) {
-          return esOver ? matchingAll[0] : matchingAll[1];
-        }
-        if (matchingAll.length === 1) {
-          return matchingAll[0];
-        }
-      }
+      return null;
     }
 
     // 2. CASO WINNER / GANADOR (Botones "1" y "2")
@@ -377,9 +452,7 @@
         hText === "ganador" ||
         hText === "1x2" ||
         hText === "match winner" ||
-        hText === "ganador del partido" ||
-        hText.includes("winner") ||
-        hText.includes("ganador")
+        hText === "ganador del partido"
       );
       if (!esWinner) continue;
 
@@ -390,36 +463,25 @@
           const t = (nameEl ? nameEl.textContent : "").trim();
           return t === targetNumTxt;
         });
-        if (byNum) return byNum;
+        if (byNum && esBotonDisponible(byNum)) return byNum;
 
-        return posJugador === 1 ? cardPlates[0] : cardPlates[cardPlates.length - 1];
+        const posCand = posJugador === 1 ? cardPlates[0] : cardPlates[cardPlates.length - 1];
+        if (esBotonDisponible(posCand)) return posCand;
       }
     }
 
     const boton1o2 = plates.find(p => {
       const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
       const t = (nameEl ? nameEl.textContent : "").trim();
-      return t === targetNumTxt;
+      return t === targetNumTxt && esBotonDisponible(p);
     });
     if (boton1o2) return boton1o2;
-
-    if (cfg.equipo) {
-      const cleanTarget = cfg.equipo.split("(")[0].trim().toLowerCase();
-      for (const p of plates) {
-        const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
-        const nameTxt = (nameEl ? nameEl.textContent : "").trim().toLowerCase();
-        if (nameTxt && cleanTarget.length >= 3 && (nameTxt.includes(cleanTarget) || cleanTarget.includes(nameTxt))) {
-          return p;
-        }
-      }
-    }
 
     return null;
   }
 
   function construirUrlPartidoEnMismoIdioma(relPath) {
     let pathAjustado = relPath || "";
-    // Si el usuario tiene BC.GAME en inglés (/sports/...), evitar pasar por /es/sports/... para que cargue el doble de rápido
     if ((window.location.pathname || "").startsWith("/sports/") && pathAjustado.startsWith("/es/sports/")) {
       pathAjustado = pathAjustado.replace(/^\/es\/sports\//, "/sports/");
     }
@@ -427,7 +489,7 @@
   }
 
   // ===========================================================================
-  // 3. FLUJO DE ARMADO DE COMBO (2, 3, 4, 5 JUGADAS -> DEJA LISTO EN PLACE BET)
+  // 3. FLUJO DE ARMADO DE COMBO VERIFICADO (GARANTIZA N SELECCIONES REALES EN EL BETSLIP)
   // ===========================================================================
   async function ejecutarPasoCombo(state) {
     while (!document.body) {
@@ -440,7 +502,6 @@
       return;
     }
 
-    // Verificar que estemos en la URL del partido actual (por si BC redirigió al lobby)
     const pathActual = window.location.pathname || "";
     if (itemActual.eid && !pathActual.includes(itemActual.eid)) {
       state.updatedAt = Date.now();
@@ -456,106 +517,143 @@
       equipo: (itemActual.e || "").trim()
     };
 
-    const numJugadaHumana = state.addedCount + 1;
+    const numIntentoHumano = Math.min(state.addedCount + 1, state.targetCount);
     mostrarBannerEstado(
-      `🔥 Armando Combo (${numJugadaHumana} de ${state.targetCount}): Buscando «${cfgPaso.equipo || ("Línea " + cfgPaso.linea)}»...`,
+      `🔥 Armando Combo (${numIntentoHumano} de ${state.targetCount}): Buscando cuota activa «${cfgPaso.equipo || ("Línea " + cfgPaso.linea)}»...`,
       "#7c3aed",
       true
     );
 
+    // Esperar a que carguen las cuotas y verificar que el botón NO tenga candado
     let botonCuota = null;
-    for (let i = 0; i < 28; i++) {
-      // Verificar si el usuario presionó "Detener"
+    for (let i = 0; i < 22; i++) {
       if (!sessionStorage.getItem(COMBO_STORAGE_KEY)) return;
-
       botonCuota = buscarBotonCuota(cfgPaso);
       if (botonCuota) break;
 
-      if ((i === 6 || i === 14) && (cfgPaso.tipo === "OVER" || cfgPaso.tipo === "UNDER" || cfgPaso.outid === "12" || cfgPaso.outid === "13")) {
+      if ((i === 5 || i === 12) && (cfgPaso.tipo === "OVER" || cfgPaso.tipo === "UNDER" || cfgPaso.outid === "12" || cfgPaso.outid === "13")) {
         abrirTabTotalsSiExiste();
       }
       await new Promise(r => setTimeout(r, 380));
     }
 
     if (botonCuota) {
-      // SOLO en la primera jugada del combo limpiamos selecciones viejas del Betslip
+      // En la primera jugada del combo, abrir el Betslip y limpiarlo por completo primero
       if (state.addedCount === 0) {
-        limpiarCuponAnterior();
+        await vaciarBetslipPorCompleto();
         await new Promise(r => setTimeout(r, 350));
+      } else {
+        abrirBetslipSiEstaCerrado();
+        await new Promise(r => setTimeout(r, 200));
       }
 
+      const conteoAntes = contarSeleccionesRealesEnBetslip();
       const yaEstabaActiva = botonCuota.getAttribute("data-active") === "true";
+
       if (!yaEstabaActiva) {
         botonCuota.style.outline = "3px solid #fbbf24";
-        simularClickReal(botonCuota);
-        // Confirmar que Betby marcó la selección (reintento suave si seguía hidratando)
-        await new Promise(r => setTimeout(r, 550));
-        if (botonCuota.getAttribute("data-active") !== "true") {
-          try { botonCuota.click(); } catch (e) {}
-          await new Promise(r => setTimeout(r, 400));
+        clickElemento(botonCuota);
+      }
+
+      // Esperar hasta confirmar que data-active === "true" y que realmente entró al Betslip
+      let confirmadaEnBetslip = false;
+      for (let w = 0; w < 10; w++) {
+        await new Promise(r => setTimeout(r, 250));
+        const ahoraActiva = botonCuota.getAttribute("data-active") === "true";
+        const conteoAhora = contarSeleccionesRealesEnBetslip();
+        if (ahoraActiva || conteoAhora > conteoAntes) {
+          confirmadaEnBetslip = true;
+          break;
         }
       }
 
-      state.addedCount += 1;
-      const cuotaLeida = leerCuotaDeBoton(botonCuota);
-      mostrarBannerEstado(
-        `✅ Jugada ${state.addedCount}/${state.targetCount} agregada${cuotaLeida ? " (Cuota " + cuotaLeida + ")" : ""}!`,
-        "#059669",
-        true
-      );
+      if (confirmadaEnBetslip) {
+        // Pausa extra de seguridad para que Betby guarde la selección en su localStorage antes de cambiar de página
+        await new Promise(r => setTimeout(r, 750));
+        limpiarSeleccionesBloqueadasEnBetslip();
+        const conteoVerificado = contarSeleccionesRealesEnBetslip();
+        state.addedCount = conteoVerificado > 0 ? conteoVerificado : (state.addedCount + 1);
+
+        const cuotaLeida = leerCuotaDeBoton(botonCuota);
+        mostrarBannerEstado(
+          `✅ Jugada ${state.addedCount}/${state.targetCount} dentro del Betslip${cuotaLeida ? " (Cuota " + cuotaLeida + ")" : ""}!`,
+          "#059669",
+          true
+        );
+      } else {
+        mostrarBannerEstado(
+          `⚡ Esa cuota se bloqueó justo ahora, buscando el respaldo para completar tus ${state.targetCount}...`,
+          "#d97706",
+          true
+        );
+        await new Promise(r => setTimeout(r, 400));
+      }
     } else {
       mostrarBannerEstado(
-        `⚡ Esa línea cerró en vivo, saltando a la siguiente opción del Combo...`,
+        `⚡ Partido bloqueado/cerrado en vivo, pasando al respaldo para completar tus ${state.targetCount}...`,
         "#d97706",
         true
       );
-      await new Promise(r => setTimeout(r, 450));
+      await new Promise(r => setTimeout(r, 400));
     }
 
-    // ¿Faltan más jugadas para completar la cantidad pedida y quedan partidos en la cola?
+    // Antes de dar por terminado, verificar el conteo REAL dentro del Betslip
+    abrirBetslipSiEstaCerrado();
+    await new Promise(r => setTimeout(r, 350));
+    limpiarSeleccionesBloqueadasEnBetslip();
+    const realesEnCupon = contarSeleccionesRealesEnBetslip();
+    if (realesEnCupon > 0) {
+      state.addedCount = realesEnCupon;
+    }
+
+    // Si aún faltan jugadas para llegar a targetCount (ej. 3) y hay más partidos de respaldo en la cola, seguir al siguiente!
     if (state.addedCount < state.targetCount && state.currentIndex + 1 < state.items.length) {
       state.currentIndex += 1;
       state.updatedAt = Date.now();
       sessionStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify(state));
-      await new Promise(r => setTimeout(r, 550));
+      await new Promise(r => setTimeout(r, 450));
       const nextItem = state.items[state.currentIndex];
       window.location.href = construirUrlPartidoEnMismoIdioma(nextItem.u);
       return;
     }
 
     // =========================================================================
-    // FINAL DEL COMBO: ABRIR BETSLIP -> PESTAÑA COMBO -> PONER MONTO -> NO PULSAR PLACE BET
+    // FINAL DEL COMBO: ABRIR BETSLIP -> PESTAÑA COMBO -> ESCRIBIR MONTO REAL -> RESALTAR PLACE BET
     // =========================================================================
     try { sessionStorage.removeItem(COMBO_STORAGE_KEY); } catch (e) {}
 
-    mostrarBannerEstado(
-      `🔥 ¡${state.addedCount} jugadas cargadas! Abriendo pestaña «Combo» y colocando $${state.stake}...`,
-      "#059669",
-      false
-    );
-
-    // 1. Abrir Betslip si está contraído abajo a la derecha
-    for (let i = 0; i < 16; i++) {
+    // 1. Asegurar que el Betslip esté desplegado y visible
+    for (let i = 0; i < 15; i++) {
       abrirBetslipSiEstaCerrado();
-      await new Promise(r => setTimeout(r, 320));
-      const inp = querySelectorDeep('[data-editor-id="betslipStakeInput"] input') || querySelectorDeep('input[inputmode="decimal"]');
-      if (inp) break;
+      await new Promise(r => setTimeout(r, 300));
+      if (estaAbiertoElBetslip()) break;
     }
 
-    // 2. Asegurar que esté seleccionada la pestaña "Combo" (y no "Single")
+    // 2. Cambiar a la pestaña "Combo" (y no "Directa" / "Single")
     seleccionarTabComboEnBetslip();
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 550));
 
-    // 3. Escribir el monto del Combo en el input de apuesta
-    const inputsStake = querySelectorAllDeep('[data-editor-id="betslipStakeInput"] input, input[inputmode="decimal"]');
-    const inputCombo = inputsStake.length > 0 ? inputsStake[0] : null;
-    if (inputCombo) {
-      inputCombo.focus();
-      setReactInputValue(inputCombo, state.stake);
-      await new Promise(r => setTimeout(r, 400));
+    // 3. Colocar el monto exacto ($5, $2, etc.) sobreescribiendo el 0.50 por defecto de BC.GAME
+    for (let intentoMonto = 0; intentoMonto < 3; intentoMonto++) {
+      const inputsStake = querySelectorAllDeep('[data-editor-id="betslipStakeInput"] input, input[inputmode="decimal"]');
+      const inputCombo = inputsStake.length > 0 ? inputsStake[0] : null;
+      if (inputCombo) {
+        inputCombo.focus();
+        setReactInputValue(inputCombo, state.stake);
+        await new Promise(r => setTimeout(r, 350));
+        if (String(inputCombo.value).trim() === String(state.stake).trim()) {
+          break;
+        }
+      } else {
+        abrirBetslipSiEstaCerrado();
+        seleccionarTabComboEnBetslip();
+        await new Promise(r => setTimeout(r, 350));
+      }
     }
 
-    // 4. Resaltar el botón "Place Bet / Realizar apuesta" SIN hacerle clic (para que el usuario solo dé Place)
+    const totalFinalReal = contarSeleccionesRealesEnBetslip() || state.addedCount;
+
+    // 4. Resaltar el botón "Place Bet / Realizar apuesta" SIN hacerle clic
     const posiblesBotones = querySelectorAllDeep('button[data-editor-id="betslipPlaceBetButton"], button');
     const btnApostar = posiblesBotones.find(b => {
       const idEd = b.getAttribute("data-editor-id") || "";
@@ -571,14 +669,22 @@
 
     if (btnApostar) {
       btnApostar.style.outline = "4px solid #fbbf24";
-      btnApostar.style.boxShadow = "0 0 22px rgba(251, 191, 36, 0.85)";
+      btnApostar.style.boxShadow = "0 0 22px rgba(251, 191, 36, 0.9)";
     }
 
-    mostrarBannerEstado(
-      `🏆 ¡Combo de ${state.addedCount} jugadas listo con $${state.stake}! Solo revisa el cupón abajo a la derecha y dale a «Place Bet».`,
-      "#047857",
-      false
-    );
+    if (totalFinalReal < state.targetCount) {
+      mostrarBannerEstado(
+        `⚠️ Atención: Cerraron líneas en vivo y quedaron ${totalFinalReal} de ${state.targetCount} jugadas en tu Betslip con $${state.stake}. Revísalo antes de dar a «Place Bet».`,
+        "#d97706",
+        false
+      );
+    } else {
+      mostrarBannerEstado(
+        `🏆 ¡Combo de ${totalFinalReal}/${state.targetCount} jugadas verificado en tu Betslip con $${state.stake}! Solo dale clic a «Place Bet».`,
+        "#047857",
+        false
+      );
+    }
   }
 
   // ===========================================================================
@@ -593,21 +699,21 @@
       ? `${(cfg.tipo === "OVER" || cfg.outid === "12") ? "Over / Más de" : "Under / Menos de"} ${cfg.linea}`
       : (cfg.equipo || "Seleccionada");
 
-    mostrarBannerEstado(`Buscando cuota en vivo para «${descJugada}» ($${cfg.stake})...`, "#047857");
+    mostrarBannerEstado(`Buscando cuota activa para «${descJugada}» ($${cfg.stake})...`, "#047857");
 
     let botonCuota = null;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 35; i++) {
       botonCuota = buscarBotonCuota(cfg);
       if (botonCuota) break;
 
-      if ((i === 8 || i === 16) && (cfg.tipo === "OVER" || cfg.tipo === "UNDER" || cfg.outid === "12" || cfg.outid === "13")) {
+      if ((i === 7 || i === 15) && (cfg.tipo === "OVER" || cfg.tipo === "UNDER" || cfg.outid === "12" || cfg.outid === "13")) {
         abrirTabTotalsSiExiste();
       }
       await new Promise(r => setTimeout(r, 400));
     }
 
     if (!botonCuota) {
-      mostrarBannerEstado(`El mercado «${descJugada}» ya cerró en este partido. Elige otro disponible.`, "#b45309");
+      mostrarBannerEstado(`El mercado «${descJugada}» ya cerró o está bloqueado con candado. Elige otro disponible.`, "#b45309");
       return;
     }
 
@@ -618,28 +724,26 @@
 
     const yaActivo = botonCuota.getAttribute("data-active") === "true";
     if (!yaActivo) {
-      limpiarCuponAnterior();
+      await vaciarBetslipPorCompleto();
       await new Promise(r => setTimeout(r, 220));
       botonCuota.style.outline = "3px solid #10b981";
-      simularClickReal(botonCuota);
+      clickElemento(botonCuota);
     }
 
     mostrarBannerEstado(`Cuota marcada${txtCuotaVivo}. Colocando $${cfg.stake} en el Betslip...`, "#059669");
 
     let inputStake = null;
     for (let i = 0; i < 25; i++) {
+      abrirBetslipSiEstaCerrado();
       inputStake =
         querySelectorDeep('[data-editor-id="betslipStakeInput"] input') ||
         querySelectorDeep('input[inputmode="decimal"]');
       if (inputStake) break;
-      if (i === 2 || i === 6 || i === 12 || i === 18) {
-        abrirBetslipSiEstaCerrado();
-      }
       await new Promise(r => setTimeout(r, 300));
     }
 
     if (!inputStake) {
-      mostrarBannerEstado(`✅ Cuota marcada${txtCuotaVivo}. Haz clic en "Betslip" abajo a la derecha para confirmar $${cfg.stake}.`, "#0284c7");
+      mostrarBannerEstado(`✅ Cuota marcada${txtCuotaVivo}. Abre el Betslip abajo a la derecha para confirmar $${cfg.stake}.`, "#0284c7");
       return;
     }
 
@@ -672,7 +776,7 @@
 
       if (btnApostar && !btnApostar.disabled) {
         btnApostar.style.outline = "3px solid #34d399";
-        simularClickReal(btnApostar);
+        clickElemento(btnApostar);
         mostrarBannerEstado(`✅ ¡Apuesta individual de $${cfg.stake} enviada${txtCuotaVivo}!`, "#059669");
         setTimeout(() => {
           const b = document.getElementById("polyedge-autobet-banner");
