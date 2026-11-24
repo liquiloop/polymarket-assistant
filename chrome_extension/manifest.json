@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PolyEdge AI — Auto-Apuesta Individual & Combos para PlayBC (BC.GAME)",
-  "version": "1.2.0",
-  "description": "Arma jugadas individuales o Combos de 2, 3, 4 y 5 partidos en PlayBC (BC.GAME), coloca el monto y deja listo el botón Place Bet.",
+  "version": "1.3.0",
+  "description": "Verifica las selecciones reales sin candado en el Betslip de BC.GAME para Combos de 2 a 5 jugadas, coloca el monto exacto y resalta Place Bet.",
   "permissions": [],
   "content_scripts": [
     {
