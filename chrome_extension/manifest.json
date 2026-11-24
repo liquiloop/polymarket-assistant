@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "PolyEdge AI — Auto-Apuesta 1-Clic para PlayBC (BC.GAME)",
+  "version": "1.0.0",
+  "description": "Selecciona automáticamente la cuota Over/Under en PlayBC (BC.GAME), coloca el monto configurado en PolyEdge y confirma la jugada.",
+  "permissions": [],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://playbc.fun/*",
+        "https://*.playbc.fun/*",
+        "https://bc.game/*",
+        "https://*.bc.game/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
