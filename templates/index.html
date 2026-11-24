@@ -667,8 +667,8 @@
         if (esJuegoOPartidaDescartada(o)) return false;
         const fij = tarjetasFijadas[o.id];
         if (fij && (fij.estado_resultado === 'WIN' || fij.estado_resultado === 'LOSS')) return false;
-        // Evitar cuotas ya casi cerradas (>95%) o muy riesgosas
-        if (o.probability > 94.5) return false;
+        // Evitar cuotas >91% en Combos porque suelen estar en el último minuto del partido y se bloquean con candado al instante
+        if (o.probability > 91.5) return false;
         return true;
       });
 
@@ -698,7 +698,7 @@
         if (vistasEid.has(op.bc_eid)) continue;
         vistasEid.add(op.bc_eid);
         elegidas.push(op);
-        if (elegidas.length >= cantidadObjetivo + 2) break; // +2 respaldos por si una cierra mientras carga
+        if (elegidas.length >= cantidadObjetivo + 4) break; // +4 respaldos por si alguna tiene candado mientras carga
       }
       return elegidas;
     }
