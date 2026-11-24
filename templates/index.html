@@ -188,6 +188,9 @@
             <span class="text-xs font-extrabold text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
               <i class="fa-solid fa-layer-group text-amber-400"></i> Armador de Combos BC (Solo das clic en "Place Bet")
             </span>
+            <span id="combo-record-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-gray-900/90 text-gray-300 border border-gray-700">
+              🎟️ Combos: 0W - 0L
+            </span>
             <span id="combo-preview-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
               Calculando mejor combo...
             </span>
@@ -289,6 +292,18 @@
         <button onclick="seleccionarCategoria('hockey')" id="cat-hockey" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-300 font-bold hover:bg-cyan-400/25 transition">
           🩵 🏒 Hockey NHL (O/U)
         </button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE BOLETOS DE COMBO FIJADOS EN VIVO (MUESTRA SI EL COMBO GANÓ O PERDIÓ) -->
+    <div id="seccion-combos-fijados" class="hidden space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+          <i class="fa-solid fa-ticket text-amber-400"></i> Mis Combos en Seguimiento (En Vivo · Se quedan arriba hasta apagar el switch)
+        </h3>
+      </div>
+      <div id="contenedor-combos-fijados" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Boletos de combo activos -->
       </div>
     </div>
 
@@ -422,6 +437,192 @@
     let autoConfirmBC = true;
     let comboTamanoBC = 3;
     let comboManualMap = {}; // Mapa id -> objeto oportunidad seleccionada manualmente para combo
+    let combosFijados = {};  // Mapa comboId -> boleto completo con sus N jugadas y estado WIN/LOSS
+    let statsCombos = { wins: 0, losses: 0, contados: {} };
+
+    function cargarCombosLocales() {
+      try {
+        const raw = localStorage.getItem('polyedge_combos_fijados_v1');
+        if (raw) combosFijados = JSON.parse(raw) || {};
+        const rawSt = localStorage.getItem('polyedge_stats_combos_v1');
+        if (rawSt) statsCombos = JSON.parse(rawSt) || { wins: 0, losses: 0, contados: {} };
+      } catch (e) {
+        combosFijados = {};
+      }
+      actualizarBadgeRecordCombos();
+      renderizarCombosFijados();
+    }
+
+    function guardarCombosLocales() {
+      try {
+        localStorage.setItem('polyedge_combos_fijados_v1', JSON.stringify(combosFijados));
+        localStorage.setItem('polyedge_stats_combos_v1', JSON.stringify(statsCombos));
+      } catch (e) {}
+      actualizarBadgeRecordCombos();
+      renderizarCombosFijados();
+    }
+
+    function actualizarBadgeRecordCombos() {
+      const el = document.getElementById('combo-record-badge');
+      if (!el) return;
+      const w = statsCombos.wins || 0;
+      const l = statsCombos.losses || 0;
+      const tot = w + l;
+      const wr = tot > 0 ? ` (${Math.round((w / tot) * 100)}%)` : '';
+      el.innerHTML = `🎟️ Combos: <b class="text-emerald-400">${w}W</b> - <b class="text-red-400">${l}L</b>${wr}`;
+    }
+
+    function quitarComboFijado(comboId) {
+      delete combosFijados[comboId];
+      guardarCombosLocales();
+    }
+
+    function recalcularEstadoDeUnCombo(boleto) {
+      if (!boleto || !Array.isArray(boleto.legs)) return;
+      let ganadas = 0;
+      let perdidas = 0;
+      boleto.legs.forEach(leg => {
+        // Sincronizar también si esa misma jugada está en tarjetasFijadas o en todasLasOportunidades
+        const fij = tarjetasFijadas[leg.id];
+        if (fij && (fij.estado_resultado === 'WIN' || fij.estado_resultado === 'LOSS')) {
+          leg.estado_resultado = fij.estado_resultado;
+          leg.ultimo_marcador = fij.ultimo_marcador || leg.ultimo_marcador;
+        }
+        if (leg.estado_resultado === 'WIN' || leg.probability >= 98.5) {
+          leg.estado_resultado = 'WIN';
+          ganadas += 1;
+        } else if (leg.estado_resultado === 'LOSS') {
+          perdidas += 1;
+        }
+      });
+
+      boleto.ganadas = ganadas;
+      boleto.perdidas = perdidas;
+
+      // En un Combo: si falla 1 sola jugada ya se pierde el combo; si ganan TODAS se gana el combo
+      if (perdidas > 0) {
+        boleto.estado_combo = 'LOSS';
+        if (!statsCombos.contados[boleto.id]) {
+          statsCombos.contados[boleto.id] = 'LOSS';
+          statsCombos.losses = (statsCombos.losses || 0) + 1;
+        }
+      } else if (ganadas === boleto.legs.length && boleto.legs.length > 0) {
+        boleto.estado_combo = 'WIN';
+        if (!statsCombos.contados[boleto.id]) {
+          statsCombos.contados[boleto.id] = 'WIN';
+          statsCombos.wins = (statsCombos.wins || 0) + 1;
+        }
+      } else {
+        boleto.estado_combo = 'EN_JUEGO';
+      }
+    }
+
+    function renderizarCombosFijados() {
+      const seccion = document.getElementById('seccion-combos-fijados');
+      const cont = document.getElementById('contenedor-combos-fijados');
+      if (!seccion || !cont) return;
+
+      const lista = Object.values(combosFijados).sort((a, b) => (b.creado_ts || 0) - (a.creado_ts || 0));
+      if (lista.length === 0) {
+        seccion.classList.add('hidden');
+        cont.innerHTML = '';
+        return;
+      }
+
+      seccion.classList.remove('hidden');
+      cont.innerHTML = lista.map(boleto => {
+        recalcularEstadoDeUnCombo(boleto);
+        const totalLegs = boleto.legs.length;
+        const ganadas = boleto.ganadas || 0;
+        const perdidas = boleto.perdidas || 0;
+        const pctAvance = totalLegs > 0 ? Math.round((ganadas / totalLegs) * 100) : 0;
+        const cobroTotal = (boleto.stake * boleto.cuota_total).toFixed(2);
+        const gananciaLimpia = (boleto.stake * boleto.cuota_total - boleto.stake).toFixed(2);
+
+        let borderClase = 'border-2 border-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.22)]';
+        let bannerEstado = `
+          <div class="mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span class="text-amber-200 font-bold">⏳ COMBO EN JUEGO: <b>${ganadas} de ${totalLegs}</b> acertadas</span>
+            <span class="text-gray-200">Monto: <b>$${boleto.stake}</b> · Cuota: <b class="text-amber-300">${boleto.cuota_total.toFixed(2)}x</b> ➔ Cobras <b class="text-emerald-300">$${cobroTotal}</b></span>
+          </div>
+        `;
+        let labelSwitch = `📌 Combo (${ganadas}/${totalLegs})`;
+
+        if (boleto.estado_combo === 'WIN') {
+          borderClase = 'border-2 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.45)]';
+          labelSwitch = '🏆 ¡COMBO WIN!';
+          bannerEstado = `
+            <div class="mb-3 p-3 rounded-xl bg-gradient-to-r from-emerald-600/40 to-teal-500/40 border-2 border-emerald-400 text-center shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse">
+              <div class="text-base font-black text-emerald-300 tracking-wide">🏆 ¡COMBO GANADO! (${totalLegs}/${totalLegs} ACERTADAS)</div>
+              <div class="text-xs text-white mt-0.5">Apostaste <b>$${boleto.stake}</b> a Cuota <b>${boleto.cuota_total.toFixed(2)}x</b> ➔ ¡Cobras <b>$${cobroTotal}</b> (+$${gananciaLimpia} limpios)! · Apaga el switch para quitarlo</div>
+            </div>
+          `;
+        } else if (boleto.estado_combo === 'LOSS') {
+          borderClase = 'border-2 border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.25)]';
+          labelSwitch = '❌ Combo Perdido';
+          bannerEstado = `
+            <div class="mb-3 p-2.5 rounded-xl bg-red-950/70 border border-red-500 text-center">
+              <div class="text-sm font-extrabold text-red-300">❌ COMBO PERDIDO (${perdidas} fallada · ${ganadas}/${totalLegs} acertadas)</div>
+              <div class="text-[11px] text-gray-300 mt-0.5">En un combo todas deben ganar. Apaga el switch arriba a la derecha para quitar este boleto.</div>
+            </div>
+          `;
+        }
+
+        const filasLegs = boleto.legs.map((leg, idx) => {
+          let iconoLeg = '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">🔴 EN JUEGO</span>';
+          if (leg.estado_resultado === 'WIN') {
+            iconoLeg = '<span class="px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-extrabold text-[10px]">✅ GANADA</span>';
+          } else if (leg.estado_resultado === 'LOSS') {
+            iconoLeg = '<span class="px-2 py-0.5 rounded bg-red-500/25 text-red-300 border border-red-500/40 font-extrabold text-[10px]">❌ PERDIDA</span>';
+          }
+          const tituloCorto = (leg.question || '').split('(')[0].trim();
+          const marcTxt = leg.ultimo_marcador ? `[${leg.ultimo_marcador}]` : '';
+          return `
+            <div class="p-2 rounded-lg bg-gray-900/90 border border-gray-800 flex items-center justify-between gap-2 text-xs">
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-white truncate">${idx + 1}. ${tituloCorto} <span class="text-amber-300 font-mono">${marcTxt}</span></div>
+                <div class="text-[11px] text-gray-400 truncate">👉 ${leg.outcome}</div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                ${iconoLeg}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="glass-card rounded-xl p-4 ${borderClase} flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50">
+                    🎟️ BOLETO COMBO ${totalLegs}X · ${boleto.hora_creado || ''}
+                  </span>
+                </div>
+                <button onclick="quitarComboFijado('${boleto.id}')" class="flex items-center gap-2 px-2.5 py-1 rounded-full border transition cursor-pointer ${boleto.estado_combo === 'WIN' ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200' : (boleto.estado_combo === 'LOSS' ? 'bg-red-600/30 border-red-400 text-red-200' : 'bg-amber-600/30 border-amber-400 text-amber-200')}" title="Apaga el switch para quitar este Combo de la pantalla">
+                  <span class="text-[11px] font-bold">${labelSwitch}</span>
+                  <div class="w-8 h-4 rounded-full relative transition ${boleto.estado_combo === 'LOSS' ? 'bg-red-500' : 'bg-emerald-500'}">
+                    <div class="w-3 h-3 bg-white rounded-full absolute top-0.5 right-0.5"></div>
+                  </div>
+                </button>
+              </div>
+
+              ${bannerEstado}
+
+              <!-- BARRA DE PROGRESO DEL COMBO -->
+              <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
+                <div class="h-full transition-all duration-300 ${boleto.estado_combo === 'LOSS' ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${boleto.estado_combo === 'LOSS' ? 100 : pctAvance}%"></div>
+              </div>
+
+              <!-- LISTA DE LAS JUGADAS QUE COMPONEN ESTE COMBO -->
+              <div class="space-y-1.5">
+                ${filasLegs}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     function toggleAutoConfirmBC() {
       autoConfirmBC = !autoConfirmBC;
@@ -583,21 +784,33 @@
         return;
       }
 
-      // Fijar las jugadas principales en PolyEdge para que puedas ver su seguimiento arriba
-      listaOps.slice(0, cantidadMeta).forEach(op => {
-        if (!tarjetasFijadas[op.id]) {
-          const copia = JSON.parse(JSON.stringify(op));
-          copia.entry_centavos = copia.centavos || Math.round(copia.price * 100);
-          copia.fijada_ts = Date.now();
-          copia.estado_resultado = 'EN_JUEGO';
-          tarjetasFijadas[op.id] = copia;
-        }
-      });
-      guardarFijadasLocales();
-      renderizarTarjetas();
-
       const stakeEl = document.getElementById('bc-combo-stake');
       const stake = stakeEl ? (parseFloat(stakeEl.value) || 2) : 2;
+      const cidStr = String(Date.now());
+
+      // Crear el Boleto de Combo unificado arriba de todo para ver en vivo cuántas van ganando y si el Combo hizo WIN o LOSS
+      const legsPrincipales = listaOps.slice(0, cantidadMeta).map(op => {
+        const c = JSON.parse(JSON.stringify(op));
+        c.estado_resultado = 'EN_JUEGO';
+        return c;
+      });
+      const cuotaMultiplicada = legsPrincipales.reduce((acc, o) => acc * (parseFloat(o.cuota_bc) || 1.25), 1);
+      const ahora = new Date();
+      const horaTxt = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      combosFijados['combo_' + cidStr] = {
+        id: 'combo_' + cidStr,
+        creado_ts: Date.now(),
+        hora_creado: horaTxt,
+        stake: stake,
+        cuota_total: cuotaMultiplicada,
+        estado_combo: 'EN_JUEGO',
+        ganadas: 0,
+        perdidas: 0,
+        legs: legsPrincipales
+      };
+      guardarCombosLocales();
+      renderizarTarjetas();
 
       const compactQueue = listaOps.map(op => {
         let relPath = op.link;
@@ -618,7 +831,7 @@
       const encodedQueue = btoa(unescape(encodeURIComponent(JSON.stringify(compactQueue))));
       const hashParams = new URLSearchParams({
         polyedge_combo: '1',
-        cid: String(Date.now()),
+        cid: cidStr,
         target: String(cantidadMeta),
         stake: String(stake),
         q: encodedQueue
@@ -1418,7 +1631,7 @@
           return false;
         }
 
-        // 1. Evaluar las tarjetas fijadas por el usuario
+        // 1. Evaluar las tarjetas individuales fijadas por el usuario
         let cambioEnFijadasBC = false;
         for (const [idFij, itemFij] of Object.entries(tarjetasFijadas)) {
           if (!String(itemFij.market_id || '').startsWith('bc_')) continue;
@@ -1426,6 +1639,22 @@
           if (evaluarItemBC(idFij, itemFij)) cambioEnFijadasBC = true;
         }
         if (cambioEnFijadasBC) guardarFijadasLocales();
+
+        // 1B. Evaluar todas las jugadas dentro de los Boletos de Combo fijados
+        let cambioEnCombosBC = false;
+        for (const boleto of Object.values(combosFijados)) {
+          if (!Array.isArray(boleto.legs)) continue;
+          for (const leg of boleto.legs) {
+            if (leg.estado_resultado === 'WIN' || leg.estado_resultado === 'LOSS') continue;
+            if (evaluarItemBC(leg.id, leg)) cambioEnCombosBC = true;
+          }
+          const estadoPrevio = boleto.estado_combo;
+          recalcularEstadoDeUnCombo(boleto);
+          if (boleto.estado_combo !== estadoPrevio) cambioEnCombosBC = true;
+        }
+        if (cambioEnCombosBC || Object.keys(combosFijados).length > 0) {
+          guardarCombosLocales();
+        }
 
         // 2. Evaluar automáticamente todas las partidas en la cola de auditoría para actualizar el Average de cada juego
         for (const [idAud, itemAud] of Object.entries(colaAuditoria)) {
@@ -1890,6 +2119,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       cargarEstadisticasAprendizaje();
       cargarFijadasLocales();
+      cargarCombosLocales();
       cargarFiltrosLocales();
       escanearMercados(false);
       // Auto-refresco cada 25 segundos para mantener la señal firme sin cambios bruscos
