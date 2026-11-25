@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge AI — Auto-Apuesta Individual & Combos para PlayBC (BC.GAME)",
-  "version": "1.3.0",
-  "description": "Verifica las selecciones reales sin candado en el Betslip de BC.GAME para Combos de 2 a 5 jugadas, coloca el monto exacto y resalta Place Bet.",
+  "name": "PolyEdge AI — Escudo Protector + Auto-Apuesta PlayBC (BC.GAME)",
+  "version": "1.4.0",
+  "description": "Verifica línea exacta sin saltar a cuotas riesgosas, cancela si la cuota cambió fuera de rango seguro y soporta modo Individual y Combos.",
   "permissions": [],
   "content_scripts": [
     {
