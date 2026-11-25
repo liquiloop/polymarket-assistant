@@ -59,7 +59,7 @@ def api_config():
     else:
         return jsonify(load_config())
 
-STATS_FILE = os.path.join(current_dir, "win_loss_stats.json")
+STATS_FILE = os.path.join(current_dir, "win_loss_stats_v2.json")
 
 @app.route("/api/stats", methods=["GET", "POST"])
 def api_stats():
