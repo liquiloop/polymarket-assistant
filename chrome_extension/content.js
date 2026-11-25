@@ -4,9 +4,6 @@
   const SINGLE_STORAGE_KEY = "polyedge_autobet_active_cfg";
   const COMBO_STORAGE_KEY = "polyedge_combo_active_state";
 
-  // ===========================================================================
-  // 1. CAPTURA TEMPRANA DE PARÁMETROS (INDIVIDUAL Y COMBO) EN DOCUMENT_START
-  // ===========================================================================
   function extraerRawParams() {
     const hash = window.location.hash || "";
     const search = window.location.search || "";
@@ -24,7 +21,6 @@
     if (raw) {
       const params = new URLSearchParams(raw);
 
-      // CASO A: COMBO MULTI-JUGADA (#polyedge_combo=1...)
       if (params.get("polyedge_combo") === "1") {
         const cid = params.get("cid") || String(Date.now());
         try {
@@ -57,7 +53,6 @@
         } catch (e) {}
       }
 
-      // CASO B: APUESTA INDIVIDUAL (#polyedge_auto=1...)
       if (params.get("polyedge_auto") === "1") {
         try { sessionStorage.removeItem(COMBO_STORAGE_KEY); } catch (e) {}
         const singleCfg = {
@@ -66,6 +61,8 @@
           linea: (params.get("linea") || "").trim(),
           outid: (params.get("outid") || "").trim(),
           spec: (params.get("spec") || "").trim(),
+          cuota: parseFloat(params.get("cuota") || "0") || 0,
+          contra: params.get("contra") === "1",
           equipo: (params.get("equipo") || "").trim(),
           stake: (params.get("stake") || "1").trim(),
           autoconfirm: params.get("autoconfirm") === "1"
@@ -102,9 +99,6 @@
 
   capturarEstadoInicial();
 
-  // ===========================================================================
-  // 2. UTILIDADES DOM Y REACT (COMPATIBLE CON BETBY LIGHT DOM Y SHADOW DOM)
-  // ===========================================================================
   function querySelectorAllDeep(selector, root = document) {
     const results = [];
     try {
@@ -166,7 +160,7 @@
     }
     banner.style.background = colorBg;
     banner.style.opacity = "1";
-    banner.innerHTML = `<span>🤖 <b>PolyEdge:</b> ${texto}</span>`;
+    banner.innerHTML = `<span>🛡️ <b>PolyEdge:</b> ${texto}</span>`;
 
     if (mostrarCancelarCombo) {
       const btnCancel = document.createElement("button");
@@ -175,13 +169,12 @@
       btnCancel.onclick = () => {
         try { sessionStorage.removeItem(COMBO_STORAGE_KEY); } catch (e) {}
         banner.style.background = "#4b5563";
-        banner.innerHTML = `<span>⏹️ <b>PolyEdge:</b> Armado de Combo detenido por el usuario.</span>`;
+        banner.innerHTML = `<span>⏹️ <b>PolyEdge:</b> Operación detenida por el usuario.</span>`;
       };
       banner.appendChild(btnCancel);
     }
   }
 
-  // Setter especial para React 17/18 (_valueTracker) para que SIEMPRE reemplace el 0.50 por el monto elegido
   function setReactInputValue(inputEl, val) {
     if (!inputEl) return;
     const prevVal = inputEl.value;
@@ -222,8 +215,6 @@
 
   function abrirBetslipSiEstaCerrado() {
     if (estaAbiertoElBetslip()) return true;
-
-    // Buscar el texto "Betslip" o "Cupón de apuesta" en la barra flotante verde abajo a la derecha (sin tocar QUICK BET)
     const nodos = querySelectorAllDeep('div, span, button');
     for (const el of nodos) {
       const t = (el.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -236,7 +227,6 @@
         /^cupón de apuesta\s*\d*$/.test(t)
       );
       if (coincide && el.children.length <= 4) {
-        // Hacer clic tanto en el elemento como en su contenedor izquierdo (sin incluir QUICK BET)
         clickElemento(el);
         const padre = el.parentElement;
         if (padre) {
@@ -255,7 +245,6 @@
     return querySelectorAllDeep('[data-editor-id="betslipSelection"]').length;
   }
 
-  // Elimina del Betslip cualquier selección que se haya bloqueado/cerrado mientras se armaba el combo
   function limpiarSeleccionesBloqueadasEnBetslip() {
     let removidas = 0;
     const items = querySelectorAllDeep('[data-editor-id="betslipSelection"]');
@@ -332,7 +321,6 @@
 
   function leerCuotaDeBoton(plate) {
     if (!plate) return "";
-    // En Betby, el nombre está en marketCardOutcomeName y la cuota numérica está en el otro hijo / último span
     const nameEl = plate.querySelector('[data-editor-id="marketCardOutcomeName"]');
     const spans = Array.from(plate.querySelectorAll("span, div"));
     for (let i = spans.length - 1; i >= 0; i--) {
@@ -348,39 +336,40 @@
     return "";
   }
 
-  // CRÍTICO: Verifica que el botón NO tenga candado (que tenga una cuota numérica viva > 1.01)
-  function esBotonDisponible(plate) {
-    if (!plate) return false;
-    const c = parseFloat(leerCuotaDeBoton(plate));
-    return !isNaN(c) && c > 1.01;
-  }
-
-  function detectarPosicionJugador(cfg) {
-    if (cfg.outid === "1" || cfg.outid === "4") return 1;
-    if (cfg.outid === "3" || cfg.outid === "5") return 2;
-
-    const nombreLimpio = (cfg.equipo || "").split("(")[0].trim().toLowerCase();
-    if (!nombreLimpio) return 1;
-
-    const pathSlug = (window.location.pathname || "").split("/").pop() || "";
-    const partesNombre = nombreLimpio.replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 3);
-    if (pathSlug && partesNombre.length > 0) {
-      const idx = pathSlug.indexOf(partesNombre[0]);
-      const mitad = Math.floor(pathSlug.length * 0.38);
-      if (idx >= 0) {
-        return idx < mitad ? 1 : 2;
-      }
+  // ESCUDO PROTECTOR DE CUOTA: jamás permite entrar si la cuota cayó a miseria (<1.22) o si disparó el riesgo demasiado
+  function pasaEscudoDeCuota(plate, cfg) {
+    if (!plate) return { ok: false, motivo: "candado" };
+    const kViva = parseFloat(leerCuotaDeBoton(plate));
+    if (isNaN(kViva) || kViva <= 1.01) {
+      return { ok: false, motivo: "candado" };
     }
-    return 1;
+    const kEsp = parseFloat(cfg.cuota || 0);
+    if (cfg.contra || kEsp >= 1.80) {
+      // Modo Contra-Cebo (~2.05x): exigir que pague mínimo 1.80 y no se haya disparado a >2.60
+      if (kViva < 1.80 || kViva > 2.65) {
+        return { ok: false, motivo: `cuota fuera de rango Contra-Cebo (${kViva})` };
+      }
+      return { ok: true, kViva };
+    }
+    // Modo Francotirador: prohibir cuotas basura <1.22 y prohibir saltos bruscos de riesgo (>1.58 o +0.22 sobre la esperada)
+    const topeMax = kEsp > 0 ? Math.min(kEsp + 0.20, 1.58) : 1.56;
+    if (kViva < 1.22) {
+      return { ok: false, motivo: `cuota bajó demasiado (${kViva} paga muy poco)` };
+    }
+    if (kViva > topeMax) {
+      return { ok: false, motivo: `cuota subió a zona de riesgo (${kViva})` };
+    }
+    return { ok: true, kViva };
   }
 
-  function buscarBotonCuota(cfg) {
+  // BÚSQUEDA ESTRICTA SIN SALTO DE LÍNEA (NUNCA CAMBIA 2.5 POR 3.5 NI AGARRA TOTAL DE 1ª MITAD O EQUIPO)
+  function buscarBotonCuotaEstricto(cfg) {
     const plates = querySelectorAllDeep('div[data-editor-id="outcomePlate"]');
-    if (plates.length === 0) return null;
+    if (plates.length === 0) return { btn: null, motivoRechazo: "" };
 
     const marketCards = querySelectorAllDeep('div[data-editor-id="marketCard"]');
+    let ultimoMotivo = "";
 
-    // 1. CASO OVER / UNDER (Más de / Menos de — outid 12 o 13)
     const esJugadaOU = (
       cfg.tipo === "OVER" ||
       cfg.tipo === "UNDER" ||
@@ -396,88 +385,50 @@
         const mLin = cfg.equipo.match(/(\d+(?:\.\d+)?)/);
         if (mLin) lineaBuscada = mLin[1];
       }
+      if (!lineaBuscada) return { btn: null, motivoRechazo: "sin línea exacta" };
 
       for (const card of marketCards) {
         const header = card.querySelector('div[data-editor-id="marketCardHeader"]');
         const hText = (header ? header.textContent : "").trim().toLowerCase();
-        // Solo tarjetas de Total general del partido (evitando mitades cerradas si hay principal)
-        if (hText.includes("total") || hText.includes("over/under") || hText.includes("más/menos")) {
-          const cardPlates = Array.from(card.querySelectorAll('div[data-editor-id="outcomePlate"]'));
-          if (lineaBuscada) {
-            const matchingLine = cardPlates.filter(p => {
-              const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
-              const nameTxt = (nameEl ? nameEl.textContent : p.textContent || "").trim().toLowerCase();
-              return (
-                nameTxt === lineaBuscada ||
-                nameTxt === `(${lineaBuscada})` ||
-                nameTxt.includes(`over ${lineaBuscada}`) ||
-                nameTxt.includes(`under ${lineaBuscada}`) ||
-                nameTxt.includes(`más de ${lineaBuscada}`) ||
-                nameTxt.includes(`menos de ${lineaBuscada}`)
-              );
-            });
-            if (matchingLine.length >= 2) {
-              const candidato = esOver ? matchingLine[0] : matchingLine[1];
-              if (esBotonDisponible(candidato)) return candidato;
-            }
-            if (matchingLine.length === 1 && esBotonDisponible(matchingLine[0])) {
-              return matchingLine[0];
-            }
-          }
+        // Solo aceptar la tarjeta de Total principal del partido (NO half total, NO team total)
+        const esTotalPrincipal = (
+          hText === "total" ||
+          hText === "total (incl. overtime)" ||
+          hText === "total (prórroga incl.)" ||
+          hText === "total (incl. prórroga)" ||
+          hText === "over/under" ||
+          hText === "más/menos" ||
+          hText === "total goals" ||
+          hText === "total de goles"
+        );
+        if (!esTotalPrincipal) continue;
 
-          // Si la línea exacta se movió medio punto en vivo (ej. 2.5 -> 3.5), buscar la primera fila disponible (sin candado)
-          for (let r = 0; r + 1 < cardPlates.length; r += 2) {
-            const candFila = esOver ? cardPlates[r] : cardPlates[r + 1];
-            if (esBotonDisponible(candFila)) {
-              const cVal = parseFloat(leerCuotaDeBoton(candFila));
-              if (cVal >= 1.08 && cVal <= 2.15) {
-                return candFila;
-              }
-            }
-          }
+        const cardPlates = Array.from(card.querySelectorAll('div[data-editor-id="outcomePlate"]'));
+        // COINCIDENCIA 100% EXACTA DE LA LÍNEA (JAMÁS SALTAR A OTRA FILA)
+        const matchingLine = cardPlates.filter(p => {
+          const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
+          const nameTxt = (nameEl ? nameEl.textContent : "").trim().toLowerCase();
+          return (
+            nameTxt === lineaBuscada ||
+            nameTxt === `(${lineaBuscada})` ||
+            nameTxt === `over ${lineaBuscada}` ||
+            nameTxt === `under ${lineaBuscada}` ||
+            nameTxt === `más de ${lineaBuscada}` ||
+            nameTxt === `menos de ${lineaBuscada}`
+          );
+        });
+
+        if (matchingLine.length >= 2) {
+          const candidato = esOver ? matchingLine[0] : matchingLine[1];
+          const evalEscudo = pasaEscudoDeCuota(candidato, cfg);
+          if (evalEscudo.ok) return { btn: candidato, motivoRechazo: "" };
+          ultimoMotivo = evalEscudo.motivo;
         }
       }
-      return null;
+      return { btn: null, motivoRechazo: ultimoMotivo };
     }
 
-    // 2. CASO WINNER / GANADOR (Botones "1" y "2")
-    const posJugador = detectarPosicionJugador(cfg);
-    const targetNumTxt = posJugador === 1 ? "1" : "2";
-
-    for (const card of marketCards) {
-      const header = card.querySelector('div[data-editor-id="marketCardHeader"]');
-      const hText = (header ? header.textContent : "").trim().toLowerCase();
-      const esWinner = (
-        hText === "winner" ||
-        hText === "ganador" ||
-        hText === "1x2" ||
-        hText === "match winner" ||
-        hText === "ganador del partido"
-      );
-      if (!esWinner) continue;
-
-      const cardPlates = Array.from(card.querySelectorAll('div[data-editor-id="outcomePlate"]'));
-      if (cardPlates.length >= 2) {
-        const byNum = cardPlates.find(p => {
-          const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
-          const t = (nameEl ? nameEl.textContent : "").trim();
-          return t === targetNumTxt;
-        });
-        if (byNum && esBotonDisponible(byNum)) return byNum;
-
-        const posCand = posJugador === 1 ? cardPlates[0] : cardPlates[cardPlates.length - 1];
-        if (esBotonDisponible(posCand)) return posCand;
-      }
-    }
-
-    const boton1o2 = plates.find(p => {
-      const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
-      const t = (nameEl ? nameEl.textContent : "").trim();
-      return t === targetNumTxt && esBotonDisponible(p);
-    });
-    if (boton1o2) return boton1o2;
-
-    return null;
+    return { btn: null, motivoRechazo: ultimoMotivo };
   }
 
   function construirUrlPartidoEnMismoIdioma(relPath) {
@@ -489,7 +440,7 @@
   }
 
   // ===========================================================================
-  // 3. FLUJO DE ARMADO DE COMBO VERIFICADO (GARANTIZA N SELECCIONES REALES EN EL BETSLIP)
+  // FLUJO COMBO CON ESCUDO PROTECTOR
   // ===========================================================================
   async function ejecutarPasoCombo(state) {
     while (!document.body) {
@@ -514,31 +465,30 @@
       tipo: (itemActual.t || "").toUpperCase(),
       linea: (itemActual.l || "").trim(),
       outid: (itemActual.o || "").trim(),
+      cuota: parseFloat(itemActual.k || "0") || 0,
       equipo: (itemActual.e || "").trim()
     };
 
     const numIntentoHumano = Math.min(state.addedCount + 1, state.targetCount);
     mostrarBannerEstado(
-      `🔥 Armando Combo (${numIntentoHumano} de ${state.targetCount}): Buscando cuota activa «${cfgPaso.equipo || ("Línea " + cfgPaso.linea)}»...`,
+      `🔥 Armando Combo Seguro (${numIntentoHumano}/${state.targetCount}): Verificando «${cfgPaso.equipo || ("Línea " + cfgPaso.linea)}»...`,
       "#7c3aed",
       true
     );
 
-    // Esperar a que carguen las cuotas y verificar que el botón NO tenga candado
     let botonCuota = null;
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 20; i++) {
       if (!sessionStorage.getItem(COMBO_STORAGE_KEY)) return;
-      botonCuota = buscarBotonCuota(cfgPaso);
-      if (botonCuota) break;
-
-      if ((i === 5 || i === 12) && (cfgPaso.tipo === "OVER" || cfgPaso.tipo === "UNDER" || cfgPaso.outid === "12" || cfgPaso.outid === "13")) {
-        abrirTabTotalsSiExiste();
+      const res = buscarBotonCuotaEstricto(cfgPaso);
+      if (res.btn) {
+        botonCuota = res.btn;
+        break;
       }
+      if (i === 5 || i === 12) abrirTabTotalsSiExiste();
       await new Promise(r => setTimeout(r, 380));
     }
 
     if (botonCuota) {
-      // En la primera jugada del combo, abrir el Betslip y limpiarlo por completo primero
       if (state.addedCount === 0) {
         await vaciarBetslipPorCompleto();
         await new Promise(r => setTimeout(r, 350));
@@ -548,92 +498,61 @@
       }
 
       const conteoAntes = contarSeleccionesRealesEnBetslip();
-      const yaEstabaActiva = botonCuota.getAttribute("data-active") === "true";
-
-      if (!yaEstabaActiva) {
+      if (botonCuota.getAttribute("data-active") !== "true") {
         botonCuota.style.outline = "3px solid #fbbf24";
         clickElemento(botonCuota);
       }
 
-      // Esperar hasta confirmar que data-active === "true" y que realmente entró al Betslip
-      let confirmadaEnBetslip = false;
+      let confirmada = false;
       for (let w = 0; w < 10; w++) {
         await new Promise(r => setTimeout(r, 250));
-        const ahoraActiva = botonCuota.getAttribute("data-active") === "true";
-        const conteoAhora = contarSeleccionesRealesEnBetslip();
-        if (ahoraActiva || conteoAhora > conteoAntes) {
-          confirmadaEnBetslip = true;
+        if (botonCuota.getAttribute("data-active") === "true" || contarSeleccionesRealesEnBetslip() > conteoAntes) {
+          confirmada = true;
           break;
         }
       }
 
-      if (confirmadaEnBetslip) {
-        // Pausa extra de seguridad para que Betby guarde la selección en su localStorage antes de cambiar de página
+      if (confirmada) {
         await new Promise(r => setTimeout(r, 750));
         limpiarSeleccionesBloqueadasEnBetslip();
-        const conteoVerificado = contarSeleccionesRealesEnBetslip();
-        state.addedCount = conteoVerificado > 0 ? conteoVerificado : (state.addedCount + 1);
-
-        const cuotaLeida = leerCuotaDeBoton(botonCuota);
-        mostrarBannerEstado(
-          `✅ Jugada ${state.addedCount}/${state.targetCount} dentro del Betslip${cuotaLeida ? " (Cuota " + cuotaLeida + ")" : ""}!`,
-          "#059669",
-          true
-        );
-      } else {
-        mostrarBannerEstado(
-          `⚡ Esa cuota se bloqueó justo ahora, buscando el respaldo para completar tus ${state.targetCount}...`,
-          "#d97706",
-          true
-        );
-        await new Promise(r => setTimeout(r, 400));
+        const conteoVerif = contarSeleccionesRealesEnBetslip();
+        state.addedCount = conteoVerif > 0 ? conteoVerif : (state.addedCount + 1);
       }
     } else {
       mostrarBannerEstado(
-        `⚡ Partido bloqueado/cerrado en vivo, pasando al respaldo para completar tus ${state.targetCount}...`,
+        `🛡️ Escudo descartó esa línea (cambió en vivo o tenía candado), pasando al respaldo...`,
         "#d97706",
         true
       );
       await new Promise(r => setTimeout(r, 400));
     }
 
-    // Antes de dar por terminado, verificar el conteo REAL dentro del Betslip
     abrirBetslipSiEstaCerrado();
     await new Promise(r => setTimeout(r, 350));
     limpiarSeleccionesBloqueadasEnBetslip();
     const realesEnCupon = contarSeleccionesRealesEnBetslip();
-    if (realesEnCupon > 0) {
-      state.addedCount = realesEnCupon;
-    }
+    if (realesEnCupon > 0) state.addedCount = realesEnCupon;
 
-    // Si aún faltan jugadas para llegar a targetCount (ej. 3) y hay más partidos de respaldo en la cola, seguir al siguiente!
     if (state.addedCount < state.targetCount && state.currentIndex + 1 < state.items.length) {
       state.currentIndex += 1;
       state.updatedAt = Date.now();
       sessionStorage.setItem(COMBO_STORAGE_KEY, JSON.stringify(state));
       await new Promise(r => setTimeout(r, 450));
-      const nextItem = state.items[state.currentIndex];
-      window.location.href = construirUrlPartidoEnMismoIdioma(nextItem.u);
+      window.location.href = construirUrlPartidoEnMismoIdioma(state.items[state.currentIndex].u);
       return;
     }
 
-    // =========================================================================
-    // FINAL DEL COMBO: ABRIR BETSLIP -> PESTAÑA COMBO -> ESCRIBIR MONTO REAL -> RESALTAR PLACE BET
-    // =========================================================================
     try { sessionStorage.removeItem(COMBO_STORAGE_KEY); } catch (e) {}
 
-    // 1. Asegurar que el Betslip esté desplegado y visible
     for (let i = 0; i < 15; i++) {
       abrirBetslipSiEstaCerrado();
       await new Promise(r => setTimeout(r, 300));
       if (estaAbiertoElBetslip()) break;
     }
 
-    // 2. Cambiar a la pestaña "Combo" (y no "Directa" / "Single")
     seleccionarTabComboEnBetslip();
     await new Promise(r => setTimeout(r, 550));
 
-    // 3. Colocar el monto exacto ($5, $2, etc.) sobreescribiendo el 0.50 por defecto de BC.GAME
     for (let intentoMonto = 0; intentoMonto < 3; intentoMonto++) {
       const inputsStake = querySelectorAllDeep('[data-editor-id="betslipStakeInput"] input, input[inputmode="decimal"]');
       const inputCombo = inputsStake.length > 0 ? inputsStake[0] : null;
@@ -641,9 +560,7 @@
         inputCombo.focus();
         setReactInputValue(inputCombo, state.stake);
         await new Promise(r => setTimeout(r, 350));
-        if (String(inputCombo.value).trim() === String(state.stake).trim()) {
-          break;
-        }
+        if (String(inputCombo.value).trim() === String(state.stake).trim()) break;
       } else {
         abrirBetslipSiEstaCerrado();
         seleccionarTabComboEnBetslip();
@@ -652,19 +569,11 @@
     }
 
     const totalFinalReal = contarSeleccionesRealesEnBetslip() || state.addedCount;
-
-    // 4. Resaltar el botón "Place Bet / Realizar apuesta" SIN hacerle clic
     const posiblesBotones = querySelectorAllDeep('button[data-editor-id="betslipPlaceBetButton"], button');
     const btnApostar = posiblesBotones.find(b => {
       const idEd = b.getAttribute("data-editor-id") || "";
       const txt = (b.textContent || "").trim().toLowerCase();
-      if (idEd === "betslipPlaceBetButton") return true;
-      return (
-        txt === "place bet" ||
-        txt === "realizar apuesta" ||
-        txt.includes("place bet") ||
-        txt.includes("realizar apuesta")
-      );
+      return idEd === "betslipPlaceBetButton" || txt.includes("place bet") || txt.includes("realizar apuesta");
     });
 
     if (btnApostar) {
@@ -672,23 +581,15 @@
       btnApostar.style.boxShadow = "0 0 22px rgba(251, 191, 36, 0.9)";
     }
 
-    if (totalFinalReal < state.targetCount) {
-      mostrarBannerEstado(
-        `⚠️ Atención: Cerraron líneas en vivo y quedaron ${totalFinalReal} de ${state.targetCount} jugadas en tu Betslip con $${state.stake}. Revísalo antes de dar a «Place Bet».`,
-        "#d97706",
-        false
-      );
-    } else {
-      mostrarBannerEstado(
-        `🏆 ¡Combo de ${totalFinalReal}/${state.targetCount} jugadas verificado en tu Betslip con $${state.stake}! Solo dale clic a «Place Bet».`,
-        "#047857",
-        false
-      );
-    }
+    mostrarBannerEstado(
+      `🏆 ¡Combo verificado (${totalFinalReal} jugadas) con $${state.stake}! Revisa la cuota y dale a «Place Bet».`,
+      "#047857",
+      false
+    );
   }
 
   // ===========================================================================
-  // 4. FLUJO DE APUESTA INDIVIDUAL (1 JUGADA)
+  // FLUJO INDIVIDUAL CON ESCUDO PROTECTOR DE SALDO (CANCELA SI LA LÍNEA SALTÓ)
   // ===========================================================================
   async function ejecutarIndividual(cfg) {
     while (!document.body) {
@@ -699,38 +600,45 @@
       ? `${(cfg.tipo === "OVER" || cfg.outid === "12") ? "Over / Más de" : "Under / Menos de"} ${cfg.linea}`
       : (cfg.equipo || "Seleccionada");
 
-    mostrarBannerEstado(`Buscando cuota activa para «${descJugada}» ($${cfg.stake})...`, "#047857");
+    mostrarBannerEstado(`Verificando línea exacta «${descJugada}» con Escudo Protector...`, "#047857");
 
     let botonCuota = null;
-    for (let i = 0; i < 35; i++) {
-      botonCuota = buscarBotonCuota(cfg);
-      if (botonCuota) break;
-
-      if ((i === 7 || i === 15) && (cfg.tipo === "OVER" || cfg.tipo === "UNDER" || cfg.outid === "12" || cfg.outid === "13")) {
-        abrirTabTotalsSiExiste();
+    let motivoBloqueo = "";
+    for (let i = 0; i < 30; i++) {
+      const res = buscarBotonCuotaEstricto(cfg);
+      if (res.btn) {
+        botonCuota = res.btn;
+        break;
       }
+      if (res.motivoRechazo) motivoBloqueo = res.motivoRechazo;
+      if (i === 6 || i === 14) abrirTabTotalsSiExiste();
       await new Promise(r => setTimeout(r, 400));
-    }
-
-    if (!botonCuota) {
-      mostrarBannerEstado(`El mercado «${descJugada}» ya cerró o está bloqueado con candado. Elige otro disponible.`, "#b45309");
-      return;
     }
 
     try { sessionStorage.removeItem(SINGLE_STORAGE_KEY); } catch (e) {}
 
-    const cuotaActualEnVivo = leerCuotaDeBoton(botonCuota);
-    const txtCuotaVivo = cuotaActualEnVivo ? ` (Cuota actual en vivo: ${cuotaActualEnVivo})` : "";
+    if (!botonCuota) {
+      const detalle = motivoBloqueo && motivoBloqueo !== "candado"
+        ? `(${motivoBloqueo})`
+        : "(la línea exacta cerró o se puso candado)";
+      mostrarBannerEstado(
+        `🛡️ Apuesta CANCELADA para proteger tu saldo: «${descJugada}» ya no es segura ${detalle}. ¡No se metió dinero!`,
+        "#b45309"
+      );
+      return;
+    }
 
-    const yaActivo = botonCuota.getAttribute("data-active") === "true";
-    if (!yaActivo) {
+    const cuotaActualEnVivo = leerCuotaDeBoton(botonCuota);
+    const txtCuotaVivo = cuotaActualEnVivo ? ` (Cuota verificada: ${cuotaActualEnVivo})` : "";
+
+    if (botonCuota.getAttribute("data-active") !== "true") {
       await vaciarBetslipPorCompleto();
       await new Promise(r => setTimeout(r, 220));
       botonCuota.style.outline = "3px solid #10b981";
       clickElemento(botonCuota);
     }
 
-    mostrarBannerEstado(`Cuota marcada${txtCuotaVivo}. Colocando $${cfg.stake} en el Betslip...`, "#059669");
+    mostrarBannerEstado(`Línea segura verificada${txtCuotaVivo}. Colocando $${cfg.stake}...`, "#059669");
 
     let inputStake = null;
     for (let i = 0; i < 25; i++) {
@@ -743,7 +651,7 @@
     }
 
     if (!inputStake) {
-      mostrarBannerEstado(`✅ Cuota marcada${txtCuotaVivo}. Abre el Betslip abajo a la derecha para confirmar $${cfg.stake}.`, "#0284c7");
+      mostrarBannerEstado(`✅ Cuota marcada${txtCuotaVivo}. Abre el Betslip para confirmar $${cfg.stake}.`, "#0284c7");
       return;
     }
 
@@ -753,7 +661,7 @@
 
     const btnLogin = querySelectorDeep('button[data-editor-id="betSlipLoginButton"]');
     if (btnLogin) {
-      mostrarBannerEstado(`¡Boleto listo con $${cfg.stake}${txtCuotaVivo}! Inicia sesión en BC.GAME para confirmar.`, "#d97706");
+      mostrarBannerEstado(`¡Boleto listo con $${cfg.stake}${txtCuotaVivo}! Inicia sesión en BC.GAME.`, "#d97706");
       return;
     }
 
@@ -762,22 +670,13 @@
       const btnApostar = posiblesBotones.find(b => {
         const idEd = b.getAttribute("data-editor-id") || "";
         const txt = (b.textContent || "").trim().toLowerCase();
-        if (idEd === "betslipPlaceBetButton") return true;
-        return (
-          txt === "place bet" ||
-          txt === "realizar apuesta" ||
-          txt === "apostar" ||
-          txt.includes("place bet") ||
-          txt.includes("realizar apuesta") ||
-          txt.includes("accept all odds") ||
-          txt.includes("aceptar")
-        );
+        return idEd === "betslipPlaceBetButton" || txt === "place bet" || txt === "realizar apuesta" || txt.includes("place bet") || txt.includes("realizar apuesta");
       });
 
       if (btnApostar && !btnApostar.disabled) {
         btnApostar.style.outline = "3px solid #34d399";
         clickElemento(btnApostar);
-        mostrarBannerEstado(`✅ ¡Apuesta individual de $${cfg.stake} enviada${txtCuotaVivo}!`, "#059669");
+        mostrarBannerEstado(`✅ ¡Apuesta segura de $${cfg.stake} enviada${txtCuotaVivo}!`, "#059669");
         setTimeout(() => {
           const b = document.getElementById("polyedge-autobet-banner");
           if (b) b.style.opacity = "0.2";
@@ -786,7 +685,7 @@
       }
     }
 
-    mostrarBannerEstado(`✅ ¡Boleto individual preparado con $${cfg.stake}${txtCuotaVivo}! Listo en tu Betslip.`, "#059669");
+    mostrarBannerEstado(`✅ ¡Boleto seguro preparado con $${cfg.stake}${txtCuotaVivo}!`, "#059669");
   }
 
   let ejecucionEnCurso = false;
