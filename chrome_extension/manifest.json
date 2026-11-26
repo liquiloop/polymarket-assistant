@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge AI — Escudo Protector + Auto-Apuesta PlayBC (BC.GAME)",
-  "version": "1.4.0",
-  "description": "Verifica línea exacta sin saltar a cuotas riesgosas, cancela si la cuota cambió fuera de rango seguro y soporta modo Individual y Combos.",
+  "name": "PolyEdge AI — Auto-Selector Polymarket & PlayBC (BC.GAME)",
+  "version": "1.5.0",
+  "description": "Selecciona y verifica automáticamente la línea exacta Over/Under en Polymarket (dejando listo el monto para dar Buy) y en PlayBC.",
   "permissions": [],
   "content_scripts": [
     {
@@ -13,6 +13,14 @@
         "https://*.bc.game/*"
       ],
       "js": ["content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://polymarket.com/*",
+        "https://*.polymarket.com/*"
+      ],
+      "js": ["polymarket.js"],
       "run_at": "document_start"
     }
   ]
