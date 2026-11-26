@@ -168,10 +168,12 @@ def _descargar_mercados_optimizado():
         if now_ts - _SCAN_CACHE["timestamp"] < CACHE_TTL_SECONDS and _SCAN_CACHE["data"]:
             return _SCAN_CACHE["data"]
 
-        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Incluir desde hace 5 horas para NO perder los partidos de NBA/NHL que están EN VIVO ahora mismo
+        from datetime import timedelta
+        min_dt_str = (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
         tareas_urls = [
-            ("tag_nba", f"https://gamma-api.polymarket.com/events?limit=20&active=true&closed=false&tag_slug=nba&end_date_min={now_str}&order=endDate&ascending=true"),
-            ("tag_nhl", f"https://gamma-api.polymarket.com/events?limit=20&active=true&closed=false&tag_slug=nhl&end_date_min={now_str}&order=endDate&ascending=true")
+            ("tag_nba", f"https://gamma-api.polymarket.com/events?limit=35&active=true&closed=false&tag_slug=nba&end_date_min={min_dt_str}&order=endDate&ascending=true"),
+            ("tag_nhl", f"https://gamma-api.polymarket.com/events?limit=35&active=true&closed=false&tag_slug=nhl&end_date_min={min_dt_str}&order=endDate&ascending=true")
         ]
 
         markets = []
@@ -238,31 +240,36 @@ def get_polymarket_opportunities(custom_filters=None):
                 continue
 
             end_date_str = m.get("endDate")
-            if not end_date_str:
+            game_start_str = m.get("gameStartTime")
+            ref_dt = parse_polymarket_date(game_start_str.replace(" ", "T")) if game_start_str else parse_polymarket_date(end_date_str)
+            if not ref_dt:
+                ref_dt = parse_polymarket_date(end_date_str)
+            if not ref_dt:
                 continue
 
-            end_date = parse_polymarket_date(end_date_str)
-            if not end_date:
-                continue
-
-            segundos = (end_date - ahora).total_seconds()
-            if segundos <= 0:
-                continue
+            segundos_desde_ahora = (ref_dt - ahora).total_seconds()
 
             en_vivo_ahora = False
-            game_start_str = m.get("gameStartTime")
-            if game_start_str:
-                gs_dt = parse_polymarket_date(game_start_str.replace(" ", "T"))
-                if gs_dt and gs_dt <= ahora:
+            if segundos_desde_ahora <= 0:
+                # En Polymarket Deportes, gameStartTime / endDate marca la hora de inicio del partido.
+                # Si empezó hace menos de 4 horas y sigue abierto (closed=False), ¡está EN VIVO ahora mismo!
+                if abs(segundos_desde_ahora) <= 14400:
                     en_vivo_ahora = True
-                    segundos = min(segundos, 5400)
+                    segundos_para_cobro = max(10800 - abs(segundos_desde_ahora), 1800)
+                    dias_para_filtro = 0.0
+                else:
+                    continue
+            else:
+                segundos_para_cobro = segundos_desde_ahora + 9000  # inicio + ~2.5h de duración del partido
+                dias_para_filtro = segundos_desde_ahora / 86400.0
 
-            dias_restantes = max(segundos / 86400, 0.04)
-            if dias_restantes > max(max_days, 50):
+            # Respetar ESTRICTAMENTE el filtro de días elegido por el usuario (1 día = hoy/≤24h, 2 días = 0 a 2 días, etc.)
+            if dias_para_filtro > (float(max_days) + 0.12):
                 continue
 
+            dias_restantes = max(segundos_para_cobro / 86400.0, 0.04)
             link = f"https://polymarket.com/event/{canonical_slug}" if canonical_slug else "https://polymarket.com"
-            prob_min_cat = min(prob_min, 0.55)
+            prob_min_cat = prob_min
 
             for idx, (opcion, p_str) in enumerate(zip(opciones, precios)):
                 p = float(p_str)
@@ -295,8 +302,8 @@ def get_polymarket_opportunities(custom_filters=None):
                         "price": round(p, 4),
                         "centavos": guia["centavos"],
                         "roi": round(roi, 2),
-                        "days_left": round(dias_restantes, 1),
-                        "hours_left": max(round(dias_restantes * 24, 0), 1),
+                        "days_left": round(dias_para_filtro if not en_vivo_ahora else 0.05, 2),
+                        "hours_left": max(round(segundos_desde_ahora / 3600.0, 1), 1) if not en_vivo_ahora else 2,
                         "en_vivo_ahora": en_vivo_ahora,
                         "es_btc_5m": False,
                         "categoria": cat_key,
