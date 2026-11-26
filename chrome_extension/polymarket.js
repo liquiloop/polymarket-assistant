@@ -3,7 +3,6 @@
 
   const POLY_STORAGE_KEY = "polyedge_polymarket_active_cfg";
 
-  // 1. Capturar parámetros inmediatamente en document_start antes de que Polymarket redirija de /event/... a /sports/...
   function capturarConfigPolymarket() {
     const hash = window.location.hash || "";
     const search = window.location.search || "";
@@ -16,9 +15,9 @@
       if (params.get("polyedge_poly") === "1") {
         const cfg = {
           ts: Date.now(),
-          linea: (params.get("linea") || "").trim(),       // ej: "4.5", "224.5"
+          linea: (params.get("linea") || "").trim(),          // ej: "5.5", "4.5", "224.5"
           side: (params.get("side") || "OVER").toUpperCase(), // "OVER" o "UNDER"
-          outcome: (params.get("outcome") || "").trim(),   // "Over" / "Under"
+          outcome: (params.get("outcome") || "").trim(),
           cents: (params.get("cents") || "").trim(),
           q: (params.get("q") || "").trim()
         };
@@ -76,11 +75,8 @@
     banner.innerHTML = `<span>🎯 <b>PolyEdge Polymarket:</b> ${texto}</span>`;
   }
 
-  function clickSeguro(el) {
+  function dispararClickSinScroll(el) {
     if (!el) return;
-    try {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    } catch (e) {}
     const opts = { bubbles: true, cancelable: true, composed: true, view: window };
     try {
       el.dispatchEvent(new PointerEvent("pointerdown", opts));
@@ -93,68 +89,107 @@
     }
   }
 
-  // Encontrar la tarjeta "Totals" en la vista deportiva de Polymarket (/sports/nba/... o /sports/nhl/...)
-  function encontrarTarjetaTotals() {
-    const headings = Array.from(document.querySelectorAll("h2, h3, h4, span, div"));
-    for (const h of headings) {
-      if (h.children.length > 1) continue;
+  // Encontrar el contenedor COMPLETO de "Totales" / "Totals" (incluyendo la barra inferior de números 4.5, 5.5, 6.5, 7.5)
+  function encontrarTarjetaTotalsCompleta() {
+    const nodos = Array.from(document.querySelectorAll("h2, h3, h4, span, div, p"));
+    for (const h of nodos) {
+      if (h.children.length > 2) continue;
       const txt = (h.textContent || "").trim().toLowerCase();
-      if (txt === "totals" || txt === "total" || txt === "totales" || txt === "game total") {
+      if (txt === "totales" || txt === "totals" || txt === "total" || txt === "game total") {
         let curr = h.parentElement;
-        for (let up = 0; up < 7 && curr; up++) {
-          const tieneBotones = curr.querySelectorAll("button.trading-button").length >= 2;
-          const tieneSwiper = Boolean(curr.querySelector(".swiper"));
-          if (tieneBotones || tieneSwiper) {
-            return curr;
+        let mejorConBotones = null;
+
+        for (let up = 0; up < 9 && curr; up++) {
+          const textoBloque = (curr.textContent || "").toLowerCase();
+          // No subir tan alto que abarque Moneyline o Spreads/Hándicap
+          if (textoBloque.includes("moneyline") || textoBloque.includes("línea de dinero")) {
+            break;
+          }
+
+          const cantTradingBtns = curr.querySelectorAll("button.trading-button").length;
+          const tieneSwiper = Boolean(curr.querySelector(".swiper, .swiper-wrapper, .swiper-slide"));
+          const tieneBotonesLinea = Array.from(curr.querySelectorAll("button")).some(b => /^\d+(\.5)?$/.test((b.textContent || "").trim()));
+
+          if (cantTradingBtns >= 2 && (tieneSwiper || tieneBotonesLinea)) {
+            return curr; // ¡Este contenedor tiene TANTO los botones O/U COMO el carrusel inferior de números!
+          }
+          if (cantTradingBtns >= 2 && !mejorConBotones) {
+            mejorConBotones = curr;
           }
           curr = curr.parentElement;
+        }
+
+        if (mejorConBotones) {
+          // Revisar si el padre inmediato contiene el carrusel sin incluir Moneyline
+          const padre = mejorConBotones.parentElement;
+          if (padre && !(padre.textContent || "").toLowerCase().includes("moneyline")) {
+            return padre;
+          }
+          return mejorConBotones;
         }
       }
     }
     return null;
   }
 
-  // Seleccionar el número exacto (ej. "4.5" o "224.5") en el carrusel Swiper de Totals
+  // Seleccionar el número exacto (ej. "5.5" o "4.5") en la barra inferior de Totales
   async function seleccionarLineaEnCarrusel(totalsCard, lineaBuscada) {
     if (!totalsCard || !lineaBuscada) return false;
-    const botonesSlide = Array.from(totalsCard.querySelectorAll(".swiper-slide button, button")).filter(
+
+    // Buscar primero dentro de totalsCard y, por seguridad, también en cualquier carrusel cercano
+    let alcanceBotones = Array.from(totalsCard.querySelectorAll("button")).filter(
       b => !b.classList.contains("trading-button")
     );
-    const btnExacto = botonesSlide.find(b => (b.textContent || "").trim() === lineaBuscada);
+    if (alcanceBotones.length === 0 && totalsCard.parentElement) {
+      alcanceBotones = Array.from(totalsCard.parentElement.querySelectorAll(".swiper-slide button, button")).filter(
+        b => !b.classList.contains("trading-button")
+      );
+    }
+
+    const btnExacto = alcanceBotones.find(b => (b.textContent || "").trim() === lineaBuscada);
     if (!btnExacto) return false;
 
-    const slidePadre = btnExacto.closest(".swiper-slide");
-    const yaActivo = slidePadre && slidePadre.classList.contains("swiper-slide-active");
-    if (!yaActivo) {
-      clickSeguro(btnExacto);
-      const pHijo = btnExacto.querySelector("p, span");
-      if (pHijo) {
-        try { pHijo.click(); } catch (e) {}
+    // Hacer clic tanto en el botón como en el texto interno (<p>5.5</p>) y en el slide
+    const textoHijo = btnExacto.querySelector("p, span");
+    if (textoHijo) dispararClickSinScroll(textoHijo);
+    dispararClickSinScroll(btnExacto);
+
+    // Esperar a que los botones superiores cambien a "O <linea>" / "U <linea>"
+    for (let w = 0; w < 8; w++) {
+      await new Promise(r => setTimeout(r, 150));
+      const btnsArriba = Array.from(totalsCard.querySelectorAll("button.trading-button"));
+      const yaCambio = btnsArriba.some(tb => (tb.textContent || "").replace(/\s+/g, " ").includes(lineaBuscada));
+      if (yaCambio) return true;
+      if (w === 3) {
+        try { btnExacto.click(); } catch (e) {}
       }
-      await new Promise(r => setTimeout(r, 450));
     }
-    return true;
+    return false;
   }
 
-  // Hacer clic en el botón "O <linea>" (Over) o "U <linea>" (Under) dentro de la tarjeta Totals
+  // Hacer clic en "O <linea>" (Over / Más de) o "U <linea>" (Under / Menos de) en la tarjeta Totales
   function clickBotonOverUnderEnTotals(totalsCard, cfg) {
     if (!totalsCard) return null;
     const esOver = cfg.side !== "UNDER";
     const prefijoCorto = esOver ? "o" : "u";
-    const palabraLarga = esOver ? "over" : "under";
+    const palabraIngles = esOver ? "over" : "under";
+    const palabraEsp = esOver ? "más" : "menos";
 
     const tradingBtns = Array.from(totalsCard.querySelectorAll("button.trading-button"));
     for (const btn of tradingBtns) {
       const tNorm = (btn.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
       if (cfg.linea) {
-        if (
+        const coincideLinea = tNorm.includes(cfg.linea);
+        const coincideLado = (
           tNorm.startsWith(`${prefijoCorto} ${cfg.linea}`) ||
-          tNorm.startsWith(`${palabraLarga} ${cfg.linea}`) ||
-          (tNorm.includes(cfg.linea) && (tNorm.startsWith(prefijoCorto + " ") || tNorm.includes(palabraLarga)))
-        ) {
+          tNorm.startsWith(`${prefijoCorto}${cfg.linea}`) ||
+          tNorm.startsWith(`${palabraIngles} ${cfg.linea}`) ||
+          tNorm.includes(palabraEsp)
+        );
+        if (coincideLinea && coincideLado) {
           const innerSpan = btn.querySelector(".trading-button-text") || btn;
-          clickSeguro(innerSpan);
-          clickSeguro(btn);
+          dispararClickSinScroll(innerSpan);
+          dispararClickSinScroll(btn);
           return btn;
         }
       }
@@ -162,97 +197,75 @@
     return null;
   }
 
-  // Respaldo para vista clásica de Polymarket (/event/...) donde cada línea O/U es una fila separada
-  function intentarSeleccionVistaClasica(cfg) {
-    if (!cfg.linea) return false;
-    const esOver = cfg.side !== "UNDER";
-    const bloques = Array.from(document.querySelectorAll("div, li, section"));
-    for (const b of bloques) {
-      const t = (b.textContent || "").toLowerCase();
-      if (!t.includes(`o/u ${cfg.linea}`) && !t.includes(`total ${cfg.linea}`)) continue;
-      const botones = Array.from(b.querySelectorAll("button"));
-      if (botones.length < 2 || botones.length > 8) continue;
-      const targetBtn = botones.find(btn => {
-        const bt = (btn.textContent || "").trim().toLowerCase();
-        return esOver
-          ? (bt.includes("over") || bt.includes("yes") || bt.startsWith(`o ${cfg.linea}`))
-          : (bt.includes("under") || bt.includes("no") || bt.startsWith(`u ${cfg.linea}`));
-      });
-      if (targetBtn) {
-        clickSeguro(targetBtn);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Verificar al 100% en el panel derecho de compra (#outcome-buttons + pestaña Buy + #market-order-amount-input)
+  // Verificar en el panel derecho (funciona tanto en Español "Comprar / Importe" como en Inglés "Buy / Amount")
   async function verificarYPrepararPanelCompra(cfg) {
     const esOver = cfg.side !== "UNDER";
 
-    // 1. Asegurar que la pestaña "Buy" esté activa (y NUNCA "Sell")
-    const tabBuy = document.querySelector('button[role="radio"][value="BUY"]');
-    if (tabBuy && tabBuy.getAttribute("aria-checked") !== "true") {
-      clickSeguro(tabBuy);
+    // 1. Asegurar que esté seleccionada la pestaña "Comprar" / "Buy" (y NO "Vender" / "Sell")
+    const tabBuy =
+      document.querySelector('button[role="radio"][value="BUY"]') ||
+      Array.from(document.querySelectorAll('button[role="radio"], button')).find(b => {
+        const t = (b.textContent || "").trim().toLowerCase();
+        return t === "comprar" || t === "buy";
+      });
+
+    if (tabBuy && tabBuy.getAttribute("aria-checked") === "false") {
+      dispararClickSinScroll(tabBuy);
       await new Promise(r => setTimeout(r, 250));
     }
 
-    // 2. Verificar los botones del panel derecho (#outcome-buttons)
+    // 2. Verificar que los dos botones del panel derecho ya NO digan los equipos (Moneyline), sino "O 5.5" / "U 5.5"
     const contenedorRadios = document.getElementById("outcome-buttons");
     let verificadoPanelDerecho = false;
 
     if (contenedorRadios) {
-      const radios = Array.from(contenedorRadios.querySelectorAll('button[role="radio"]'));
+      const radios = Array.from(contenedorRadios.querySelectorAll('button[role="radio"], button.trading-button'));
       const valorEsperado = esOver ? "0" : "1";
       const radioCorrecto = radios.find(r => r.getAttribute("value") === valorEsperado) || (esOver ? radios[0] : radios[1]);
 
       if (radioCorrecto) {
         const txtRadio = (radioCorrecto.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
-        const prefijo = esOver ? "o" : "u";
-        const palabra = esOver ? "over" : "under";
-
-        // Confirmar que el panel derecho NO se quedó en Moneyline, sino en la línea exacta (ej. "o 4.5" / "over 4.5")
-        if (!cfg.linea || txtRadio.includes(cfg.linea)) {
-          if (radioCorrecto.getAttribute("aria-checked") !== "true") {
+        if (cfg.linea && txtRadio.includes(cfg.linea)) {
+          if (radioCorrecto.getAttribute("aria-checked") === "false" || radioCorrecto.getAttribute("data-selected") === "false") {
             const inner = radioCorrecto.querySelector(".trading-button-text") || radioCorrecto;
-            clickSeguro(inner);
-            clickSeguro(radioCorrecto);
-            await new Promise(r => setTimeout(r, 300));
+            dispararClickSinScroll(inner);
+            dispararClickSinScroll(radioCorrecto);
+            await new Promise(r => setTimeout(r, 250));
           }
-          if (
-            txtRadio.startsWith(`${prefijo} ${cfg.linea}`) ||
-            txtRadio.includes(`${palabra} ${cfg.linea}`) ||
-            (cfg.linea && txtRadio.includes(cfg.linea))
-          ) {
-            radioCorrecto.style.outline = "3px solid #10b981";
-            radioCorrecto.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.75)";
-            verificadoPanelDerecho = true;
-          }
+          radioCorrecto.style.outline = "3px solid #10b981";
+          radioCorrecto.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.8)";
+          verificadoPanelDerecho = true;
         }
       }
     }
 
-    // 3. Enfocar la cajita de monto en dólares (#market-order-amount-input) y resaltar el botón Trade / Buy SIN presionarlo
+    // Si Polymarket en otro tamaño de pantalla no usa #outcome-buttons pero el encabezado derecho ya dice "Over 5.5" / "Más de 5.5"
+    if (!verificadoPanelDerecho && cfg.linea) {
+      const spansDerecha = Array.from(document.querySelectorAll("span, div"));
+      const yaMuestraJugada = spansDerecha.some(s => {
+        if (s.children.length > 1) return false;
+        const t = (s.textContent || "").trim().toLowerCase();
+        return esOver
+          ? (t === `over ${cfg.linea}` || t === `más de ${cfg.linea}` || t === `o ${cfg.linea}`)
+          : (t === `under ${cfg.linea}` || t === `menos de ${cfg.linea}` || t === `u ${cfg.linea}`);
+      });
+      if (yaMuestraJugada) verificadoPanelDerecho = true;
+    }
+
+    // 3. Enfocar la cajita de Importe ($10 / $0) para que el usuario solo escriba su monto y presione Comprar / Trade
     const inputMonto =
       document.getElementById("market-order-amount-input") ||
-      document.querySelector('input[inputmode="decimal"][placeholder*="$"]');
+      document.querySelector('input[inputmode="decimal"]');
 
     if (inputMonto && verificadoPanelDerecho) {
       const cajaInput = inputMonto.parentElement || inputMonto;
       cajaInput.style.outline = "3px solid #fbbf24";
       cajaInput.style.borderRadius = "10px";
-      cajaInput.style.boxShadow = "0 0 16px rgba(251, 191, 36, 0.55)";
+      cajaInput.style.boxShadow = "0 0 16px rgba(251, 191, 36, 0.6)";
       try {
         inputMonto.focus();
+        inputMonto.select();
       } catch (e) {}
-    }
-
-    const btnTrade = Array.from(document.querySelectorAll('button.trading-button[data-color="blue"], button')).find(b => {
-      const t = (b.textContent || "").trim().toLowerCase();
-      return t === "trade" || t === "buy" || t.startsWith("buy over") || t.startsWith("buy under");
-    });
-    if (btnTrade && verificadoPanelDerecho) {
-      btnTrade.style.outline = "3px solid #34d399";
     }
 
     return verificadoPanelDerecho;
@@ -271,15 +284,22 @@
         await new Promise(r => setTimeout(r, 100));
       }
 
-      const etiquetaMeta = `${cfg.side === "UNDER" ? "UNDER (Menos de)" : "OVER (Más de)"} ${cfg.linea}`;
-      mostrarBannerPoly(`Buscando y marcando «${etiquetaMeta}» para que no haya error...`, "#047857");
+      const etiquetaMeta = `${cfg.side === "UNDER" ? "UNDER / U" : "OVER / O"} ${cfg.linea}`;
+      mostrarBannerPoly(`Buscando «Totales ${cfg.linea}» y marcando «${etiquetaMeta}»...`, "#047857");
 
       let completado = false;
+      let scrolleadoUnaVez = false;
 
       for (let intento = 0; intento < 35; intento++) {
-        const totalsCard = encontrarTarjetaTotals();
+        const totalsCard = encontrarTarjetaTotalsCompleta();
         if (totalsCard) {
-          totalsCard.style.outline = "2px solid rgba(16, 185, 129, 0.6)";
+          if (!scrolleadoUnaVez) {
+            try { totalsCard.scrollIntoView({ behavior: "instant", block: "center" }); } catch (e) {}
+            scrolleadoUnaVez = true;
+            await new Promise(r => setTimeout(r, 200));
+          }
+
+          totalsCard.style.outline = "2px solid rgba(16, 185, 129, 0.65)";
           totalsCard.style.borderRadius = "14px";
 
           if (cfg.linea) {
@@ -289,16 +309,7 @@
           const btnClicado = clickBotonOverUnderEnTotals(totalsCard, cfg);
           if (btnClicado) {
             btnClicado.style.outline = "3px solid #10b981";
-            await new Promise(r => setTimeout(r, 400));
-            const okDerecha = await verificarYPrepararPanelCompra(cfg);
-            if (okDerecha) {
-              completado = true;
-              break;
-            }
-          }
-        } else if (intento >= 6) {
-          if (intentarSeleccionVistaClasica(cfg)) {
-            await new Promise(r => setTimeout(r, 450));
+            await new Promise(r => setTimeout(r, 380));
             const okDerecha = await verificarYPrepararPanelCompra(cfg);
             if (okDerecha) {
               completado = true;
@@ -314,12 +325,12 @@
 
       if (completado) {
         mostrarBannerPoly(
-          `✅ ¡Listo y verificado! Quedó marcado «${etiquetaMeta}» en modo BUY a la derecha. Solo escribe tu monto en $ y dale a «Trade / Buy».`,
+          `✅ ¡Verificado! Quedó seleccionado «${etiquetaMeta}» en «Comprar» a la derecha. Solo pon tu Importe en $ y dale al botón azul.`,
           "#059669"
         );
       } else {
         mostrarBannerPoly(
-          `⚠️ No se pudo marcar automáticamente «${etiquetaMeta}» (puede haber cerrado esa línea). Revisa bien la tarjeta Totals antes de comprar.`,
+          `⚠️ La línea exacta «${cfg.linea}» no apareció disponible en Totales. Revisa los números debajo de Totales antes de comprar.`,
           "#d97706"
         );
       }
