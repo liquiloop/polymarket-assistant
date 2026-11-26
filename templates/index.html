@@ -902,6 +902,37 @@
       window.open(targetUrl, '_blank');
     }
 
+    function abrirAutoSeleccionPolymarket(opId) {
+      const op = tarjetasFijadas[opId] || todasLasOportunidades.find(o => o.id === opId);
+      if (!op || !op.link) return;
+
+      // 1. Fijar automáticamente la tarjeta para seguir su resultado WIN en PolyEdge
+      if (!tarjetasFijadas[opId]) {
+        toggleSwitchFijar(opId);
+      }
+
+      // 2. Extraer línea exacta O/U (ej. "4.5" o "224.5") y lado (OVER / UNDER)
+      const qTxt = op.question || '';
+      const mLinea = qTxt.match(/O\/U\s*(\d+(?:\.\d+)?)/i) || qTxt.match(/(\d+\.\d+)/);
+      const lineaStr = mLinea ? mLinea[1] : '';
+      const outLow = (op.outcome || '').trim().toLowerCase();
+      const sideStr = (outLow === 'under' || outLow === 'no' || outLow.includes('menos')) ? 'UNDER' : 'OVER';
+      const cents = String(op.centavos || Math.round((op.price || 0) * 100));
+
+      const hashParams = new URLSearchParams({
+        polyedge_poly: '1',
+        ts: String(Date.now()),
+        linea: lineaStr,
+        side: sideStr,
+        outcome: op.outcome || '',
+        cents: cents,
+        q: qTxt
+      });
+
+      const targetUrl = `${op.link}#${hashParams.toString()}`;
+      window.open(targetUrl, '_blank');
+    }
+
     function toggleModoContraCebo() {
       modoContraCebo = !modoContraCebo;
       actualizarBotonModoEstrategia();
@@ -2166,9 +2197,10 @@
                 <span>Individual ($${document.getElementById('bc-stake-amount') ? document.getElementById('bc-stake-amount').value : 1})</span>
               </button>
               ` : `
-              <a href="${op.link}" target="_blank" class="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition">
-                <span>Ir a Polymarket</span> <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-              </a>
+              <button onclick="abrirAutoSeleccionPolymarket('${op.id}')" class="flex-1 py-2 px-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-600/20 cursor-pointer">
+                <i class="fa-solid fa-crosshairs text-amber-300"></i>
+                <span>Auto-Seleccionar en Polymarket</span>
+              </button>
               `}
             </div>
           </div>
