@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PolyEdge AI — Auto-Selector Polymarket & PlayBC (BC.GAME)",
-  "version": "1.5.0",
-  "description": "Selecciona y verifica automáticamente la línea exacta Over/Under en Polymarket (dejando listo el monto para dar Buy) y en PlayBC.",
+  "version": "1.5.1",
+  "description": "Selecciona y verifica automáticamente la línea exacta en Totales de Polymarket (Español e Inglés) y en PlayBC.",
   "permissions": [],
   "content_scripts": [
     {
