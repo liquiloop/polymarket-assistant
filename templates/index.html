@@ -1935,6 +1935,8 @@
       const noResults = document.getElementById('no-results');
       const query = document.getElementById('filtro-texto').value.toLowerCase().trim();
       const bankroll = parseFloat(document.getElementById('user-bankroll').value) || 1000;
+      const maxDiasSlider = parseFloat(document.getElementById('slider-dias').value) || 30;
+      const minProbSlider = parseFloat(document.getElementById('slider-prob').value) || 70;
 
       // Combinar las tarjetas fijadas (con el switch activo) + las oportunidades del escáner sin duplicar
       const listaCombinada = [];
@@ -1970,6 +1972,15 @@
         // Si Auto-Descartar está activo y estamos en 'todos', ocultar los juegos o torneos que repiten pérdidas
         if (!estaFijada && categoriaActiva === 'todos' && esJuegoOPartidaDescartada(o)) {
           return false;
+        }
+        // Filtrar estrictamente por Días Máx. de Cierre (1 día = hoy / ≤24h, 2 días = hasta 48h, etc.) y Probabilidad Mínima en tarjetas no fijadas
+        if (!estaFijada && !o.es_playbc) {
+          if ((o.days_left || 0) > (maxDiasSlider + 0.12)) {
+            return false;
+          }
+          if ((o.probability || 0) < (minProbSlider - 0.5)) {
+            return false;
+          }
         }
         if (categoriaActiva !== 'todos' && (o.categoria || 'esoccer') !== categoriaActiva) {
           return false;
