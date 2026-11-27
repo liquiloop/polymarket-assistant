@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PolyEdge PRO — Arbitraje & +EV Cruzado (Polymarket + BC.GAME)",
-  "version": "1.6.1",
-  "description": "Selecciona y verifica automáticamente líneas de Arbitraje y +EV tanto en Polymarket como en BC.GAME.",
+  "version": "1.6.2",
+  "description": "Selecciona con clic único limpio (sin doble-toggle) líneas de Arbitraje y +EV tanto en Polymarket como en BC.GAME.",
   "permissions": [],
   "content_scripts": [
     {
