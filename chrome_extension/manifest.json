@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge AI — Auto-Selector Polymarket & PlayBC (BC.GAME)",
-  "version": "1.5.1",
-  "description": "Selecciona y verifica automáticamente la línea exacta en Totales de Polymarket (Español e Inglés) y en PlayBC.",
+  "name": "PolyEdge PRO — Arbitraje & +EV Cruzado (Polymarket + BC.GAME)",
+  "version": "1.6.0",
+  "description": "Selecciona automáticamente líneas de Arbitraje y +EV en Polymarket y BC.GAME, verificando que la ventaja matemática siga viva antes de apostar.",
   "permissions": [],
   "content_scripts": [
     {
