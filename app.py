@@ -59,7 +59,7 @@ def api_config():
     else:
         return jsonify(load_config())
 
-STATS_FILE = os.path.join(current_dir, "win_loss_stats_v2.json")
+STATS_FILE = os.path.join(current_dir, "win_loss_stats_v3_alpha.json")
 
 @app.route("/api/stats", methods=["GET", "POST"])
 def api_stats():
@@ -114,9 +114,11 @@ def api_check_pinned():
             opciones = json.loads(raw_outcomes) if isinstance(raw_outcomes, str) else (raw_outcomes or [])
 
             current_price = None
-            for op_name, p_str in zip(opciones, precios):
+            idx_found = 0
+            for idx_op, (op_name, p_str) in enumerate(zip(opciones, precios)):
                 if str(op_name).strip().lower() == target_outcome:
                     current_price = float(p_str)
+                    idx_found = idx_op
                     break
 
             if current_price is None and "_" in str(op_id):
@@ -124,11 +126,22 @@ def api_check_pinned():
                     idx = int(str(op_id).split("_")[-1])
                     if 0 <= idx < len(precios):
                         current_price = float(precios[idx])
+                        idx_found = idx
                 except Exception:
                     pass
 
             if current_price is None:
                 return op_id, None
+
+            # Calcular precio REAL de venta inmediata (bestBid) para alertas de Take-Profit en vivo
+            b_bid = m.get("bestBid")
+            b_ask = m.get("bestAsk")
+            sell_bid = current_price
+            if b_bid is not None and b_ask is not None:
+                try:
+                    sell_bid = float(b_bid) if idx_found == 0 else max(1.0 - float(b_ask), 0.01)
+                except Exception:
+                    sell_bid = current_price
 
             closed = bool(m.get("closed"))
             estado = "EN_JUEGO"
@@ -139,6 +152,7 @@ def api_check_pinned():
 
             return op_id, {
                 "current_price": round(current_price, 4),
+                "sell_bid": round(sell_bid, 4),
                 "current_centavos": round(current_price * 100, 1),
                 "current_probability": round(current_price * 100, 1),
                 "closed": closed,
