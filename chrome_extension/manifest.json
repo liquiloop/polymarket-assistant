@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge PRO — Arbitraje & +EV Cruzado (Polymarket + BC.GAME)",
-  "version": "1.6.2",
-  "description": "Selecciona con clic único limpio (sin doble-toggle) líneas de Arbitraje y +EV tanto en Polymarket como en BC.GAME.",
+  "name": "PolyEdge ALPHA — Alto Rendimiento (+EV & Rebotes Polymarket + BC)",
+  "version": "1.7.0",
+  "description": "Auto-selecciona compras y ventas rápidas (Take-Profit en Rebotes) en Polymarket y cuotas infladas (+EV) en BC.GAME.",
   "permissions": [],
   "content_scripts": [
     {
