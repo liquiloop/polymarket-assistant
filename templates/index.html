@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PolyEdge Pro — Arbitraje & Desfases (+EV) Polymarket ⚡ BC.GAME</title>
+  <title>PolyEdge ALPHA — Alto Rendimiento Real (+EV Fuerte & Rebotes en Vivo)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    body { background-color: #070b14; color: #e5e7eb; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    .glass-card { background: rgba(17, 24, 39, 0.86); backdrop-filter: blur(12px); }
+    body { background-color: #060a12; color: #e5e7eb; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .glass-card { background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #0b1120; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -20,28 +20,28 @@
   <header class="border-b border-gray-800 bg-gray-950/90 sticky top-0 z-40 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-gray-950 font-black text-lg shadow-lg shadow-emerald-500/25">
-          <i class="fa-solid fa-scale-balanced"></i>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-emerald-500 to-teal-500 flex items-center justify-center text-gray-950 font-black text-lg shadow-lg shadow-emerald-500/25">
+          <i class="fa-solid fa-bolt-lightning"></i>
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="text-lg font-black tracking-tight text-white">PolyEdge <span class="text-emerald-400">PRO</span></h1>
-            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase">
-              Arbitraje & +EV Cruzado
+            <h1 class="text-lg font-black tracking-tight text-white">PolyEdge <span class="text-amber-400">ALPHA</span></h1>
+            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+              Alto Rendimiento Real (+35% a +200% / tiro)
             </span>
           </div>
-          <p class="text-xs text-gray-400">Compara en vivo el mismo partido real entre <b>Polymarket</b> y <b>BC.GAME</b> para cazar errores de precio y ganancias seguras</p>
+          <p class="text-xs text-gray-400">Cero centavitos · Solo <b>Desfases Fuertes (+EV Neta Real)</b> y <b>Rebotes En Vivo</b> verificados con precio real de compra (<i>bestAsk</i>)</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2.5">
         <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs text-gray-300">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span id="status-cruce">Cruzando mercados reales...</span>
+          <span id="status-cruce">Analizando libros reales...</span>
         </div>
-        <button onclick="escanearMercadosCruzados(false)" id="btn-scan" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer">
+        <button onclick="escanearAlpha(false)" id="btn-scan" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer">
           <i class="fa-solid fa-arrows-rotate" id="scan-icon"></i>
-          <span>Cruzar Ahora</span>
+          <span>Escanear Ahora</span>
         </button>
       </div>
     </div>
@@ -50,147 +50,147 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- PANEL RESUMEN DE VENTAJAS DETECTADAS -->
+    <!-- SIMULADOR DE RENDIMIENTO EN DÓLARES REALES ($5/TIRO) -->
     <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-800 pb-3">
-        <div>
-          <h2 class="text-sm font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-radar text-cyan-400"></i> Radar Profesional 2% Ganador — Cero Bots de Casino
-          </h2>
-          <p class="text-xs text-gray-400">Solo muestra jugadas donde existe <b>Arbitraje Matemático (0% riesgo)</b> o una <b>Cuota Dormida / Desfasada (+EV real)</b> entre ambas casas</p>
+        <div class="flex items-center gap-2.5">
+          <div class="p-2.5 rounded-lg bg-amber-500/15 text-amber-400 text-lg">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-white flex flex-wrap items-center gap-2">
+              💰 Auditoría Real de Alto Rendimiento (Simulador Base $5.00/tiro)
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">Precios Exactos bestAsk / bestBid</span>
+            </h2>
+            <p class="text-xs text-gray-400">Evalúa solo señales con ganancia fuerte (<b>+$2 a +$10 por tiro</b>) y avisa cuándo vender antes del final para asegurar ganancia rápida</p>
+          </div>
         </div>
-        <div class="text-xs text-emerald-300 bg-emerald-950/50 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-semibold">
-          💡 Tip Polymarket: Usa orden <b>Límite</b> 1¢ abajo para ganar aún más margen
-        </div>
+        <button onclick="reiniciarStatsAlpha()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs border border-gray-700 transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto">
+          <i class="fa-solid fa-rotate-left"></i> Reiniciar Simulador
+        </button>
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div onclick="seleccionarFiltro('arbitraje')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-cyan-500/40 flex items-center justify-between">
+        <div onclick="seleccionarFiltro('rebote')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-amber-500/40 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-cyan-300 font-bold">💎 Arbitrajes Seguros (0% Riesgo)</div>
-            <div class="text-2xl font-black text-cyan-300 mt-0.5" id="kpi-arbs">0</div>
-            <div class="text-[10px] text-gray-400">Cubres ambos lados y ganas sí o sí</div>
+            <div class="text-[11px] text-amber-300 font-bold">⚡ Rebotes / Caídas Hoy</div>
+            <div class="text-2xl font-black text-amber-300 mt-0.5" id="kpi-rebotes">0</div>
+            <div class="text-[10px] text-gray-400">Compra barato y vende en el rebote</div>
           </div>
-          <i class="fa-solid fa-gem text-2xl text-cyan-400/40"></i>
+          <i class="fa-solid fa-fire-flame-curved text-2xl text-amber-400/40"></i>
         </div>
 
         <div onclick="seleccionarFiltro('ev_bc')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-purple-500/40 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-purple-300 font-bold">🔥 Cuotas Dormidas en BC (+EV)</div>
+            <div class="text-[11px] text-purple-300 font-bold">🔥 Cuotas Altas Mal Puestas BC</div>
             <div class="text-2xl font-black text-purple-300 mt-0.5" id="kpi-ev-bc">0</div>
-            <div class="text-[10px] text-gray-400">BC paga más de lo que vale en Polymarket</div>
+            <div class="text-[10px] text-gray-400">Pagan +45% a +200% con ventaja real</div>
           </div>
           <i class="fa-solid fa-bolt text-2xl text-purple-400/40"></i>
         </div>
 
         <div onclick="seleccionarFiltro('ev_poly')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-emerald-500/40 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-emerald-300 font-bold">🐋 Gangas en Polymarket (+EV)</div>
+            <div class="text-[11px] text-emerald-300 font-bold">🐋 Gangas Netas Polymarket</div>
             <div class="text-2xl font-black text-emerald-400 mt-0.5" id="kpi-ev-poly">0</div>
-            <div class="text-[10px] text-gray-400">Más barato que la línea mundial sin vig</div>
+            <div class="text-[10px] text-gray-400">+EV real ya descontado el spread</div>
           </div>
-          <i class="fa-solid fa-arrow-trend-up text-2xl text-emerald-400/40"></i>
+          <i class="fa-solid fa-gem text-2xl text-emerald-400/40"></i>
         </div>
 
         <div class="bg-gray-900/90 rounded-lg p-3.5 border border-gray-800 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-gray-400 font-semibold">🔗 Mercados Reales Comparados</div>
-            <div class="text-2xl font-black text-white mt-0.5" id="kpi-pares">0</div>
-            <div class="text-[10px] text-amber-300 font-semibold" id="kpi-mejor-edge">Mejor ventaja: --%</div>
+            <div class="text-[11px] text-gray-400 font-semibold">💰 Balance Simulado ($5/tiro)</div>
+            <div class="text-2xl font-black font-mono text-gray-200 mt-0.5" id="kpi-pnl-alpha">$0.00</div>
+            <div class="text-[10px] text-gray-400" id="kpi-record-alpha">0W - 0L · 0 vigilándose</div>
           </div>
-          <i class="fa-solid fa-code-compare text-2xl text-amber-400/40"></i>
+          <i class="fa-solid fa-sack-dollar text-2xl text-emerald-400/40"></i>
         </div>
       </div>
     </div>
 
-    <!-- PANEL DE CONTROLES Y CALCULADORA -->
+    <!-- PANEL DE CONTROLES -->
     <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-500 text-sm"></i>
-          <input type="text" id="filtro-texto" oninput="guardarFiltros(); renderizarTarjetas();" placeholder="Buscar partido o equipo (ej. Celtics, Stars, Lakers, Chelsea, Over)..."
+          <input type="text" id="filtro-texto" oninput="guardarFiltros(); renderizarTarjetas();" placeholder="Buscar equipo o liga (ej. Lakers, Celtics, Oilers, Chelsea, Over)..."
                  class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500" />
         </div>
 
-        <!-- MONTO A INVERTIR (CALCULA DIVISIÓN EXACTA EN ARBITRAJE Y MONTO EN BC/POLY) -->
         <div class="flex flex-wrap items-center gap-3">
-          <div class="flex items-center gap-2 bg-cyan-950/40 border border-cyan-500/40 px-3.5 py-2 rounded-lg text-xs">
-            <span class="text-cyan-200 font-bold">💵 Tu Inversión por Operación: $</span>
-            <input type="number" id="input-inversion" value="10" min="1" step="1" oninput="guardarFiltros(); renderizarTarjetas();"
-                   class="w-20 bg-gray-900 border border-cyan-500/40 rounded px-2 py-0.5 text-emerald-400 font-black text-sm focus:outline-none text-right" />
+          <div class="flex items-center gap-2 bg-emerald-950/40 border border-emerald-500/40 px-3.5 py-2 rounded-lg text-xs">
+            <span class="text-emerald-200 font-bold">💵 Monto por Tiro: $</span>
+            <input type="number" id="input-inversion" value="5" min="0.5" step="0.5" oninput="guardarFiltros(); renderizarTarjetas();"
+                   class="w-20 bg-gray-900 border border-emerald-500/40 rounded px-2 py-0.5 text-emerald-400 font-black text-sm focus:outline-none text-right" />
           </div>
 
           <div class="flex items-center gap-2 bg-purple-950/40 border border-purple-500/40 px-3 py-2 rounded-lg text-xs">
             <span class="text-purple-200 font-semibold">Auto-Confirmar BC:</span>
-            <button onclick="toggleAutoConfirmBC()" id="btn-autoconfirm-bc" class="px-2 py-0.5 rounded bg-gray-700 text-gray-200 font-bold text-[11px] transition cursor-pointer" title="Por seguridad viene en OFF para que tú revises la cuota en BC y presiones Place Bet">
+            <button onclick="toggleAutoConfirmBC()" id="btn-autoconfirm-bc" class="px-2 py-0.5 rounded bg-gray-700 text-gray-200 font-bold text-[11px] transition cursor-pointer">
               OFF (Seguro)
             </button>
           </div>
         </div>
       </div>
 
-      <!-- SLIDERS -->
+      <!-- SLIDERS ENFOCADOS EN RENTABILIDAD REAL -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-800 text-xs">
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Ventaja Matemática Mínima (+EV):</span>
-            <span class="font-bold text-emerald-400" id="val-ev">1.5%</span>
+            <span>Ganancia Mínima por Tiro (ROI %):</span>
+            <span class="font-bold text-amber-300" id="val-roi">35% (+$1.75 por cada $5)</span>
           </div>
-          <input type="range" id="slider-ev" min="0" max="15" step="0.5" value="1.5" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-emerald-500 cursor-pointer" />
+          <input type="range" id="slider-roi" min="25" max="120" step="5" value="35" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-amber-400 cursor-pointer" />
         </div>
 
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Días a Mostrar (1 = Hoy/En Vivo, 2 = 1 a 2 días...):</span>
+            <span>Ventaja Matemática Neta Mínima (+EV):</span>
+            <span class="font-bold text-emerald-400" id="val-ev">2.0%</span>
+          </div>
+          <input type="range" id="slider-ev" min="0.5" max="12" step="0.5" value="2.0" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-emerald-500 cursor-pointer" />
+        </div>
+
+        <div>
+          <div class="flex justify-between text-gray-400 mb-1">
+            <span>Días a Mostrar (1 = Hoy/En Vivo, 2 = 1-2 días):</span>
             <span class="font-bold text-cyan-300" id="val-dias">2 días</span>
           </div>
-          <input type="range" id="slider-dias" min="1" max="10" step="1" value="2" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros(); escanearMercadosCruzados(false);" class="w-full accent-cyan-400 cursor-pointer" />
-        </div>
-
-        <div>
-          <div class="flex justify-between text-gray-400 mb-1">
-            <span>Probabilidad Real Mínima (Evita loterías):</span>
-            <span class="font-bold text-amber-300" id="val-prob">35%</span>
-          </div>
-          <input type="range" id="slider-prob" min="22" max="85" step="1" value="35" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-amber-400 cursor-pointer" />
+          <input type="range" id="slider-dias" min="1" max="7" step="1" value="2" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros(); escanearAlpha(false);" class="w-full accent-cyan-400 cursor-pointer" />
         </div>
       </div>
 
-      <!-- PESTAÑAS DE FILTRO -->
+      <!-- FILTROS DE ESTRATEGIA -->
       <div class="pt-3 border-t border-gray-800 flex flex-wrap items-center gap-2 text-xs">
-        <span class="text-gray-400 font-semibold mr-1">Filtrar:</span>
+        <span class="text-gray-400 font-semibold mr-1">Estrategias:</span>
         <button onclick="seleccionarFiltro('todos')" id="tab-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition cursor-pointer">
-          🌐 Todas las Ventajas
+          🌐 Mejores Oportunidades
         </button>
-        <button onclick="seleccionarFiltro('fijadas')" id="tab-fijadas" class="px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-400/15 text-amber-300 font-bold transition cursor-pointer">
-          📌 Mis Fijadas (<span id="count-fijadas">0</span>)
+        <button onclick="seleccionarFiltro('fijadas')" id="tab-fijadas" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-200 font-bold transition cursor-pointer">
+          📌 Vigilando Rebote / WIN (<span id="count-fijadas">0</span>)
         </button>
-        <button onclick="seleccionarFiltro('arbitraje')" id="tab-arbitraje" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-200 font-bold transition cursor-pointer">
-          💎 Arbitraje 0% Riesgo
+        <button onclick="seleccionarFiltro('rebote')" id="tab-rebote" class="px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-500/15 text-amber-200 font-bold transition cursor-pointer">
+          ⚡ Rebote Rápido Polymarket
         </button>
         <button onclick="seleccionarFiltro('ev_bc')" id="tab-ev_bc" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-200 font-bold transition cursor-pointer">
-          🔥 +EV en BC.GAME
+          🔥 Error Fuerte en BC.GAME
         </button>
         <button onclick="seleccionarFiltro('ev_poly')" id="tab-ev_poly" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-200 font-bold transition cursor-pointer">
-          🐋 +EV en Polymarket
+          🐋 Ganga Neta en Polymarket
         </button>
         <span class="text-gray-700 mx-1">|</span>
-        <button onclick="seleccionarFiltro('nba')" id="tab-nba" class="px-2.5 py-1.5 rounded-lg border border-blue-500/50 bg-blue-500/10 text-blue-300 font-bold transition cursor-pointer">
-          🏀 NBA
-        </button>
-        <button onclick="seleccionarFiltro('nhl')" id="tab-nhl" class="px-2.5 py-1.5 rounded-lg border border-sky-400/50 bg-sky-400/10 text-sky-200 font-bold transition cursor-pointer">
-          🏒 NHL
-        </button>
-        <button onclick="seleccionarFiltro('futbol')" id="tab-futbol" class="px-2.5 py-1.5 rounded-lg border border-lime-400/50 bg-lime-400/10 text-lime-200 font-bold transition cursor-pointer">
-          ⚽ Fútbol Europeo
-        </button>
+        <button onclick="seleccionarFiltro('nba')" id="tab-nba" class="px-2.5 py-1.5 rounded-lg border border-blue-500/50 bg-blue-500/10 text-blue-300 font-bold transition cursor-pointer">🏀 NBA</button>
+        <button onclick="seleccionarFiltro('nhl')" id="tab-nhl" class="px-2.5 py-1.5 rounded-lg border border-sky-400/50 bg-sky-400/10 text-sky-200 font-bold transition cursor-pointer">🏒 NHL</button>
+        <button onclick="seleccionarFiltro('futbol')" id="tab-futbol" class="px-2.5 py-1.5 rounded-lg border border-lime-400/50 bg-lime-400/10 text-lime-200 font-bold transition cursor-pointer">⚽ Fútbol</button>
+        <button onclick="seleccionarFiltro('tenis')" id="tab-tenis" class="px-2.5 py-1.5 rounded-lg border border-pink-400/50 bg-pink-400/10 text-pink-200 font-bold transition cursor-pointer">🎾 Tenis</button>
       </div>
     </div>
 
     <!-- SPINNER -->
     <div id="loading-spinner" class="py-16 text-center text-gray-400 hidden">
-      <i class="fa-solid fa-circle-notch fa-spin text-4xl text-cyan-400 mb-3"></i>
-      <p class="text-sm font-semibold text-gray-200">Cruzando libros de órdenes de Polymarket contra las cuotas en vivo de BC.GAME...</p>
+      <i class="fa-solid fa-circle-notch fa-spin text-4xl text-amber-400 mb-3"></i>
+      <p class="text-sm font-semibold text-gray-200">Buscando desfases fuertes (+35% a +200%) y caídas para rebote en vivo...</p>
     </div>
 
     <!-- CONTENEDOR DE TARJETAS -->
@@ -198,21 +198,22 @@
 
     <!-- SIN RESULTADOS -->
     <div id="no-results" class="hidden py-14 text-center text-gray-400 glass-card rounded-xl border border-gray-800 p-6">
-      <i class="fa-solid fa-magnifying-glass-chart text-4xl text-gray-600 mb-3"></i>
-      <h3 class="text-base font-bold text-gray-200">No hay desfases con estos filtros exactos en este segundo</h3>
-      <p class="text-xs text-gray-400 mt-1">Prueba subiendo <b>Días a Mostrar</b> a 2 o 3 días, o bajando un poco <b>Ventaja Matemática Mínima (+EV)</b> a 0.5% - 1.0%.</p>
+      <i class="fa-solid fa-sliders text-4xl text-gray-600 mb-3"></i>
+      <h3 class="text-base font-bold text-gray-200">No hay señales con este nivel de exigencia en este minuto</h3>
+      <p class="text-xs text-gray-400 mt-1">Prueba subiendo <b>Días a Mostrar</b> a 2 o 3 días, o bajando <b>Ventaja Matemática Neta (+EV)</b> a 1.0%.</p>
     </div>
 
   </main>
 
   <script>
-    let oportunidadesCruzadas = [];
-    let totalParesComparados = 0;
+    let oportunidadesAlpha = [];
     let filtroActivo = 'todos';
     let tarjetasFijadas = {};
-    let autoConfirmBC = false; // OFF por defecto para máxima seguridad
+    let autoConfirmBC = false;
 
-    // Diccionario de alias para emparejar nombres cortos de Polymarket con nombres completos de BC.GAME
+    // Simulador / Auditoría Real en USD ($5/tiro) para estrategia Alpha
+    let statsAlpha = { wins: 0, losses: 0, pnl_usd: 0, contados: {}, cola: {} };
+
     const STOP_WORDS_EQUIPOS = new Set([
       'fc', 'sc', 'cf', 'afc', 'ac', 'as', 'bc', 'club', 'the', 'de', 'del', 'la', 'el',
       'united', 'city', 'sporting', 'real', 'athletic', 'sv', 'bv', 'vfl', 'fsv', 'tsg', 'rb'
@@ -259,10 +260,13 @@
     }
 
     function actualizarSlidersUI() {
+      const roi = parseInt(document.getElementById('slider-roi').value, 10) || 35;
+      const inv = parseFloat(document.getElementById('input-inversion').value) || 5;
+      const ganMin = ((inv * roi) / 100).toFixed(2);
+      document.getElementById('val-roi').innerText = `${roi}% (+$${ganMin} limpios)`;
       document.getElementById('val-ev').innerText = parseFloat(document.getElementById('slider-ev').value).toFixed(1) + '%';
-      const d = parseInt(document.getElementById('slider-dias').value, 10);
+      const d = parseInt(document.getElementById('slider-dias').value, 10) || 2;
       document.getElementById('val-dias').innerText = d === 1 ? '1 día (Hoy / En Vivo)' : `${d} días`;
-      document.getElementById('val-prob').innerText = document.getElementById('slider-prob').value + '%';
     }
 
     function toggleAutoConfirmBC() {
@@ -279,7 +283,7 @@
 
     function seleccionarFiltro(f) {
       filtroActivo = f;
-      const tabs = ['todos', 'fijadas', 'arbitraje', 'ev_bc', 'ev_poly', 'nba', 'nhl', 'futbol'];
+      const tabs = ['todos', 'fijadas', 'rebote', 'ev_bc', 'ev_poly', 'nba', 'nhl', 'futbol', 'tenis'];
       tabs.forEach(t => {
         const el = document.getElementById('tab-' + t);
         if (!el) return;
@@ -292,25 +296,26 @@
 
     function guardarFiltros() {
       try {
-        localStorage.setItem('polyedge_pro_filtros_v3', JSON.stringify({
+        localStorage.setItem('polyedge_alpha_filtros_v1', JSON.stringify({
+          roi: document.getElementById('slider-roi').value,
           ev: document.getElementById('slider-ev').value,
           dias: document.getElementById('slider-dias').value,
-          prob: document.getElementById('slider-prob').value,
           inv: document.getElementById('input-inversion').value,
           filtro: filtroActivo,
-          autoConfirmBC: autoConfirmBC
+          autoConfirmBC
         }));
       } catch (e) {}
+      actualizarSlidersUI();
     }
 
     function cargarFiltros() {
       try {
-        const raw = localStorage.getItem('polyedge_pro_filtros_v3');
+        const raw = localStorage.getItem('polyedge_alpha_filtros_v1');
         if (raw) {
           const s = JSON.parse(raw);
+          if (s.roi !== undefined) document.getElementById('slider-roi').value = s.roi;
           if (s.ev !== undefined) document.getElementById('slider-ev').value = s.ev;
           if (s.dias !== undefined) document.getElementById('slider-dias').value = s.dias;
-          if (s.prob !== undefined) document.getElementById('slider-prob').value = s.prob;
           if (s.inv !== undefined) document.getElementById('input-inversion').value = s.inv;
           if (typeof s.autoConfirmBC === 'boolean') {
             autoConfirmBC = !s.autoConfirmBC;
@@ -324,9 +329,60 @@
       actualizarSlidersUI();
     }
 
+    function cargarStatsAlpha() {
+      try {
+        const raw = localStorage.getItem('polyedge_alpha_stats_v1');
+        if (raw) statsAlpha = JSON.parse(raw) || { wins: 0, losses: 0, pnl_usd: 0, contados: {}, cola: {} };
+        if (!statsAlpha.contados) statsAlpha.contados = {};
+        if (!statsAlpha.cola) statsAlpha.cola = {};
+      } catch (e) {}
+      renderizarKPIsAlpha();
+    }
+
+    function guardarStatsAlpha() {
+      try {
+        localStorage.setItem('polyedge_alpha_stats_v1', JSON.stringify(statsAlpha));
+      } catch (e) {}
+      renderizarKPIsAlpha();
+    }
+
+    function reiniciarStatsAlpha() {
+      statsAlpha = { wins: 0, losses: 0, pnl_usd: 0, contados: {}, cola: {} };
+      guardarStatsAlpha();
+    }
+
+    function registrarResultadoAlpha(item, resultado, multiplicadorCobro) {
+      if (!item || !item.id || statsAlpha.contados[item.id]) return;
+      statsAlpha.contados[item.id] = resultado;
+      const base = 5.0;
+      if (resultado === 'WIN') {
+        statsAlpha.wins += 1;
+        const ganancia = base * (multiplicadorCobro - 1.0);
+        statsAlpha.pnl_usd = parseFloat((statsAlpha.pnl_usd + ganancia).toFixed(2));
+      } else if (resultado === 'LOSS') {
+        statsAlpha.losses += 1;
+        statsAlpha.pnl_usd = parseFloat((statsAlpha.pnl_usd - base).toFixed(2));
+      }
+      delete statsAlpha.cola[item.id];
+      guardarStatsAlpha();
+    }
+
+    function renderizarKPIsAlpha() {
+      const elPnl = document.getElementById('kpi-pnl-alpha');
+      const elRec = document.getElementById('kpi-record-alpha');
+      const pnl = statsAlpha.pnl_usd || 0;
+      if (elPnl) {
+        elPnl.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+        elPnl.className = `text-2xl font-black font-mono mt-0.5 ${pnl > 0 ? 'text-emerald-400' : (pnl < 0 ? 'text-red-400' : 'text-gray-200')}`;
+      }
+      if (elRec) {
+        elRec.innerText = `${statsAlpha.wins || 0}W - ${statsAlpha.losses || 0}L · ${Object.keys(statsAlpha.cola || {}).length} vigilándose`;
+      }
+    }
+
     function cargarFijadas() {
       try {
-        const raw = localStorage.getItem('polyedge_pro_fijadas_v3');
+        const raw = localStorage.getItem('polyedge_alpha_fijadas_v1');
         if (raw) tarjetasFijadas = JSON.parse(raw) || {};
       } catch (e) { tarjetasFijadas = {}; }
       document.getElementById('count-fijadas').innerText = Object.keys(tarjetasFijadas).length;
@@ -334,7 +390,7 @@
 
     function guardarFijadas() {
       try {
-        localStorage.setItem('polyedge_pro_fijadas_v3', JSON.stringify(tarjetasFijadas));
+        localStorage.setItem('polyedge_alpha_fijadas_v1', JSON.stringify(tarjetasFijadas));
       } catch (e) {}
       document.getElementById('count-fijadas').innerText = Object.keys(tarjetasFijadas).length;
     }
@@ -343,14 +399,20 @@
       if (tarjetasFijadas[id]) {
         delete tarjetasFijadas[id];
       } else {
-        const op = oportunidadesCruzadas.find(o => o.id === id);
-        if (op) tarjetasFijadas[id] = JSON.parse(JSON.stringify(op));
+        const op = oportunidadesAlpha.find(o => o.id === id);
+        if (op) {
+          const copia = JSON.parse(JSON.stringify(op));
+          copia.precioEntradaAsk = op.askPoly;
+          copia.cuotaEntradaBC = op.kBcSame;
+          copia.estadoSeguimiento = 'VIGILANDO';
+          tarjetasFijadas[id] = copia;
+        }
       }
       guardarFijadas();
       renderizarTarjetas();
     }
 
-    // Descarga eventos reales (sp 1 = Fútbol, sp 2 = Basket NBA, sp 4 = Hockey NHL) desde la API de BC.GAME
+    // Descargar deportes reales de BC.GAME (1=Fútbol, 2=Basket, 4=Hockey, 5=Tenis)
     async function descargarEventosRealesBC() {
       const allEvs = {};
       const sports = {};
@@ -370,7 +432,7 @@
             Object.assign(tournaments, d.tournaments || {});
             for (const [eid, ev] of Object.entries(d.events || {})) {
               const sp = String((ev.desc || {}).sport || '');
-              if (sp !== '1' && sp !== '2' && sp !== '4') continue;
+              if (!['1', '2', '4', '5'].includes(sp)) continue;
               if (!allEvs[eid]) {
                 ev._is_live = (mode === 'live');
                 allEvs[eid] = ev;
@@ -380,7 +442,6 @@
         } catch (e) {}
       }
 
-      // Pre-indexar por deporte con tokens normalizados para cruce ultrarrápido
       const listaIndexada = [];
       for (const [eid, ev] of Object.entries(allEvs)) {
         const desc = ev.desc || {};
@@ -407,46 +468,106 @@
           urlBc
         });
       }
-      return listaIndexada;
+      return { listaIndexada, mapaRawBC: allEvs };
     }
 
-    // MOTOR PRINCIPAL DE CRUCE MATEMÁTICO POLYMARKET ⚡ BC.GAME
-    async function escanearMercadosCruzados(silencioso = false) {
+    // Verificar en tiempo real si alguna tarjeta fijada o en cola ya alcanzó Take-Profit (+30%) o hizo WIN
+    async function actualizarSeguimientoYVentaTemprana(mapaRawBC) {
+      const todasVigilar = { ...statsAlpha.cola, ...tarjetasFijadas };
+      const idsPoly = Object.keys(todasVigilar).filter(id => todasVigilar[id].polyMarketId);
+      if (idsPoly.length > 0) {
+        const itemsReq = idsPoly.slice(0, 20).map(id => ({
+          id,
+          market_id: todasVigilar[id].polyMarketId,
+          outcome: todasVigilar[id].polyOutcomeExacto || (todasVigilar[id].polySide === 'UNDER' ? 'Under' : 'Over')
+        }));
+        try {
+          const resp = await fetch('/api/check-pinned', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: itemsReq })
+          });
+          const data = await resp.json();
+          if (data.success && data.updates) {
+            for (const [id, info] of Object.entries(data.updates)) {
+              const target = tarjetasFijadas[id] || statsAlpha.cola[id];
+              if (!target) continue;
+
+              const entradaAsk = target.precioEntradaAsk || target.askPoly || 0.5;
+              const bidVentaActual = info.sell_bid || info.current_price || entradaAsk;
+
+              if (tarjetasFijadas[id]) {
+                tarjetasFijadas[id].bidActualVenta = bidVentaActual;
+                tarjetasFijadas[id].pnlLatentePct = parseFloat((((bidVentaActual / entradaAsk) - 1.0) * 100).toFixed(1));
+                if (info.estado_resultado === 'WIN') {
+                  tarjetasFijadas[id].estadoSeguimiento = 'WIN';
+                } else if (info.estado_resultado === 'LOSS') {
+                  tarjetasFijadas[id].estadoSeguimiento = 'LOSS';
+                } else if (bidVentaActual >= (target.metaVentaPrice || entradaAsk * 1.28)) {
+                  tarjetasFijadas[id].estadoSeguimiento = 'TAKE_PROFIT';
+                }
+              }
+
+              // Si estaba en el simulador Alpha: cobrar Take-Profit o liquidación final honesta
+              if (statsAlpha.cola[id]) {
+                if (info.estado_resultado === 'WIN') {
+                  const mult = target.categoriaAlpha === 'ev_bc' ? (target.cuotaEntradaBC || target.kBcSame) : (1.0 / entradaAsk);
+                  registrarResultadoAlpha(statsAlpha.cola[id], 'WIN', mult);
+                } else if (info.estado_resultado === 'LOSS') {
+                  registrarResultadoAlpha(statsAlpha.cola[id], 'LOSS', 0);
+                } else if (target.categoriaAlpha === 'rebote' && bidVentaActual >= (target.metaVentaPrice || entradaAsk * 1.28)) {
+                  registrarResultadoAlpha(statsAlpha.cola[id], 'WIN', bidVentaActual / entradaAsk);
+                }
+              }
+            }
+            guardarFijadas();
+          }
+        } catch (e) {}
+      }
+    }
+
+    // ESCÁNER PRINCIPAL ALPHA: CERO CENTAVITOS, SOLO ALTO RETORNO CON VENTAJA REAL
+    async function escanearAlpha(silencioso = false) {
       const icon = document.getElementById('scan-icon');
       const spinner = document.getElementById('loading-spinner');
       icon.classList.add('fa-spin');
-      if (!silencioso && oportunidadesCruzadas.length === 0) {
-        spinner.classList.remove('hidden');
-      }
+      if (!silencioso && oportunidadesAlpha.length === 0) spinner.classList.remove('hidden');
 
       const maxDias = parseFloat(document.getElementById('slider-dias').value) || 2;
 
       try {
-        const [polyResp, bcLista] = await Promise.all([
+        const [polyResp, bcData] = await Promise.all([
           fetch(`/api/opportunities?max_days=${maxDias}`).then(r => r.json()),
           descargarEventosRealesBC()
         ]);
 
         const polyMarkets = polyResp.opportunities || [];
+        const bcLista = bcData.listaIndexada;
         const hallazgos = [];
-        let paresContados = 0;
 
         for (const pm of polyMarkets) {
           const tituloEv = pm.event_title || '';
           const partesVs = tituloEv.split(/\s+vs\.?\s+/i);
           if (partesVs.length !== 2) continue;
 
+          const asks = pm.asks || pm.prices || [];
+          const bids = pm.bids || pm.prices || [];
+          const mids = pm.prices || [];
+          const nombresPoly = pm.outcomes || [];
+          const chg1h = pm.chg_1h || [0, 0];
+          const chg1d = pm.chg_1d || [0, 0];
+          if (asks.length !== 2 || nombresPoly.length !== 2) continue;
+
+          // 1. Intentar emparejar con el mismo partido real en BC.GAME
           const polyTokA = normalizarTokensEquipo(partesVs[0]);
           const polyTokB = normalizarTokensEquipo(partesVs[1].split(':')[0]);
-          const spEsperado = pm.deporte === 'nba' ? '2' : (pm.deporte === 'nhl' ? '4' : '1');
+          const spEsperado = pm.deporte === 'nba' ? '2' : (pm.deporte === 'nhl' ? '4' : (pm.deporte === 'tenis' ? '5' : '1'));
 
-          // Buscar exactamente el mismo partido y fecha en BC.GAME (máx 36h de diferencia)
           let matchBC = null;
           let ordenInvertido = false;
           for (const bev of bcLista) {
             if (bev.sp !== spEsperado) continue;
             if (pm.event_ts > 0 && bev.scheduled > 0 && Math.abs(pm.event_ts - bev.scheduled) > 36 * 3600) continue;
-
             const directo = conjuntosCoinciden(polyTokA, bev.tok0) && conjuntosCoinciden(polyTokB, bev.tok1);
             const invertido = conjuntosCoinciden(polyTokA, bev.tok1) && conjuntosCoinciden(polyTokB, bev.tok0);
             if (directo || invertido) {
@@ -456,19 +577,70 @@
             }
           }
 
-          if (!matchBC) continue;
-
-          const mktsBC = matchBC.markets;
-          const preciosPoly = pm.prices || [];
-          const nombresPoly = pm.outcomes || [];
-          if (preciosPoly.length !== 2 || nombresPoly.length !== 2) continue;
-
-          const esVivo = Boolean(pm.en_vivo_ahora || matchBC.esVivo);
-          const sc = matchBC.score || {};
+          const esVivo = Boolean(pm.en_vivo_ahora || (matchBC && matchBC.esVivo));
+          const sc = (matchBC && matchBC.score) || {};
           const marcadorVivo = esVivo && sc.home_score !== undefined ? `${sc.home_score} - ${sc.away_score}` : '';
 
-          // Construir pares equivalentes 100% misma regla de liquidación (incluyendo prórroga donde aplica)
-          let paresEvaluar = [];
+          // ===================================================================
+          // DETECTOR A: ⚡ REBOTE RÁPIDO EN POLYMARKET (CAÍDA BRUSCA DE FAVORITO / LÍNEA SÓLIDA)
+          // ===================================================================
+          for (let idx = 0; idx < 2; idx++) {
+            const askReal = asks[idx];
+            const bidReal = bids[idx];
+            const drop1h = chg1h[idx] || 0;
+            const drop1d = chg1d[idx] || 0;
+            const peorCaida = Math.min(drop1h, drop1d);
+
+            // Precio antes de la caída era sólido (>=52¢) y cayó al menos -7¢ (ej. de 65¢ cayó a 48¢ por pánico)
+            const precioPrevio = askReal - peorCaida;
+            if (askReal >= 0.28 && askReal <= 0.68 && peorCaida <= -0.07 && precioPrevio >= 0.52) {
+              const metaVenta = Math.min(parseFloat((askReal + Math.max(Math.abs(peorCaida) * 0.68, 0.12)).toFixed(2)), 0.85);
+              const roiRebotePct = ((metaVenta / askReal) - 1.0) * 100;
+              const roiFinalPct = ((1.0 / askReal) - 1.0) * 100;
+              if (roiRebotePct >= 24) {
+                const esOU = pm.es_ou;
+                const sideStr = esOU ? (idx === 0 ? 'OVER' : 'UNDER') : 'ML';
+                const labelJugada = esOU ? `${nombresPoly[idx]} ${pm.linea_ou}` : `Gana ${nombresPoly[idx]}`;
+
+                hallazgos.push({
+                  id: `rebote_${pm.market_id}_${idx}`,
+                  polyMarketId: pm.market_id,
+                  categoriaAlpha: 'rebote',
+                  esVivo,
+                  marcadorVivo,
+                  deporte: pm.deporte,
+                  deporteLabel: pm.deporte_label,
+                  daysLeft: pm.days_left,
+                  hoursLeft: pm.hours_left,
+                  partidoTitulo: tituloEv,
+                  preguntaPoly: pm.question,
+                  tipoMercado: esOU ? 'OU' : 'ML',
+                  linea: pm.linea_ou,
+                  polySide: sideStr,
+                  polyOutcomeExacto: nombresPoly[idx],
+                  jugadaLabel: labelJugada,
+                  askPoly: askReal,
+                  bidPoly: bidReal,
+                  centavosAsk: parseFloat((askReal * 100).toFixed(1)),
+                  precioPrevioCents: Math.round(precioPrevio * 100),
+                  caidaCents: Math.round(Math.abs(peorCaida) * 100),
+                  metaVentaPrice: metaVenta,
+                  metaVentaCents: Math.round(metaVenta * 100),
+                  roiOperacionPct: parseFloat(roiRebotePct.toFixed(1)),
+                  roiFinalPct: parseFloat(roiFinalPct.toFixed(1)),
+                  edgePct: parseFloat((Math.abs(peorCaida) * 65).toFixed(1)),
+                  linkPoly: pm.link
+                });
+              }
+            }
+          }
+
+          // ===================================================================
+          // DETECTOR B & C: CRUCE EXACTO POLYMARKET (bestAsk/bestBid) vs BC.GAME
+          // ===================================================================
+          if (!matchBC) continue;
+          const mktsBC = matchBC.markets;
+          let pares = [];
 
           if (pm.es_ou && typeof pm.linea_ou === 'number') {
             const lv = pm.linea_ou;
@@ -477,11 +649,9 @@
             let bcMtype = '';
 
             if (pm.deporte === 'nba') {
-              // NBA mType 225 = Total (incl. overtime) -> 100% idéntico a Polymarket NBA O/U
               bcOuObj = (mktsBC['225'] || {})[specStr];
               bcMtype = '225';
             } else if (pm.deporte === 'nhl') {
-              // NHL: mType 410 incluye OT/SO. Y en líneas impares.5 (3.5, 5.5, 7.5) mType 18 es 100% idéntico matemáticamente porque un empate 2-2 + 1 gol OT = 5 (<5.5) y 3-3 = 6 (>5.5)!
               if ((mktsBC['410'] || {})[specStr]) {
                 bcOuObj = mktsBC['410'][specStr];
                 bcMtype = '410';
@@ -489,8 +659,7 @@
                 bcOuObj = mktsBC['18'][specStr];
                 bcMtype = '18';
               }
-            } else {
-              // Fútbol 90 min reglamentarios -> mType 18 idéntico en ambos
+            } else if (pm.deporte === 'futbol') {
               bcOuObj = (mktsBC['18'] || {})[specStr];
               bcMtype = '18';
             }
@@ -498,51 +667,20 @@
             if (bcOuObj && bcOuObj['12'] && bcOuObj['13'] && !bcOuObj['12'].b && !bcOuObj['13'].b) {
               const kOver = parseFloat(bcOuObj['12'].k || 0);
               const kUnder = parseFloat(bcOuObj['13'].k || 0);
-              if (kOver > 1.02 && kUnder > 1.02) {
-                paresEvaluar.push(
-                  {
-                    subId: 'over',
-                    tipoMercado: 'OU',
-                    linea: lv,
-                    polySide: 'OVER',
-                    polyLabel: `Over ${lv} (Más de ${lv})`,
-                    pPoly: preciosPoly[0],
-                    bcSameLabel: `Más de ${lv} (Over ${lv})`,
-                    kBcSame: kOver,
-                    bcSameOutId: '12',
-                    bcOppLabel: `Menos de ${lv} (Under ${lv})`,
-                    kBcOpp: kUnder,
-                    bcOppOutId: '13',
-                    bcSpec: specStr,
-                    bcMtype
-                  },
-                  {
-                    subId: 'under',
-                    tipoMercado: 'OU',
-                    linea: lv,
-                    polySide: 'UNDER',
-                    polyLabel: `Under ${lv} (Menos de ${lv})`,
-                    pPoly: preciosPoly[1],
-                    bcSameLabel: `Menos de ${lv} (Under ${lv})`,
-                    kBcSame: kUnder,
-                    bcSameOutId: '13',
-                    bcOppLabel: `Más de ${lv} (Over ${lv})`,
-                    kBcOpp: kOver,
-                    bcOppOutId: '12',
-                    bcSpec: specStr,
-                    bcMtype
-                  }
+              if (kOver > 1.05 && kUnder > 1.05) {
+                pares.push(
+                  { idx: 0, subId: 'over', tipoMercado: 'OU', linea: lv, polySide: 'OVER', polyOut: 'Over', label: `Over ${lv} (Más de ${lv})`, kSame: kOver, kOpp: kUnder, bcOutId: '12', bcSpec: specStr, bcMtype },
+                  { idx: 1, subId: 'under', tipoMercado: 'OU', linea: lv, polySide: 'UNDER', polyOut: 'Under', label: `Under ${lv} (Menos de ${lv})`, kSame: kUnder, kOpp: kOver, bcOutId: '13', bcSpec: specStr, bcMtype }
                 );
               }
             }
-          } else if (!pm.es_ou && (pm.deporte === 'nba' || pm.deporte === 'nhl')) {
-            // Ganador Partido Completo incluyendo Overtime / Penaltis (NBA mType 219, NHL mType 406)
-            const mt = pm.deporte === 'nba' ? '219' : '406';
+          } else if (!pm.es_ou && ['nba', 'nhl', 'tenis'].includes(pm.deporte)) {
+            const mt = pm.deporte === 'nba' ? '219' : (pm.deporte === 'nhl' ? '406' : '186');
             const bcMlObj = (mktsBC[mt] || {})[''];
             if (bcMlObj && bcMlObj['4'] && bcMlObj['5'] && !bcMlObj['4'].b && !bcMlObj['5'].b) {
               const kHome = parseFloat(bcMlObj['4'].k || 0);
               const kAway = parseFloat(bcMlObj['5'].k || 0);
-              if (kHome > 1.02 && kAway > 1.02) {
+              if (kHome > 1.05 && kAway > 1.05) {
                 const k0 = ordenInvertido ? kAway : kHome;
                 const out0 = ordenInvertido ? '5' : '4';
                 const nameBC0 = ordenInvertido ? matchBC.comps[1] : matchBC.comps[0];
@@ -551,201 +689,190 @@
                 const out1 = ordenInvertido ? '4' : '5';
                 const nameBC1 = ordenInvertido ? matchBC.comps[0] : matchBC.comps[1];
 
-                paresEvaluar.push(
-                  {
-                    subId: 'ml0',
-                    tipoMercado: 'ML',
-                    linea: null,
-                    polySide: 'ML',
-                    polyOutcomeExacto: nombresPoly[0],
-                    polyLabel: `Gana ${nombresPoly[0]}`,
-                    pPoly: preciosPoly[0],
-                    bcSameLabel: `Gana ${nameBC0}`,
-                    kBcSame: k0,
-                    bcSameOutId: out0,
-                    bcOppLabel: `Gana ${nameBC1}`,
-                    kBcOpp: k1,
-                    bcOppOutId: out1,
-                    bcSpec: '',
-                    bcMtype: mt
-                  },
-                  {
-                    subId: 'ml1',
-                    tipoMercado: 'ML',
-                    linea: null,
-                    polySide: 'ML',
-                    polyOutcomeExacto: nombresPoly[1],
-                    polyLabel: `Gana ${nombresPoly[1]}`,
-                    pPoly: preciosPoly[1],
-                    bcSameLabel: `Gana ${nameBC1}`,
-                    kBcSame: k1,
-                    bcSameOutId: out1,
-                    bcOppLabel: `Gana ${nameBC0}`,
-                    kBcOpp: k0,
-                    bcOppOutId: out0,
-                    bcSpec: '',
-                    bcMtype: mt
-                  }
+                pares.push(
+                  { idx: 0, subId: 'ml0', tipoMercado: 'ML', linea: null, polySide: 'ML', polyOut: nombresPoly[0], label: `Gana ${nameBC0}`, kSame: k0, kOpp: k1, bcOutId: out0, bcSpec: '', bcMtype: mt },
+                  { idx: 1, subId: 'ml1', tipoMercado: 'ML', linea: null, polySide: 'ML', polyOut: nombresPoly[1], label: `Gana ${nameBC1}`, kSame: k1, kOpp: k0, bcOutId: out1, bcSpec: '', bcMtype: mt }
                 );
               }
             }
           }
 
-          const polySum = preciosPoly[0] + preciosPoly[1];
-          if (polySum <= 0.8) continue;
+          const midSum = mids[0] + mids[1];
+          if (midSum <= 0.85) continue;
 
-          for (const par of paresEvaluar) {
-            // Evitar colas ilíquidas (<18¢ o >92¢) donde el spread engaña
-            if (par.pPoly < 0.18 || par.pPoly > 0.92) continue;
-            paresContados += 1;
+          for (const p of pares) {
+            const askReal = asks[p.idx];
+            const bidReal = bids[p.idx];
+            // Solo rango jugoso y líquido: entre 28¢ y 76¢ (deja entre +31% y +250% de ganancia limpia!)
+            if (askReal < 0.28 || askReal > 0.76) continue;
 
-            const bcSum = (1.0 / par.kBcSame) + (1.0 / par.kBcOpp);
-            const pFairPoly = par.pPoly / polySum;
-            const pFairBC = (1.0 / par.kBcSame) / bcSum;
+            const bcSum = (1.0 / p.kSame) + (1.0 / p.kOpp);
+            const pFairPoly = mids[p.idx] / midSum;
+            const pFairBC = (1.0 / p.kSame) / bcSum;
 
-            // Costo de Arbitraje: Comprar par.polyLabel en Polymarket (pPoly) + Apostar par.bcOppLabel en BC.GAME (1 / kBcOpp)
-            const arbCost = par.pPoly + (1.0 / par.kBcOpp);
-            const esArbitraje = arbCost < 0.999;
-            const arbProfitPct = esArbitraje ? (((1.0 / arbCost) - 1.0) * 100) : 0;
+            // 1. Evaluar Error de Cuota en BC.GAME (Cuota >= 1.40 para dejar buena ganancia, nunca centavitos!)
+            if (p.kSame >= 1.40 && p.kSame <= 3.30) {
+              const evBC = ((pFairPoly * p.kSame) - 1.0) * 100;
+              const roiBC = (p.kSame - 1.0) * 100;
+              if (evBC >= 1.2 && roiBC >= 35) {
+                hallazgos.push({
+                  id: `evbc_${pm.market_id}_${p.subId}`,
+                  polyMarketId: pm.market_id,
+                  categoriaAlpha: 'ev_bc',
+                  esVivo,
+                  marcadorVivo,
+                  deporte: pm.deporte,
+                  deporteLabel: pm.deporte_label,
+                  daysLeft: pm.days_left,
+                  hoursLeft: pm.hours_left,
+                  partidoTitulo: `${matchBC.comps[0]} vs. ${matchBC.comps[1]}`,
+                  preguntaPoly: pm.question,
+                  tipoMercado: p.tipoMercado,
+                  linea: p.linea,
+                  polySide: p.polySide,
+                  polyOutcomeExacto: p.polyOut,
+                  jugadaLabel: p.label,
+                  askPoly: askReal,
+                  bidPoly: bidReal,
+                  centavosAsk: parseFloat((askReal * 100).toFixed(1)),
+                  kBcSame: p.kSame,
+                  bcSameOutId: p.bcOutId,
+                  bcSpec: p.bcSpec,
+                  cuotaJusta: parseFloat((1.0 / pFairPoly).toFixed(2)),
+                  probRealPct: parseFloat((pFairPoly * 100).toFixed(1)),
+                  roiOperacionPct: parseFloat(roiBC.toFixed(1)),
+                  edgePct: parseFloat(evBC.toFixed(2)),
+                  linkPoly: pm.link,
+                  linkBC: matchBC.urlBc
+                });
+              }
+            }
 
-            // Ventaja +EV en BC.GAME (usando a Polymarket como Oráculo real sin margen)
-            const evEnBC = ((pFairPoly * par.kBcSame) - 1.0) * 100;
-
-            // Ventaja +EV en Polymarket (usando la probabilidad limpia mundial de BC sin vig frente al precio de Polymarket)
-            const evEnPoly = ((pFairBC / par.pPoly) - 1.0) * 100;
-
-            const mejorEv = Math.max(arbProfitPct, evEnBC, evEnPoly);
-            if (!esArbitraje && mejorEv < 0.2) continue;
-
-            let tipoOportunidad = 'ev_poly';
-            if (esArbitraje) tipoOportunidad = 'arbitraje';
-            else if (evEnBC >= evEnPoly) tipoOportunidad = 'ev_bc';
-
-            const probRealPct = parseFloat((((pFairPoly + pFairBC) / 2.0) * 100).toFixed(1));
-            const cuotaMinSeguraBC = parseFloat((1.0 / pFairPoly).toFixed(2));
-
-            hallazgos.push({
-              id: `cross_${pm.market_id}_${par.subId}`,
-              tipoOportunidad, // 'arbitraje', 'ev_bc', 'ev_poly'
-              esArbitraje,
-              arbCost: parseFloat(arbCost.toFixed(4)),
-              arbProfitPct: parseFloat(arbProfitPct.toFixed(2)),
-              evEnBC: parseFloat(evEnBC.toFixed(2)),
-              evEnPoly: parseFloat(evEnPoly.toFixed(2)),
-              edgePrincipal: parseFloat((esArbitraje ? arbProfitPct : Math.max(evEnBC, evEnPoly)).toFixed(2)),
-              probRealPct,
-              deporte: pm.deporte,
-              deporteLabel: pm.deporte_label,
-              esVivo,
-              marcadorVivo,
-              daysLeft: pm.days_left,
-              hoursLeft: pm.hours_left,
-              partidoTitulo: `${matchBC.comps[0]} vs. ${matchBC.comps[1]}`,
-              preguntaPoly: pm.question,
-              tipoMercado: par.tipoMercado,
-              linea: par.linea,
-              polySide: par.polySide,
-              polyOutcomeExacto: par.polyOutcomeExacto || '',
-              polyLabel: par.polyLabel,
-              pPoly: par.pPoly,
-              centavosPoly: parseFloat((par.pPoly * 100).toFixed(1)),
-              cuotaEqPoly: (1.0 / par.pPoly).toFixed(2),
-              bcSameLabel: par.bcSameLabel,
-              kBcSame: par.kBcSame,
-              bcSameOutId: par.bcSameOutId,
-              bcOppLabel: par.bcOppLabel,
-              kBcOpp: par.kBcOpp,
-              bcOppOutId: par.bcOppOutId,
-              bcSpec: par.bcSpec,
-              bcMtype: par.bcMtype,
-              bcEid: matchBC.eid,
-              cuotaMinSeguraBC,
-              linkPoly: pm.link,
-              linkBC: matchBC.urlBc
-            });
+            // 2. Evaluar Ganga Neta en Polymarket USANDO ASK REAL (imposible que salga en negativo al abrir!)
+            const evPolyNeto = ((pFairBC / askReal) - 1.0) * 100;
+            const roiPolyNeto = ((1.0 / askReal) - 1.0) * 100;
+            if (evPolyNeto >= 1.2 && roiPolyNeto >= 32) {
+              const metaSalidaTemprana = Math.min(parseFloat((pFairBC + 0.06).toFixed(2)), 0.88);
+              hallazgos.push({
+                id: `evpoly_${pm.market_id}_${p.subId}`,
+                polyMarketId: pm.market_id,
+                categoriaAlpha: 'ev_poly',
+                esVivo,
+                marcadorVivo,
+                deporte: pm.deporte,
+                deporteLabel: pm.deporte_label,
+                daysLeft: pm.days_left,
+                hoursLeft: pm.hours_left,
+                partidoTitulo: `${matchBC.comps[0]} vs. ${matchBC.comps[1]}`,
+                preguntaPoly: pm.question,
+                tipoMercado: p.tipoMercado,
+                linea: p.linea,
+                polySide: p.polySide,
+                polyOutcomeExacto: p.polyOut,
+                jugadaLabel: p.label,
+                askPoly: askReal,
+                bidPoly: bidReal,
+                centavosAsk: parseFloat((askReal * 100).toFixed(1)),
+                kBcSame: p.kSame,
+                probRealPct: parseFloat((pFairBC * 100).toFixed(1)),
+                metaVentaPrice: metaSalidaTemprana,
+                metaVentaCents: Math.round(metaSalidaTemprana * 100),
+                roiOperacionPct: parseFloat(roiPolyNeto.toFixed(1)),
+                edgePct: parseFloat(evPolyNeto.toFixed(2)),
+                linkPoly: pm.link,
+                linkBC: matchBC.urlBc
+              });
+            }
           }
         }
 
-        // Ordenar: Primero Arbitrajes Seguros (0% riesgo), luego mayor ventaja matemática (+EV)
-        hallazgos.sort((a, b) => (b.esArbitraje - a.esArbitraje) || (b.edgePrincipal - a.edgePrincipal));
+        // Ordenar priorizando En Vivo + Mayor Ventaja Matemática (+EV) y Rebote
+        hallazgos.sort((a, b) => {
+          const scoreA = (a.esVivo ? 6 : 0) + (a.categoriaAlpha === 'rebote' ? 4 : 0) + a.edgePct;
+          const scoreB = (b.esVivo ? 6 : 0) + (b.categoriaAlpha === 'rebote' ? 4 : 0) + b.edgePct;
+          return scoreB - scoreA;
+        });
 
-        oportunidadesCruzadas = hallazgos;
-        totalParesComparados = paresContados;
+        oportunidadesAlpha = hallazgos;
 
-        // Actualizar fijadas si siguen activas
-        for (const [idF, objF] of Object.entries(tarjetasFijadas)) {
-          const fresco = hallazgos.find(h => h.id === idF);
-          if (fresco) tarjetasFijadas[idF] = fresco;
-        }
-        guardarFijadas();
+        // Meter las mejores señales de hoy/en vivo con >= 3% +EV al simulador automático ($5/tiro)
+        hallazgos.forEach(h => {
+          if (h.daysLeft <= 1.05 && h.edgePct >= 3.0 && !statsAlpha.contados[h.id] && !statsAlpha.cola[h.id]) {
+            if (Object.keys(statsAlpha.cola).length < 30) {
+              const copia = JSON.parse(JSON.stringify(h));
+              copia.precioEntradaAsk = h.askPoly;
+              copia.cuotaEntradaBC = h.kBcSame;
+              statsAlpha.cola[h.id] = copia;
+            }
+          }
+        });
+        guardarStatsAlpha();
 
-        actualizarKPIs();
+        await actualizarSeguimientoYVentaTemprana(bcData.mapaRawBC);
+
+        document.getElementById('kpi-rebotes').innerText = hallazgos.filter(o => o.categoriaAlpha === 'rebote').length;
+        document.getElementById('kpi-ev-bc').innerText = hallazgos.filter(o => o.categoriaAlpha === 'ev_bc').length;
+        document.getElementById('kpi-ev-poly').innerText = hallazgos.filter(o => o.categoriaAlpha === 'ev_poly').length;
+        document.getElementById('status-cruce').innerText = `${hallazgos.length} jugadas de alto retorno activas`;
+
         renderizarTarjetas();
-        document.getElementById('status-cruce').innerText = `${paresContados} líneas reales cruzadas`;
       } catch (err) {
-        console.error('Error en cruce:', err);
+        console.error('Error en escanearAlpha:', err);
       } finally {
         icon.classList.remove('fa-spin');
         spinner.classList.add('hidden');
       }
     }
 
-    function actualizarKPIs() {
-      const arbs = oportunidadesCruzadas.filter(o => o.esArbitraje).length;
-      const evBc = oportunidadesCruzadas.filter(o => !o.esArbitraje && o.tipoOportunidad === 'ev_bc' && o.evEnBC >= 1.5).length;
-      const evPoly = oportunidadesCruzadas.filter(o => !o.esArbitraje && o.tipoOportunidad === 'ev_poly' && o.evEnPoly >= 1.5).length;
-      const maxEdge = oportunidadesCruzadas.length > 0 ? Math.max(...oportunidadesCruzadas.map(o => o.edgePrincipal)) : 0;
-
-      document.getElementById('kpi-arbs').innerText = arbs;
-      document.getElementById('kpi-ev-bc').innerText = evBc;
-      document.getElementById('kpi-ev-poly').innerText = evPoly;
-      document.getElementById('kpi-pares').innerText = totalParesComparados;
-      document.getElementById('kpi-mejor-edge').innerText = maxEdge > 0 ? `Mejor ventaja hoy: +${maxEdge.toFixed(1)}%` : 'Escaneando...';
-    }
-
-    // Acciones 1-Clic hacia la Extensión Chrome
-    function abrirLadoPolymarket(opId, montoSugerido) {
-      const op = tarjetasFijadas[opId] || oportunidadesCruzadas.find(o => o.id === opId);
+    function abrirEnPolymarket(opId, modoAccion = 'BUY') {
+      const op = tarjetasFijadas[opId] || oportunidadesAlpha.find(o => o.id === opId);
       if (!op) return;
 
+      if (modoAccion === 'BUY' && !tarjetasFijadas[opId]) {
+        toggleFijar(opId);
+      }
+
+      const inv = parseFloat(document.getElementById('input-inversion').value) || 5;
       const hashParams = new URLSearchParams({
         polyedge_poly: '1',
         ts: String(Date.now()),
+        accion: modoAccion, // 'BUY' o 'SELL'
         tipo: op.tipoMercado || 'OU',
         linea: op.linea !== null && op.linea !== undefined ? String(op.linea) : '',
         side: op.polySide || 'OVER',
         outcome: op.polyOutcomeExacto || (op.polySide === 'UNDER' ? 'Under' : 'Over'),
-        stake: String(montoSugerido || ''),
-        cents: String(op.centavosPoly),
+        stake: modoAccion === 'BUY' ? String(inv) : '',
+        cents: String(op.centavosAsk || ''),
         q: op.preguntaPoly || ''
       });
       window.open(`${op.linkPoly}#${hashParams.toString()}`, '_blank');
     }
 
-    function abrirLadoBC(opId, usarLadoOpuestoArb, montoExacto, cuotaMinima) {
-      const op = tarjetasFijadas[opId] || oportunidadesCruzadas.find(o => o.id === opId);
+    function abrirEnBC(opId) {
+      const op = tarjetasFijadas[opId] || oportunidadesAlpha.find(o => o.id === opId);
       if (!op) return;
 
-      const outId = usarLadoOpuestoArb ? op.bcOppOutId : op.bcSameOutId;
-      const label = usarLadoOpuestoArb ? op.bcOppLabel : op.bcSameLabel;
-      const cuotaRef = usarLadoOpuestoArb ? op.kBcOpp : op.kBcSame;
+      if (!tarjetasFijadas[opId]) {
+        toggleFijar(opId);
+      }
+
+      const inv = parseFloat(document.getElementById('input-inversion').value) || 5;
       let tipoStr = 'WIN';
       if (op.tipoMercado === 'OU') {
-        tipoStr = outId === '12' ? 'OVER' : 'UNDER';
+        tipoStr = op.bcSameOutId === '12' ? 'OVER' : 'UNDER';
       }
 
       const hashParams = new URLSearchParams({
         polyedge_auto: '1',
         tipo: tipoStr,
         linea: op.linea !== null && op.linea !== undefined ? String(op.linea) : '',
-        outid: String(outId),
+        outid: String(op.bcSameOutId),
         spec: op.bcSpec || '',
-        cuota: String(cuotaRef.toFixed(2)),
-        min_k: String(cuotaMinima || (cuotaRef * 0.97).toFixed(2)),
-        equipo: label,
-        stake: String(montoExacto),
-        // En Arbitraje SIEMPRE autoconfirm=0 para que verifiques ambos lados antes de dar Place Bet
-        autoconfirm: (!usarLadoOpuestoArb && autoConfirmBC) ? '1' : '0'
+        cuota: String(op.kBcSame.toFixed(2)),
+        min_k: String(op.cuotaJusta || (op.kBcSame * 0.96).toFixed(2)),
+        equipo: op.jugadaLabel,
+        stake: String(inv),
+        autoconfirm: autoConfirmBC ? '1' : '0'
       });
       window.open(`${op.linkBC}#${hashParams.toString()}`, '_blank');
     }
@@ -754,15 +881,15 @@
       const container = document.getElementById('contenedor-tarjetas');
       const noResults = document.getElementById('no-results');
       const query = (document.getElementById('filtro-texto').value || '').toLowerCase().trim();
-      const inversionTotal = Math.max(parseFloat(document.getElementById('input-inversion').value) || 10, 1);
-      const minEv = parseFloat(document.getElementById('slider-ev').value) || 0;
+      const inv = Math.max(parseFloat(document.getElementById('input-inversion').value) || 5, 0.5);
+      const minRoi = parseFloat(document.getElementById('slider-roi').value) || 35;
+      const minEv = parseFloat(document.getElementById('slider-ev').value) || 2.0;
       const maxDias = parseFloat(document.getElementById('slider-dias').value) || 2;
-      const minProb = parseFloat(document.getElementById('slider-prob').value) || 35;
 
       const combinada = [];
       const vistos = new Set();
       Object.values(tarjetasFijadas).forEach(f => { combinada.push(f); vistos.add(f.id); });
-      oportunidadesCruzadas.forEach(o => { if (!vistos.has(o.id)) { combinada.push(o); vistos.add(o.id); } });
+      oportunidadesAlpha.forEach(o => { if (!vistos.has(o.id)) { combinada.push(o); vistos.add(o.id); } });
 
       const filtradas = combinada.filter(o => {
         const fij = Boolean(tarjetasFijadas[o.id]);
@@ -770,19 +897,19 @@
 
         if (!fij) {
           if (o.daysLeft > (maxDias + 0.15)) return false;
-          if (!o.esArbitraje && o.probRealPct < minProb) return false;
-          if (!o.esArbitraje && o.edgePrincipal < minEv) return false;
+          if (o.roiOperacionPct < minRoi && o.categoriaAlpha !== 'rebote') return false;
+          if (o.edgePct < minEv && o.categoriaAlpha !== 'rebote') return false;
         }
 
-        if (filtroActivo === 'arbitraje' && !o.esArbitraje) return false;
-        if (filtroActivo === 'ev_bc' && (o.esArbitraje || o.tipoOportunidad !== 'ev_bc')) return false;
-        if (filtroActivo === 'ev_poly' && (o.esArbitraje || o.tipoOportunidad !== 'ev_poly')) return false;
-        if (['nba', 'nhl', 'futbol'].includes(filtroActivo) && o.deporte !== filtroActivo) return false;
+        if (filtroActivo === 'rebote' && o.categoriaAlpha !== 'rebote') return false;
+        if (filtroActivo === 'ev_bc' && o.categoriaAlpha !== 'ev_bc') return false;
+        if (filtroActivo === 'ev_poly' && o.categoriaAlpha !== 'ev_poly') return false;
+        if (['nba', 'nhl', 'futbol', 'tenis'].includes(filtroActivo) && o.deporte !== filtroActivo) return false;
 
         if (!query) return true;
         return (
           o.partidoTitulo.toLowerCase().includes(query) ||
-          o.polyLabel.toLowerCase().includes(query) ||
+          o.jugadaLabel.toLowerCase().includes(query) ||
           o.deporteLabel.toLowerCase().includes(query)
         );
       });
@@ -800,173 +927,188 @@
           ? `🔴 EN VIVO ${o.marcadorVivo ? '(' + o.marcadorVivo + ')' : ''}`
           : (o.daysLeft <= 1.0 ? `⏱️ Hoy (~${Math.round(o.hoursLeft)}h)` : `📅 En ${o.daysLeft} días`);
 
-        // =====================================================================
-        // TARJETA TIPO 1: ARBITRAJE PURO (0% RIESGO — GANANCIA SÍ O SÍ)
-        // =====================================================================
-        if (o.esArbitraje) {
-          // Matemática exacta de distribución de banca para cobrar exactamente lo mismo gane quien gane:
-          // Cobro Garantizado C = inversionTotal / arbCost
-          const cobroGarantizado = inversionTotal / o.arbCost;
-          const montoPoly = (cobroGarantizado * o.pPoly).toFixed(2);
-          const montoBC = (cobroGarantizado * (1.0 / o.kBcOpp)).toFixed(2);
-          const gananciaSegura = (cobroGarantizado - inversionTotal).toFixed(2);
-          const limitSugeridoCents = Math.max(Math.round(o.centavosPoly - 1), 1);
+        // Banner de seguimiento en vivo (Take-Profit o Resultado Final) cuando está fijada
+        let bannerSeguimiento = '';
+        if (estaFijada) {
+          const est = o.estadoSeguimiento || 'VIGILANDO';
+          const bidCents = o.bidActualVenta ? Math.round(o.bidActualVenta * 100) : o.centavosAsk;
+          const latPct = o.pnlLatentePct || 0;
+          if (est === 'WIN') {
+            bannerSeguimiento = `
+              <div class="mb-3 p-3 rounded-xl bg-emerald-600/35 border-2 border-emerald-400 text-center animate-pulse">
+                <div class="text-sm font-black text-emerald-200">🏆 ¡GANADA AL 100%!</div>
+                <div class="text-[11px] text-white">Partido resuelto a tu favor · Apaga Fijar para quitarla</div>
+              </div>
+            `;
+          } else if (est === 'TAKE_PROFIT') {
+            const cobroAhora = (inv * (1 + latPct / 100)).toFixed(2);
+            bannerSeguimiento = `
+              <div class="mb-3 p-3 rounded-xl bg-amber-500/30 border-2 border-amber-300 text-center space-y-2 shadow-[0_0_20px_rgba(251,191,36,0.4)]">
+                <div class="text-sm font-black text-amber-200">💰 ¡REBOTE LOGRADO (+${latPct}%)! VENDE YA</div>
+                <div class="text-xs text-white">Subió a <b>${bidCents}¢</b> · Vende ahora y cobras <b>$${cobroAhora}</b> sin esperar al final</div>
+                <button onclick="abrirEnPolymarket('${o.id}', 'SELL')" class="w-full py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-gray-950 font-black text-xs cursor-pointer">
+                  💸 Ir directo a VENDER en Polymarket
+                </button>
+              </div>
+            `;
+          } else if (est === 'LOSS') {
+            bannerSeguimiento = `
+              <div class="mb-3 p-2.5 rounded-xl bg-red-950/60 border border-red-500 text-center text-xs text-red-200 font-bold">
+                ❌ Cerrada en contra · Apaga Fijar para quitarla
+              </div>
+            `;
+          } else if (o.categoriaAlpha !== 'ev_bc') {
+            bannerSeguimiento = `
+              <div class="mb-3 p-2 rounded-lg bg-cyan-950/50 border border-cyan-500/40 flex items-center justify-between text-xs">
+                <span class="text-cyan-300 font-bold">📡 Vigilando precio venta: <b>${bidCents}¢</b> (${latPct >= 0 ? '+' : ''}${latPct}%)</span>
+                <button onclick="abrirEnPolymarket('${o.id}', 'SELL')" class="px-2 py-0.5 rounded bg-gray-800 hover:bg-gray-700 text-amber-300 font-bold text-[10px] border border-amber-500/40 cursor-pointer">
+                  Vender Ya
+                </button>
+              </div>
+            `;
+          }
+        }
+
+        // 1. TARJETA DE REBOTE RÁPIDO EN POLYMARKET
+        if (o.categoriaAlpha === 'rebote') {
+          const cobroRebote = (inv * (o.metaVentaPrice / o.askPoly)).toFixed(2);
+          const ganRebote = (parseFloat(cobroRebote) - inv).toFixed(2);
+          const cobroFinal = (inv / o.askPoly).toFixed(2);
+          const ganFinal = (parseFloat(cobroFinal) - inv).toFixed(2);
 
           return `
-            <div class="glass-card rounded-xl p-5 border-2 border-cyan-400 shadow-[0_0_24px_rgba(34,211,238,0.28)] flex flex-col justify-between">
+            <div class="glass-card rounded-xl p-5 border-2 border-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.22)] flex flex-col justify-between">
               <div>
                 <div class="flex items-center justify-between gap-2 mb-2.5">
-                  <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/60">
-                    💎 ARBITRAJE 0% RIESGO · ${o.deporteLabel}
+                  <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/50">
+                    ⚡ REBOTE RÁPIDO · ${o.deporteLabel}
                   </span>
-                  <button onclick="toggleFijar('${o.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${estaFijada ? 'bg-amber-400 text-gray-950 border-amber-300' : 'bg-gray-800 text-gray-300 border-gray-700'}">
-                    ${estaFijada ? '📌 Fijada' : '📌 Fijar'}
+                  <button onclick="toggleFijar('${o.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${estaFijada ? 'bg-cyan-400 text-gray-950 border-cyan-300' : 'bg-gray-800 text-gray-300 border-gray-700'}">
+                    ${estaFijada ? '📡 Vigilando' : '📌 Vigilar'}
                   </button>
                 </div>
 
+                ${bannerSeguimiento}
+
                 <div class="flex items-center justify-between gap-2 mb-2">
-                  <span class="text-xs font-extrabold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    +${o.arbProfitPct}% Ganancia Segura Garantizada
+                  <span class="text-xs font-extrabold px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    Cayó -${o.caidaCents}¢ (de ${o.precioPrevioCents}¢ ➔ ${o.centavosAsk}¢)
                   </span>
                   <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">${badgeTiempo}</span>
                 </div>
 
                 <h4 class="text-sm font-black text-white mb-3">${o.partidoTitulo}</h4>
 
-                <!-- PLAN PASO A PASO CUBRIENDO AMBOS LADOS -->
-                <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 space-y-2 text-xs mb-3">
-                  <div class="flex justify-between items-center border-b border-cyan-800/50 pb-1.5">
-                    <div>
-                      <span class="text-cyan-300 font-bold block">1️⃣ En Polymarket compra:</span>
-                      <span class="text-white font-extrabold">${o.polyLabel}</span> <span class="text-gray-400">(${o.centavosPoly}¢)</span>
-                    </div>
-                    <span class="text-sm font-mono font-black text-emerald-300 bg-gray-900 px-2 py-1 rounded">$${montoPoly}</span>
-                  </div>
-
+                <div class="p-3 rounded-xl bg-gray-900/95 border border-gray-800 space-y-2 text-xs mb-3">
                   <div class="flex justify-between items-center">
-                    <div>
-                      <span class="text-purple-300 font-bold block">2️⃣ En BC.GAME apuesta al opuesto:</span>
-                      <span class="text-white font-extrabold">${o.bcOppLabel}</span> <span class="text-gray-400">(Cuota ${o.kBcOpp.toFixed(2)})</span>
-                    </div>
-                    <span class="text-sm font-mono font-black text-purple-300 bg-gray-900 px-2 py-1 rounded">$${montoBC}</span>
+                    <span class="text-gray-400">Comprar caída en:</span>
+                    <span class="font-extrabold text-white">${o.jugadaLabel} (${o.centavosAsk}¢ real)</span>
+                  </div>
+                  <div class="pt-1.5 border-t border-gray-800 text-[11px] text-gray-300 leading-relaxed">
+                    🎯 <b>Plan de Salida Rápida:</b> Compra a <b>${o.centavosAsk}¢</b> y cuando rebote a <b>~${o.metaVentaCents}¢</b> vendes en vivo asegurando <b>+${o.roiOperacionPct}%</b> sin esperar al final.
                   </div>
                 </div>
 
-                <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-xs mb-4 space-y-1">
-                  <div class="flex justify-between text-gray-200">
-                    <span>Inversión total sumada: <b>$${inversionTotal.toFixed(2)}</b></span>
-                    <span>Cobras gane quien gane: <b class="text-emerald-300">$${cobroGarantizado.toFixed(2)}</b></span>
+                <div class="p-2.5 rounded-lg bg-emerald-950/35 border border-emerald-500/35 text-xs mb-4 space-y-1">
+                  <div class="flex justify-between">
+                    <span>Si vendes en el rebote (${o.metaVentaCents}¢):</span>
+                    <b class="text-amber-300">+$${ganRebote} limpios (+${o.roiOperacionPct}%)</b>
                   </div>
-                  <div class="text-[11px] text-emerald-400 font-bold">
-                    ✅ Ganancia libre de riesgo: +$${gananciaSegura} (¡Y si compras con Límite a ${limitSugeridoCents}¢ en Polymarket ganas aún más!)
+                  <div class="flex justify-between text-[11px] text-gray-300">
+                    <span>Si la dejas hasta ganar el juego:</span>
+                    <b class="text-emerald-400">+$${ganFinal} limpios (+${o.roiFinalPct}%)</b>
                   </div>
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-2 pt-3 border-t border-gray-800">
-                <button onclick="abrirLadoPolymarket('${o.id}', '${montoPoly}')" class="py-2 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold flex items-center justify-center gap-1 transition cursor-pointer">
-                  <i class="fa-solid fa-crosshairs"></i> 1. Polymarket ($${montoPoly})
-                </button>
-                <button onclick="abrirLadoBC('${o.id}', true, '${montoBC}', '${(1.0 / (1.0 - o.pPoly)).toFixed(2)}')" class="py-2 px-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-extrabold flex items-center justify-center gap-1 transition cursor-pointer">
-                  <i class="fa-solid fa-bolt"></i> 2. BC.GAME ($${montoBC})
-                </button>
-              </div>
+              <button onclick="abrirEnPolymarket('${o.id}', 'BUY')" class="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-gray-950 text-xs font-black flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                <i class="fa-solid fa-bolt"></i> Comprar Caída en Polymarket ($${inv})
+              </button>
             </div>
           `;
         }
 
-        // =====================================================================
-        // TARJETA TIPO 2: CUOTA MAL PUESTA / +EV REAL (EN BC O EN POLYMARKET)
-        // =====================================================================
-        const esEnBC = o.tipoOportunidad === 'ev_bc';
-        const borderClase = esEnBC
-          ? 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.25)]'
-          : 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.25)]';
-        const badgeTop = esEnBC
-          ? 'bg-purple-500/20 text-purple-200 border border-purple-500/50'
-          : 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/50';
-        const tituloTipo = esEnBC
-          ? `🔥 ERROR DE CUOTA EN BC · ${o.deporteLabel}`
-          : `🐋 GANGA EN POLYMARKET · ${o.deporteLabel}`;
-
-        const cobroEst = esEnBC
-          ? (inversionTotal * o.kBcSame).toFixed(2)
-          : (inversionTotal / o.pPoly).toFixed(2);
-        const gananciaEst = (parseFloat(cobroEst) - inversionTotal).toFixed(2);
-        const limitCents = Math.max(Math.round(o.centavosPoly - 1), 1);
+        // 2. TARJETAS DE +EV FUERTE (EN BC.GAME O EN POLYMARKET CON PRECIO REAL)
+        const esBC = o.categoriaAlpha === 'ev_bc';
+        const borderClase = esBC
+          ? 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.22)]'
+          : 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.22)]';
+        const cobroTotal = esBC ? (inv * o.kBcSame).toFixed(2) : (inv / o.askPoly).toFixed(2);
+        const gananciaNeta = (parseFloat(cobroTotal) - inv).toFixed(2);
+        const limitSugerido = Math.max(Math.round((o.bidPoly || (o.askPoly - 0.01)) * 100), 1);
 
         return `
           <div class="glass-card rounded-xl p-5 ${borderClase} flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between gap-2 mb-2.5">
-                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${badgeTop}">
-                  ${tituloTipo}
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${esBC ? 'bg-purple-500/20 text-purple-200 border border-purple-500/50' : 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/50'}">
+                  ${esBC ? '🔥 CUOTA INFLADA EN BC' : '🐋 GANGA NETA POLYMARKET'} · ${o.deporteLabel}
                 </span>
-                <button onclick="toggleFijar('${o.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${estaFijada ? 'bg-amber-400 text-gray-950 border-amber-300' : 'bg-gray-800 text-gray-300 border-gray-700'}">
-                  ${estaFijada ? '📌 Fijada' : '📌 Fijar'}
+                <button onclick="toggleFijar('${o.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${estaFijada ? 'bg-cyan-400 text-gray-950 border-cyan-300' : 'bg-gray-800 text-gray-300 border-gray-700'}">
+                  ${estaFijada ? '📡 Vigilando' : '📌 Vigilar'}
                 </button>
               </div>
 
+              ${bannerSeguimiento}
+
               <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-xs font-extrabold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  +${o.edgePrincipal}% Ventaja Matemática (+EV)
+                  +${o.roiOperacionPct}% Ganancia · (+${o.edgePct}% EV Real)
                 </span>
                 <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">${badgeTiempo}</span>
               </div>
 
               <h4 class="text-sm font-bold text-white mb-3">${o.partidoTitulo}</h4>
 
-              <!-- COMPARATIVA TRANSPARENTE ENTRE LAS DOS CASAS -->
               <div class="p-3 rounded-xl bg-gray-900/95 border border-gray-800 space-y-2 text-xs mb-3">
                 <div class="flex justify-between items-center">
-                  <span class="text-gray-400">Jugada detectada:</span>
-                  <span class="font-extrabold text-white">${esEnBC ? o.bcSameLabel : o.polyLabel}</span>
+                  <span class="text-gray-400">Jugada con Valor:</span>
+                  <span class="font-extrabold text-white">${o.jugadaLabel}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-gray-800 text-[11px]">
-                  <div class="p-2 rounded bg-gray-800/70 ${!esEnBC ? 'ring-1 ring-emerald-400' : ''}">
-                    <span class="text-gray-400 block">Precio Polymarket:</span>
-                    <span class="text-emerald-300 font-bold text-xs">${o.centavosPoly}¢ (eq. ${o.cuotaEqPoly}x)</span>
+                  <div class="p-2 rounded bg-gray-800/70 ${!esBC ? 'ring-1 ring-emerald-400' : ''}">
+                    <span class="text-gray-400 block">Compra Real Poly:</span>
+                    <span class="text-emerald-300 font-bold text-xs">${o.centavosAsk}¢ (eq. ${(1.0 / o.askPoly).toFixed(2)}x)</span>
                   </div>
-                  <div class="p-2 rounded bg-gray-800/70 ${esEnBC ? 'ring-1 ring-purple-400' : ''}">
+                  <div class="p-2 rounded bg-gray-800/70 ${esBC ? 'ring-1 ring-purple-400' : ''}">
                     <span class="text-gray-400 block">Cuota BC.GAME:</span>
                     <span class="text-purple-300 font-bold text-xs">Cuota ${o.kBcSame.toFixed(2)}x</span>
                   </div>
                 </div>
                 <div class="text-[11px] text-gray-300 pt-1">
-                  ${esEnBC
-                    ? `💡 <b>Por qué hay ventaja:</b> En Polymarket esta jugada vale <b>${o.probRealPct}%</b> (cuota justa ${o.cuotaMinSeguraBC}), pero BC se quedó atrasado pagando <b>${o.kBcSame.toFixed(2)}</b>.`
-                    : `💡 <b>Por qué hay ventaja:</b> La línea limpia mundial da <b>${o.probRealPct}%</b>, pero en Polymarket la venden barata a <b>${o.centavosPoly}¢</b> (usa Orden Límite a <b>${limitCents}¢</b> si puedes).`
+                  ${esBC
+                    ? `💡 Probabilidad limpia en Polymarket: <b>${o.probRealPct}%</b> (debería pagar ${o.cuotaJusta}x, pero BC te regala <b>${o.kBcSame.toFixed(2)}x</b>).`
+                    : `💡 Probabilidad mundial limpia: <b>${o.probRealPct}%</b>. Ya descontando el spread real (${o.centavosAsk}¢) tienes ventaja (o pon Límite a <b>${limitSugerido}¢</b>).`
                   }
                 </div>
               </div>
 
-              <div class="p-2.5 rounded-lg bg-gray-800/60 border border-gray-700/70 text-xs mb-4 flex justify-between items-center">
-                <span>Con <b>$${inversionTotal.toFixed(2)}</b> cobras: <b>$${cobroEst}</b></span>
-                <span class="text-emerald-400 font-bold">Ganas +$${gananciaEst}</span>
+              <div class="p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-xs mb-4 flex justify-between items-center">
+                <span>Con <b>$${inv.toFixed(2)}</b> cobras: <b>$${cobroTotal}</b></span>
+                <span class="text-emerald-300 font-black text-sm">+$${gananciaNeta} limpios</span>
               </div>
             </div>
 
-            <div class="pt-3 border-t border-gray-800 flex items-center gap-2">
-              ${esEnBC ? `
-                <button onclick="abrirLadoBC('${o.id}', false, '${inversionTotal}', '${o.cuotaMinSeguraBC}')" class="flex-1 py-2.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
-                  <i class="fa-solid fa-bolt text-amber-300"></i> Cazar Cuota ${o.kBcSame.toFixed(2)} en BC.GAME ($${inversionTotal})
-                </button>
-              ` : `
-                <button onclick="abrirLadoPolymarket('${o.id}', '${inversionTotal}')" class="flex-1 py-2.5 px-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
-                  <i class="fa-solid fa-crosshairs text-amber-300"></i> Auto-Seleccionar en Polymarket (${o.centavosPoly}¢)
-                </button>
-              `}
-            </div>
+            ${esBC ? `
+              <button onclick="abrirEnBC('${o.id}')" class="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                <i class="fa-solid fa-bolt text-amber-300"></i> Cazar Cuota ${o.kBcSame.toFixed(2)}x en BC.GAME ($${inv})
+              </button>
+            ` : `
+              <button onclick="abrirEnPolymarket('${o.id}', 'BUY')" class="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                <i class="fa-solid fa-crosshairs text-amber-300"></i> Auto-Seleccionar en Polymarket ($${inv})
+              </button>
+            `}
           </div>
         `;
       }).join('');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      cargarStatsAlpha();
       cargarFijadas();
       cargarFiltros();
-      escanearMercadosCruzados(false);
-      setInterval(() => escanearMercadosCruzados(true), 25000);
+      escanearAlpha(false);
+      setInterval(() => escanearAlpha(true), 20000);
     });
   </script>
 </body>
