@@ -1,74 +1,47 @@
 <!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PolyEdge AI — Asistente de Oportunidades Polymarket</title>
-  <!-- Tailwind CSS CDN -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolyEdge Pro — Arbitraje & Desfases (+EV) Polymarket ⚡ BC.GAME</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#ecfdf5',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857',
-              dark: '#0b0f19',
-              card: '#111827',
-              border: '#1f2937'
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    body {
-      background-color: #0b0f19;
-      color: #f3f4f6;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    }
-    .glass-card {
-      background: rgba(17, 24, 39, 0.85);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(31, 41, 55, 0.8);
-    }
-    .neon-glow {
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
-    }
+    body { background-color: #070b14; color: #e5e7eb; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .glass-card { background: rgba(17, 24, 39, 0.86); backdrop-filter: blur(12px); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0b1120; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- BARRA DE NAVEGACIÓN -->
-  <header class="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-30 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-500/20">
-          <i class="fa-solid fa-chart-line"></i>
+  <!-- HEADER -->
+  <header class="border-b border-gray-800 bg-gray-950/90 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-gray-950 font-black text-lg shadow-lg shadow-emerald-500/25">
+          <i class="fa-solid fa-scale-balanced"></i>
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            PolyEdge <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">AI ASSISTANT</span>
-          </h1>
-          <p class="text-xs text-gray-400">Escáner cuantitativo de alta probabilidad (≥70%) en Polymarket</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-black tracking-tight text-white">PolyEdge <span class="text-emerald-400">PRO</span></h1>
+            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 uppercase">
+              Arbitraje & +EV Cruzado
+            </span>
+          </div>
+          <p class="text-xs text-gray-400">Compara en vivo el mismo partido real entre <b>Polymarket</b> y <b>BC.GAME</b> para cazar errores de precio y ganancias seguras</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-3">
-        <div class="hidden sm:flex items-center space-x-2 bg-gray-800/80 px-3 py-1.5 rounded-lg border border-gray-700/60 text-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-gray-300">PlayBC & Polymarket En Vivo</span>
+      <div class="flex items-center gap-2.5">
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs text-gray-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="status-cruce">Cruzando mercados reales...</span>
         </div>
-        <button onclick="escanearMercados()" id="btn-scan" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-emerald-600/25">
+        <button onclick="escanearMercadosCruzados(false)" id="btn-scan" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer">
           <i class="fa-solid fa-arrows-rotate" id="scan-icon"></i>
-          <span>Escanear Ahora</span>
+          <span>Cruzar Ahora</span>
         </button>
       </div>
     </div>
@@ -77,1916 +50,741 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- KPI STATS + PANEL DE EFECTIVIDAD (AVERAGE WIN / LOSS POR JUEGO) -->
+    <!-- PANEL RESUMEN DE VENTAJAS DETECTADAS -->
     <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="p-2.5 bg-emerald-500/15 text-emerald-400 rounded-lg text-lg">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <div>
-            <h2 class="text-sm font-bold text-white flex flex-wrap items-center gap-2">
-              📊 Auditoría Real en Dólares (Simulador $0.50/tiro · Cero Falsos WIN)
-              <span id="badge-auditando" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">Escudo Anti-Trampa v2</span>
-            </h2>
-            <p class="text-xs text-gray-400">Mide ganancia/pérdida real en USD descontando la comisión de BC · Úsalo para ver que esté en verde (+$) antes de apostar dinero real</p>
-          </div>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-800 pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-radar text-cyan-400"></i> Radar Profesional 2% Ganador — Cero Bots de Casino
+          </h2>
+          <p class="text-xs text-gray-400">Solo muestra jugadas donde existe <b>Arbitraje Matemático (0% riesgo)</b> o una <b>Cuota Dormida / Desfasada (+EV real)</b> entre ambas casas</p>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- INTERRUPTOR DE ESTRATEGIA: FRANCOTIRADOR VS CONTRA-CEBO BC -->
-          <button onclick="toggleModoContraCebo()" id="btn-modo-estrategia" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cyan-500/50 bg-cyan-500/15 text-cyan-200 text-xs font-bold transition cursor-pointer" title="Cambia entre Francotirador En Vivo (sin 0:0 ni 1.65) o Modo Contra-Cebo (apostar en contra del 1.65 de BC cobrando ~2.05x)">
-            <i class="fa-solid fa-crosshairs"></i>
-            <span id="txt-modo-estrategia">🛡️ Modo: Francotirador (+EV)</span>
-          </button>
-
-          <!-- SWITCH AUTO-DESCARTAR PERDEDORES EN USD -->
-          <button onclick="toggleAutoDescartar()" id="btn-autodescartar" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 text-xs font-bold transition cursor-pointer" title="Descarta automáticamente cualquier juego o liga que pierda dólares reales ($ PnL negativo)">
-            <i class="fa-solid fa-brain"></i>
-            <span id="txt-autodescartar">Auto-Descartar (-$): ON</span>
-          </button>
-          <button onclick="reiniciarEstadisticas()" class="px-2.5 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white text-xs border border-gray-700 transition" title="Reiniciar auditoría en dólares a $0.00">
-            <i class="fa-solid fa-rotate-left"></i>
-          </button>
+        <div class="text-xs text-emerald-300 bg-emerald-950/50 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-semibold">
+          💡 Tip Polymarket: Usa orden <b>Límite</b> 1¢ abajo para ganar aún más margen
         </div>
       </div>
 
-      <!-- RESUMEN GLOBAL EN DÓLARES REALES -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+        <div onclick="seleccionarFiltro('arbitraje')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-cyan-500/40 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-gray-400">🏆 Ganadas Verificadas</div>
-            <div class="text-2xl font-black text-emerald-400" id="stat-global-wins">0</div>
+            <div class="text-[11px] text-cyan-300 font-bold">💎 Arbitrajes Seguros (0% Riesgo)</div>
+            <div class="text-2xl font-black text-cyan-300 mt-0.5" id="kpi-arbs">0</div>
+            <div class="text-[10px] text-gray-400">Cubres ambos lados y ganas sí o sí</div>
           </div>
-          <i class="fa-solid fa-circle-check text-2xl text-emerald-500/40"></i>
+          <i class="fa-solid fa-gem text-2xl text-cyan-400/40"></i>
         </div>
 
-        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+        <div onclick="seleccionarFiltro('ev_bc')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-purple-500/40 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-gray-400">❌ Perdidas Verificadas</div>
-            <div class="text-2xl font-black text-red-400" id="stat-global-losses">0</div>
+            <div class="text-[11px] text-purple-300 font-bold">🔥 Cuotas Dormidas en BC (+EV)</div>
+            <div class="text-2xl font-black text-purple-300 mt-0.5" id="kpi-ev-bc">0</div>
+            <div class="text-[10px] text-gray-400">BC paga más de lo que vale en Polymarket</div>
           </div>
-          <i class="fa-solid fa-circle-xmark text-2xl text-red-500/40"></i>
+          <i class="fa-solid fa-bolt text-2xl text-purple-400/40"></i>
         </div>
 
-        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+        <div onclick="seleccionarFiltro('ev_poly')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-emerald-500/40 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-gray-400">💰 Balance Real ($0.50/tiro)</div>
-            <div class="text-2xl font-black text-gray-200 font-mono" id="stat-global-pnl">$0.00</div>
-            <div class="text-[10px] text-gray-400">Acierto: <b id="stat-global-winrate">--%</b></div>
+            <div class="text-[11px] text-emerald-300 font-bold">🐋 Gangas en Polymarket (+EV)</div>
+            <div class="text-2xl font-black text-emerald-400 mt-0.5" id="kpi-ev-poly">0</div>
+            <div class="text-[10px] text-gray-400">Más barato que la línea mundial sin vig</div>
           </div>
-          <i class="fa-solid fa-sack-dollar text-2xl text-emerald-500/40"></i>
+          <i class="fa-solid fa-arrow-trend-up text-2xl text-emerald-400/40"></i>
         </div>
 
-        <div class="bg-gray-900/90 rounded-lg p-3 border border-gray-800 flex items-center justify-between">
+        <div class="bg-gray-900/90 rounded-lg p-3.5 border border-gray-800 flex items-center justify-between">
           <div>
-            <div class="text-[11px] text-gray-400">🔥 Más Rentable en USD</div>
-            <div class="text-sm font-bold text-amber-300 truncate max-w-[155px]" id="stat-best-game">Auditando en vivo...</div>
-            <div class="text-[10px] text-gray-500" id="stat-audit-queue">0 en seguimiento</div>
+            <div class="text-[11px] text-gray-400 font-semibold">🔗 Mercados Reales Comparados</div>
+            <div class="text-2xl font-black text-white mt-0.5" id="kpi-pares">0</div>
+            <div class="text-[10px] text-amber-300 font-semibold" id="kpi-mejor-edge">Mejor ventaja: --%</div>
           </div>
-          <i class="fa-solid fa-fire text-2xl text-amber-500/40"></i>
+          <i class="fa-solid fa-code-compare text-2xl text-amber-400/40"></i>
         </div>
-      </div>
-
-      <!-- TABLA / TARJETAS DE RENTABILIDAD EN USD POR CADA JUEGO -->
-      <div id="contenedor-stats-juegos" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-1">
-        <!-- Se llena dinámicamente con el récord W-L y Ganancia Neta $ de cada juego -->
       </div>
     </div>
 
-    <!-- KPI SECUNDARIOS OCULTOS PARA COMPATIBILIDAD -->
-    <div class="hidden">
-      <span id="stat-total">0</span>
-      <span id="stat-max-apr">0%</span>
-      <span id="stat-avg-prob">0%</span>
-      <span id="stat-min-time">--</span>
-    </div>
-
-    <!-- PANEL DE CONTROL Y FILTROS -->
+    <!-- PANEL DE CONTROLES Y CALCULADORA -->
     <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-500 text-sm"></i>
-          <input type="text" id="filtro-texto" oninput="guardarFiltrosLocales(); filtrarLocalmente();" placeholder="Buscar por palabra clave (ej. Bitcoin, Spain, NBA, Winner)..." 
-                 class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500">
+          <input type="text" id="filtro-texto" oninput="guardarFiltros(); renderizarTarjetas();" placeholder="Buscar partido o equipo (ej. Celtics, Stars, Lakers, Chelsea, Over)..."
+                 class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-emerald-500" />
         </div>
 
-        <!-- SIMULADOR KELLY Y MONTO AUTO-APUESTA BC INDIVIDUAL -->
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="flex items-center gap-1.5 bg-purple-950/50 border border-purple-500/50 px-3 py-1.5 rounded-lg text-xs">
-            <span class="text-purple-300 font-bold">⚡ Individual BC: $</span>
-            <input type="number" id="bc-stake-amount" value="1" min="0.1" step="0.5" onchange="guardarFiltrosLocales(); renderizarTarjetas();" class="w-16 bg-gray-900 border border-purple-500/40 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
-            <button onclick="toggleAutoConfirmBC()" id="btn-autoconfirm-bc" class="ml-1 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px] transition" title="En apuestas individuales: si está en AUTO: ON, la extensión presiona sola Place Bet">
-              AUTO: ON
-            </button>
+        <!-- MONTO A INVERTIR (CALCULA DIVISIÓN EXACTA EN ARBITRAJE Y MONTO EN BC/POLY) -->
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-2 bg-cyan-950/40 border border-cyan-500/40 px-3.5 py-2 rounded-lg text-xs">
+            <span class="text-cyan-200 font-bold">💵 Tu Inversión por Operación: $</span>
+            <input type="number" id="input-inversion" value="10" min="1" step="1" oninput="guardarFiltros(); renderizarTarjetas();"
+                   class="w-20 bg-gray-900 border border-cyan-500/40 rounded px-2 py-0.5 text-emerald-400 font-black text-sm focus:outline-none text-right" />
           </div>
 
-          <div class="flex items-center gap-2 bg-gray-900/90 border border-gray-700 px-3 py-1.5 rounded-lg text-xs">
-            <span class="text-gray-400">Capital: $</span>
-            <input type="number" id="user-bankroll" value="1000" onchange="guardarFiltrosLocales(); renderizarTarjetas();" class="w-20 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
+          <div class="flex items-center gap-2 bg-purple-950/40 border border-purple-500/40 px-3 py-2 rounded-lg text-xs">
+            <span class="text-purple-200 font-semibold">Auto-Confirmar BC:</span>
+            <button onclick="toggleAutoConfirmBC()" id="btn-autoconfirm-bc" class="px-2 py-0.5 rounded bg-gray-700 text-gray-200 font-bold text-[11px] transition cursor-pointer" title="Por seguridad viene en OFF para que tú revises la cuota en BC y presiones Place Bet">
+              OFF (Seguro)
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- ARMADOR DE COMBOS AUTOMÁTICO Y MANUAL PARA BC.GAME -->
-      <div class="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/40 via-purple-950/40 to-indigo-950/40 border border-amber-500/40 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div class="space-y-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-extrabold text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
-              <i class="fa-solid fa-layer-group text-amber-400"></i> Armador de Combos BC (Solo das clic en "Place Bet")
-            </span>
-            <span id="combo-record-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-gray-900/90 text-gray-300 border border-gray-700">
-              🎟️ Combos: 0W - 0L
-            </span>
-            <span id="combo-preview-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              Calculando mejor combo...
-            </span>
-          </div>
-          <p class="text-[11px] text-gray-300" id="combo-preview-detail">
-            Elige cuántas jugadas combinar (2, 3, 4 o 5) para que el bot las cargue en tu cupón de BC.GAME, o márcalas tú mismo con <b>+ Combo</b> en cada tarjeta.
-          </p>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- SELECTOR DE CANTIDAD (2, 3, 4, 5) -->
-          <div class="flex items-center bg-gray-900/90 border border-gray-700 rounded-lg p-1 gap-1 text-xs">
-            <span class="text-gray-400 pl-1.5 pr-1 text-[11px] font-semibold">Jugadas:</span>
-            <button onclick="seleccionarTamanoCombo(2)" id="btn-combo-size-2" class="px-2.5 py-1 rounded font-bold transition cursor-pointer bg-gray-800 text-gray-300 hover:bg-gray-700">2</button>
-            <button onclick="seleccionarTamanoCombo(3)" id="btn-combo-size-3" class="px-2.5 py-1 rounded font-bold transition cursor-pointer bg-amber-500 text-gray-950">3</button>
-            <button onclick="seleccionarTamanoCombo(4)" id="btn-combo-size-4" class="px-2.5 py-1 rounded font-bold transition cursor-pointer bg-gray-800 text-gray-300 hover:bg-gray-700">4</button>
-            <button onclick="seleccionarTamanoCombo(5)" id="btn-combo-size-5" class="px-2.5 py-1 rounded font-bold transition cursor-pointer bg-gray-800 text-gray-300 hover:bg-gray-700">5</button>
-          </div>
-
-          <!-- MONTO DEL COMBO -->
-          <div class="flex items-center gap-1.5 bg-gray-900/90 border border-amber-500/40 px-2.5 py-1.5 rounded-lg text-xs">
-            <span class="text-amber-300 font-bold">Monto: $</span>
-            <input type="number" id="bc-combo-stake" value="2" min="0.1" step="0.5" oninput="actualizarVistaComboBC()" onchange="guardarFiltrosLocales(); actualizarVistaComboBC();" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-bold focus:outline-none text-right">
-          </div>
-
-          <!-- BOTÓN ENVIAR COMBO MANUAL (VISIBLE SI MARCÓ TARJETAS) -->
-          <div id="contenedor-combo-manual" class="hidden items-center gap-1.5">
-            <button onclick="lanzarComboManualBC()" id="btn-lanzar-combo-manual" class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-gray-950 font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 transition cursor-pointer">
-              <i class="fa-solid fa-check-double"></i>
-              <span id="txt-btn-combo-manual">Armar Mi Combo (0)</span>
-            </button>
-            <button onclick="limpiarComboManualBC()" class="px-2 py-2 rounded-lg bg-gray-800 hover:bg-red-900/50 text-gray-300 hover:text-red-300 border border-gray-700 text-xs transition cursor-pointer" title="Vaciar selección manual">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </div>
-
-          <!-- BOTÓN AUTO-ARMAR TOP N -->
-          <button onclick="lanzarComboAutomaticoBC()" id="btn-lanzar-combo-auto" class="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-gray-950 font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/25 transition cursor-pointer">
-            <i class="fa-solid fa-bolt"></i>
-            <span id="txt-btn-combo-auto">Auto-Armar Top 3 en BC</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- FILTROS AVANZADOS -->
+      <!-- SLIDERS -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-800 text-xs">
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Probabilidad Mínima:</span>
-            <span class="font-bold text-emerald-400" id="val-prob">70%</span>
+            <span>Ventaja Matemática Mínima (+EV):</span>
+            <span class="font-bold text-emerald-400" id="val-ev">1.5%</span>
           </div>
-          <input type="range" id="slider-prob" min="50" max="95" value="70" oninput="actualizarSlider('prob')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-emerald-500 cursor-pointer">
+          <input type="range" id="slider-ev" min="0" max="15" step="0.5" value="1.5" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-emerald-500 cursor-pointer" />
         </div>
 
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Días Máx. de Cierre:</span>
-            <span class="font-bold text-teal-400" id="val-dias">30 días</span>
+            <span>Días a Mostrar (1 = Hoy/En Vivo, 2 = 1 a 2 días...):</span>
+            <span class="font-bold text-cyan-300" id="val-dias">2 días</span>
           </div>
-          <input type="range" id="slider-dias" min="1" max="60" value="30" oninput="actualizarSlider('dias')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-teal-500 cursor-pointer">
+          <input type="range" id="slider-dias" min="1" max="10" step="1" value="2" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros(); escanearMercadosCruzados(false);" class="w-full accent-cyan-400 cursor-pointer" />
         </div>
 
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>APR Mínimo Anualizado:</span>
-            <span class="font-bold text-blue-400" id="val-apr">25% APR</span>
+            <span>Probabilidad Real Mínima (Evita loterías):</span>
+            <span class="font-bold text-amber-300" id="val-prob">35%</span>
           </div>
-          <input type="range" id="slider-apr" min="10" max="200" value="25" step="5" oninput="actualizarSlider('apr')" onchange="guardarFiltrosLocales(); escanearMercados();" class="w-full accent-blue-500 cursor-pointer">
+          <input type="range" id="slider-prob" min="22" max="85" step="1" value="35" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-amber-400 cursor-pointer" />
         </div>
       </div>
 
-      <!-- LEYENDA DE COLORES Y FILTRO RÁPIDO POR CATEGORÍA -->
+      <!-- PESTAÑAS DE FILTRO -->
       <div class="pt-3 border-t border-gray-800 flex flex-wrap items-center gap-2 text-xs">
-        <span class="text-gray-400 font-semibold mr-1">Mercados:</span>
-        <button onclick="seleccionarCategoria('todos')" id="cat-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition">
-          🌐 Todos
+        <span class="text-gray-400 font-semibold mr-1">Filtrar:</span>
+        <button onclick="seleccionarFiltro('todos')" id="tab-todos" class="px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 text-white font-bold transition cursor-pointer">
+          🌐 Todas las Ventajas
         </button>
-        <button onclick="seleccionarCategoria('fijadas')" id="cat-fijadas" class="px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-400/15 text-amber-300 font-bold hover:bg-amber-400/25 transition">
+        <button onclick="seleccionarFiltro('fijadas')" id="tab-fijadas" class="px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-400/15 text-amber-300 font-bold transition cursor-pointer">
           📌 Mis Fijadas (<span id="count-fijadas">0</span>)
         </button>
-        <button onclick="seleccionarCategoria('futbolreal')" id="cat-futbolreal" class="px-3 py-1.5 rounded-lg border-2 border-lime-400 bg-lime-400/15 text-lime-300 font-bold hover:bg-lime-400/25 transition">
-          ⚽🏆 Fútbol Real (BC)
+        <button onclick="seleccionarFiltro('arbitraje')" id="tab-arbitraje" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-200 font-bold transition cursor-pointer">
+          💎 Arbitraje 0% Riesgo
         </button>
-        <button onclick="seleccionarCategoria('esoccer')" id="cat-esoccer" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-300 font-bold hover:bg-emerald-500/25 transition">
-          🟢 ⚽🤖 eSoccer (BC)
+        <button onclick="seleccionarFiltro('ev_bc')" id="tab-ev_bc" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-200 font-bold transition cursor-pointer">
+          🔥 +EV en BC.GAME
         </button>
-        <button onclick="seleccionarCategoria('ebasketball')" id="cat-ebasketball" class="px-3 py-1.5 rounded-lg border-2 border-orange-500 bg-orange-500/15 text-orange-300 font-bold hover:bg-orange-500/25 transition">
-          🟠 🏀🤖 eBasketball (BC)
+        <button onclick="seleccionarFiltro('ev_poly')" id="tab-ev_poly" class="px-3 py-1.5 rounded-lg border-2 border-emerald-500 bg-emerald-500/15 text-emerald-200 font-bold transition cursor-pointer">
+          🐋 +EV en Polymarket
         </button>
-        <button onclick="seleccionarCategoria('epenalty')" id="cat-epenalty" class="px-3 py-1.5 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 text-yellow-300 font-bold hover:bg-yellow-400/25 transition">
-          🟡 🥅🤖 eSoccer: Penalty (BC)
+        <span class="text-gray-700 mx-1">|</span>
+        <button onclick="seleccionarFiltro('nba')" id="tab-nba" class="px-2.5 py-1.5 rounded-lg border border-blue-500/50 bg-blue-500/10 text-blue-300 font-bold transition cursor-pointer">
+          🏀 NBA
         </button>
-        <button onclick="seleccionarCategoria('efighting')" id="cat-efighting" class="px-3 py-1.5 rounded-lg border-2 border-red-500 bg-red-500/15 text-red-300 font-bold hover:bg-red-500/25 transition">
-          🔴 🥊🤖 eFighting (BC)
+        <button onclick="seleccionarFiltro('nhl')" id="tab-nhl" class="px-2.5 py-1.5 rounded-lg border border-sky-400/50 bg-sky-400/10 text-sky-200 font-bold transition cursor-pointer">
+          🏒 NHL
         </button>
-        <button onclick="seleccionarCategoria('etennis')" id="cat-etennis" class="px-3 py-1.5 rounded-lg border-2 border-purple-500 bg-purple-500/15 text-purple-300 font-bold hover:bg-purple-500/25 transition">
-          🟣 🎾🤖 eTennis (BC)
-        </button>
-        <button onclick="seleccionarCategoria('basket')" id="cat-basket" class="px-3 py-1.5 rounded-lg border-2 border-blue-500 bg-blue-500/15 text-blue-300 font-bold hover:bg-blue-500/25 transition">
-          🔵 🏀 Basket NBA (O/U)
-        </button>
-        <button onclick="seleccionarCategoria('hockey')" id="cat-hockey" class="px-3 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-400/15 text-cyan-300 font-bold hover:bg-cyan-400/25 transition">
-          🩵 🏒 Hockey NHL (O/U)
+        <button onclick="seleccionarFiltro('futbol')" id="tab-futbol" class="px-2.5 py-1.5 rounded-lg border border-lime-400/50 bg-lime-400/10 text-lime-200 font-bold transition cursor-pointer">
+          ⚽ Fútbol Europeo
         </button>
       </div>
     </div>
 
-    <!-- SECCIÓN DE BOLETOS DE COMBO FIJADOS EN VIVO (MUESTRA SI EL COMBO GANÓ O PERDIÓ) -->
-    <div id="seccion-combos-fijados" class="hidden space-y-3">
-      <div class="flex items-center justify-between">
-        <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-2">
-          <i class="fa-solid fa-ticket text-amber-400"></i> Mis Combos en Seguimiento (En Vivo · Se quedan arriba hasta apagar el switch)
-        </h3>
-      </div>
-      <div id="contenedor-combos-fijados" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Boletos de combo activos -->
-      </div>
-    </div>
-
-    <!-- LISTA DE OPORTUNIDADES -->
+    <!-- SPINNER -->
     <div id="loading-spinner" class="py-16 text-center text-gray-400 hidden">
-      <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500 mb-3"></i>
-      <p class="text-sm">Analizando libros de órdenes en Polymarket...</p>
+      <i class="fa-solid fa-circle-notch fa-spin text-4xl text-cyan-400 mb-3"></i>
+      <p class="text-sm font-semibold text-gray-200">Cruzando libros de órdenes de Polymarket contra las cuotas en vivo de BC.GAME...</p>
     </div>
 
-    <div id="contenedor-tarjetas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <!-- Se llenará dinámicamente mediante JavaScript -->
-    </div>
+    <!-- CONTENEDOR DE TARJETAS -->
+    <div id="contenedor-tarjetas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
 
-    <div id="no-results" class="hidden py-16 text-center text-gray-400 glass-card rounded-xl">
-      <i class="fa-solid fa-filter-circle-xmark text-4xl text-gray-600 mb-3"></i>
-      <h3 class="text-base font-semibold text-gray-300">No se encontraron mercados con estos filtros</h3>
-      <p class="text-xs text-gray-500 mt-1">Prueba bajando el APR mínimo o ampliando el rango de días restantes.</p>
+    <!-- SIN RESULTADOS -->
+    <div id="no-results" class="hidden py-14 text-center text-gray-400 glass-card rounded-xl border border-gray-800 p-6">
+      <i class="fa-solid fa-magnifying-glass-chart text-4xl text-gray-600 mb-3"></i>
+      <h3 class="text-base font-bold text-gray-200">No hay desfases con estos filtros exactos en este segundo</h3>
+      <p class="text-xs text-gray-400 mt-1">Prueba subiendo <b>Días a Mostrar</b> a 2 o 3 días, o bajando un poco <b>Ventaja Matemática Mínima (+EV)</b> a 0.5% - 1.0%.</p>
     </div>
 
   </main>
 
-  <!-- MODAL: ANÁLISIS DE IA -->
-  <div id="modal-ia" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card bg-gray-900 border border-gray-700 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
-      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-        <div class="flex items-center gap-2">
-          <div class="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-lg">
-            <i class="fa-solid fa-robot"></i>
-          </div>
-          <div>
-            <h3 class="text-base font-bold text-white" id="modal-ia-title">Auditoría del Asistente</h3>
-            <p class="text-xs text-emerald-400" id="modal-ia-badge">Algoritmo Cuantitativo</p>
-          </div>
-        </div>
-        <button onclick="cerrarModalIA()" class="text-gray-400 hover:text-white p-2">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <div class="flex-1 overflow-y-auto space-y-4 pr-1 text-sm text-gray-300" id="modal-ia-content">
-        <!-- Contenido generado por IA -->
-      </div>
-
-      <div class="border-t border-gray-800 pt-3 flex justify-between items-center">
-        <span class="text-xs text-gray-500">Decisión respaldada por gestión matemática</span>
-        <button onclick="cerrarModalIA()" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-semibold transition">
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: AJUSTES Y TELEGRAM -->
-  <div id="modal-config" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="glass-card bg-gray-900 border border-gray-700 rounded-2xl max-w-lg w-full p-6 space-y-5">
-      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-sliders text-emerald-400"></i> Configuración de Asistente & Bot
-        </h3>
-        <button onclick="cerrarConfigModal()" class="text-gray-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
-      </div>
-
-      <div class="space-y-4 text-xs">
-        <div>
-          <label class="block text-gray-300 font-semibold mb-1">Telegram Bot Token:</label>
-          <input type="text" id="cfg-telegram-token" placeholder="Ej: 123456789:ABCdefGhIJKlmNoPQRsTUV..." 
-                 class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:border-emerald-500">
-          <p class="text-[11px] text-gray-500 mt-1">Obtenlo gratis hablando con @BotFather en Telegram.</p>
-        </div>
-
-        <div>
-          <label class="block text-gray-300 font-semibold mb-1">Telegram Chat ID (Tu usuario o Grupo):</label>
-          <div class="flex gap-2">
-            <input type="text" id="cfg-telegram-chat" placeholder="Ej: -100123456789 (o pulsa Autodetectar)" 
-                   class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:border-emerald-500">
-            <button onclick="autodetectarGrupo()" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold flex items-center gap-1.5 transition" title="Detecta el ID del grupo automáticamente">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Autodetectar
-            </button>
-            <button onclick="probarTelegram()" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold flex items-center gap-1.5 transition">
-              <i class="fa-paper-plane fa-solid"></i> Probar
-            </button>
-          </div>
-          <p class="text-[11px] text-gray-500 mt-1">Mete tu bot a tu grupo de Telegram, escribe "Hola" en el grupo y pulsa <b>Autodetectar</b>.</p>
-        </div>
-
-        <div>
-          <label class="block text-gray-300 font-semibold mb-1">Google Gemini API Key (Opcional):</label>
-          <input type="password" id="cfg-gemini-key" placeholder="AIzaSy..." 
-                 class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:border-emerald-500">
-          <p class="text-[11px] text-gray-500 mt-1">Si la colocas, el asistente usará IA generativa para leer reglas y noticias de cada mercado.</p>
-        </div>
-
-        <div id="cfg-status-msg" class="hidden p-2 rounded text-center text-xs"></div>
-      </div>
-
-      <div class="border-t border-gray-800 pt-4 flex justify-end gap-2">
-        <button onclick="cerrarConfigModal()" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 font-medium text-xs">
-          Cancelar
-        </button>
-        <button onclick="guardarConfig()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition">
-          Guardar Configuración
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCRIPT CLIENTE -->
   <script>
-    let todasLasOportunidades = [];
-    let categoriaActiva = 'todos';
-    let tarjetasFijadas = {}; // Mapa id -> objeto oportunidad fijada
+    let oportunidadesCruzadas = [];
+    let totalParesComparados = 0;
+    let filtroActivo = 'todos';
+    let tarjetasFijadas = {};
+    let autoConfirmBC = false; // OFF por defecto para máxima seguridad
 
-    // --- MOTOR DE AUDITORÍA HONESTA EN DÓLARES REALES ($0.50/TIRO) ---
-    const JUEGOS_INFO = {
-      futbolreal:  { nombre: 'Fútbol Real', icono: '⚽🏆', color: 'text-lime-300',    border: 'border-lime-400/40' },
-      esoccer:     { nombre: 'eSoccer',     icono: '⚽🤖', color: 'text-emerald-400', border: 'border-emerald-500/40' },
-      ebasketball: { nombre: 'eBasketball', icono: '🏀🤖', color: 'text-orange-400',  border: 'border-orange-500/40' },
-      epenalty:    { nombre: 'ePenalty',    icono: '🥅🤖', color: 'text-yellow-300',  border: 'border-yellow-400/40' },
-      efighting:   { nombre: 'eFighting',   icono: '🥊🤖', color: 'text-red-400',     border: 'border-red-500/40' },
-      etennis:     { nombre: 'eTennis',     icono: '🎾🤖', color: 'text-purple-400',  border: 'border-purple-500/40' },
-      basket:      { nombre: 'Basket NBA',  icono: '🏀',   color: 'text-blue-400',    border: 'border-blue-500/40' },
-      hockey:      { nombre: 'Hockey NHL',  icono: '🏒',   color: 'text-cyan-300',    border: 'border-cyan-400/40' }
+    // Diccionario de alias para emparejar nombres cortos de Polymarket con nombres completos de BC.GAME
+    const STOP_WORDS_EQUIPOS = new Set([
+      'fc', 'sc', 'cf', 'afc', 'ac', 'as', 'bc', 'club', 'the', 'de', 'del', 'la', 'el',
+      'united', 'city', 'sporting', 'real', 'athletic', 'sv', 'bv', 'vfl', 'fsv', 'tsg', 'rb'
+    ]);
+
+    const ALIAS_EQUIPOS = {
+      'utah': ['utah', 'mammoth', 'hockey'],
+      'montreal': ['canadiens', 'montreal'],
+      'canadiens': ['canadiens', 'montreal'],
+      'calgary': ['flames', 'calgary'],
+      'st. louis': ['blues', 'louis'],
+      'ny rangers': ['rangers'],
+      'ny islanders': ['islanders'],
+      'la kings': ['kings'],
+      'la clippers': ['clippers'],
+      'la lakers': ['lakers'],
+      'okc': ['thunder', 'oklahoma'],
+      'wolves': ['timberwolves', 'wolverhampton', 'wolves'],
+      'spurs': ['spurs', 'tottenham', 'antonio'],
+      'psg': ['paris', 'germain'],
+      'inter': ['internazionale', 'inter'],
+      'gladbach': ['monchengladbach', 'gladbach']
     };
 
-    let statsPorJuego = {};
-    let statsPorTorneo = {};
-    let idsYaContados = {};
-    let colaAuditoria = {}; // Solo partidas O/U verificables por marcador real
-    let autoDescartarActivo = true;
-    let modoContraCebo = false; // false = Francotirador (+EV en vivo), true = Contra-Cebo BC (voltear el 1.65 -> ~2.05x)
-    let autoConfirmBC = true;
-    let comboTamanoBC = 3;
-    let comboManualMap = {}; // Mapa id -> objeto oportunidad seleccionada manualmente para combo
-    let combosFijados = {};  // Mapa comboId -> boleto completo con sus N jugadas y estado WIN/LOSS
-    let statsCombos = { wins: 0, losses: 0, contados: {} };
-
-    function cargarCombosLocales() {
-      try {
-        const raw = localStorage.getItem('polyedge_combos_fijados_v1');
-        if (raw) combosFijados = JSON.parse(raw) || {};
-        const rawSt = localStorage.getItem('polyedge_stats_combos_v1');
-        if (rawSt) statsCombos = JSON.parse(rawSt) || { wins: 0, losses: 0, contados: {} };
-      } catch (e) {
-        combosFijados = {};
+    function normalizarTokensEquipo(nombre) {
+      const limpio = (nombre || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .trim();
+      const partes = limpio.split(/\s+/).filter(w => w.length >= 3 && !STOP_WORDS_EQUIPOS.has(w));
+      const set = new Set(partes.length > 0 ? partes : limpio.split(/\s+/).filter(Boolean));
+      for (const [k, extras] of Object.entries(ALIAS_EQUIPOS)) {
+        if (limpio.includes(k)) extras.forEach(e => set.add(e));
       }
-      actualizarBadgeRecordCombos();
-      renderizarCombosFijados();
+      return set;
     }
 
-    function guardarCombosLocales() {
-      try {
-        localStorage.setItem('polyedge_combos_fijados_v1', JSON.stringify(combosFijados));
-        localStorage.setItem('polyedge_stats_combos_v1', JSON.stringify(statsCombos));
-      } catch (e) {}
-      actualizarBadgeRecordCombos();
-      renderizarCombosFijados();
-    }
-
-    function actualizarBadgeRecordCombos() {
-      const el = document.getElementById('combo-record-badge');
-      if (!el) return;
-      const w = statsCombos.wins || 0;
-      const l = statsCombos.losses || 0;
-      const tot = w + l;
-      const wr = tot > 0 ? ` (${Math.round((w / tot) * 100)}%)` : '';
-      el.innerHTML = `🎟️ Combos: <b class="text-emerald-400">${w}W</b> - <b class="text-red-400">${l}L</b>${wr}`;
-    }
-
-    function quitarComboFijado(comboId) {
-      delete combosFijados[comboId];
-      guardarCombosLocales();
-    }
-
-    function recalcularEstadoDeUnCombo(boleto) {
-      if (!boleto || !Array.isArray(boleto.legs)) return;
-      let ganadas = 0;
-      let perdidas = 0;
-      boleto.legs.forEach(leg => {
-        // Sincronizar también si esa misma jugada está en tarjetasFijadas o en todasLasOportunidades
-        const fij = tarjetasFijadas[leg.id];
-        if (fij && (fij.estado_resultado === 'WIN' || fij.estado_resultado === 'LOSS')) {
-          leg.estado_resultado = fij.estado_resultado;
-          leg.ultimo_marcador = fij.ultimo_marcador || leg.ultimo_marcador;
-        }
-        if (leg.estado_resultado === 'WIN' || leg.probability >= 98.5) {
-          leg.estado_resultado = 'WIN';
-          ganadas += 1;
-        } else if (leg.estado_resultado === 'LOSS') {
-          perdidas += 1;
-        }
-      });
-
-      boleto.ganadas = ganadas;
-      boleto.perdidas = perdidas;
-
-      // En un Combo: si falla 1 sola jugada ya se pierde el combo; si ganan TODAS se gana el combo
-      if (perdidas > 0) {
-        boleto.estado_combo = 'LOSS';
-        if (!statsCombos.contados[boleto.id]) {
-          statsCombos.contados[boleto.id] = 'LOSS';
-          statsCombos.losses = (statsCombos.losses || 0) + 1;
-        }
-      } else if (ganadas === boleto.legs.length && boleto.legs.length > 0) {
-        boleto.estado_combo = 'WIN';
-        if (!statsCombos.contados[boleto.id]) {
-          statsCombos.contados[boleto.id] = 'WIN';
-          statsCombos.wins = (statsCombos.wins || 0) + 1;
-        }
-      } else {
-        boleto.estado_combo = 'EN_JUEGO';
-      }
-    }
-
-    function renderizarCombosFijados() {
-      const seccion = document.getElementById('seccion-combos-fijados');
-      const cont = document.getElementById('contenedor-combos-fijados');
-      if (!seccion || !cont) return;
-
-      const lista = Object.values(combosFijados).sort((a, b) => (b.creado_ts || 0) - (a.creado_ts || 0));
-      if (lista.length === 0) {
-        seccion.classList.add('hidden');
-        cont.innerHTML = '';
-        return;
-      }
-
-      seccion.classList.remove('hidden');
-      cont.innerHTML = lista.map(boleto => {
-        recalcularEstadoDeUnCombo(boleto);
-        const totalLegs = boleto.legs.length;
-        const ganadas = boleto.ganadas || 0;
-        const perdidas = boleto.perdidas || 0;
-        const pctAvance = totalLegs > 0 ? Math.round((ganadas / totalLegs) * 100) : 0;
-        const cobroTotal = (boleto.stake * boleto.cuota_total).toFixed(2);
-        const gananciaLimpia = (boleto.stake * boleto.cuota_total - boleto.stake).toFixed(2);
-
-        let borderClase = 'border-2 border-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.22)]';
-        let bannerEstado = `
-          <div class="mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/50 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span class="text-amber-200 font-bold">⏳ COMBO EN JUEGO: <b>${ganadas} de ${totalLegs}</b> acertadas</span>
-            <span class="text-gray-200">Monto: <b>$${boleto.stake}</b> · Cuota: <b class="text-amber-300">${boleto.cuota_total.toFixed(2)}x</b> ➔ Cobras <b class="text-emerald-300">$${cobroTotal}</b></span>
-          </div>
-        `;
-        let labelSwitch = `📌 Combo (${ganadas}/${totalLegs})`;
-
-        if (boleto.estado_combo === 'WIN') {
-          borderClase = 'border-2 border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.45)]';
-          labelSwitch = '🏆 ¡COMBO WIN!';
-          bannerEstado = `
-            <div class="mb-3 p-3 rounded-xl bg-gradient-to-r from-emerald-600/40 to-teal-500/40 border-2 border-emerald-400 text-center shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse">
-              <div class="text-base font-black text-emerald-300 tracking-wide">🏆 ¡COMBO GANADO! (${totalLegs}/${totalLegs} ACERTADAS)</div>
-              <div class="text-xs text-white mt-0.5">Apostaste <b>$${boleto.stake}</b> a Cuota <b>${boleto.cuota_total.toFixed(2)}x</b> ➔ ¡Cobras <b>$${cobroTotal}</b> (+$${gananciaLimpia} limpios)! · Apaga el switch para quitarlo</div>
-            </div>
-          `;
-        } else if (boleto.estado_combo === 'LOSS') {
-          borderClase = 'border-2 border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.25)]';
-          labelSwitch = '❌ Combo Perdido';
-          bannerEstado = `
-            <div class="mb-3 p-2.5 rounded-xl bg-red-950/70 border border-red-500 text-center">
-              <div class="text-sm font-extrabold text-red-300">❌ COMBO PERDIDO (${perdidas} fallada · ${ganadas}/${totalLegs} acertadas)</div>
-              <div class="text-[11px] text-gray-300 mt-0.5">En un combo todas deben ganar. Apaga el switch arriba a la derecha para quitar este boleto.</div>
-            </div>
-          `;
-        }
-
-        const filasLegs = boleto.legs.map((leg, idx) => {
-          let iconoLeg = '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">🔴 EN JUEGO</span>';
-          if (leg.estado_resultado === 'WIN') {
-            iconoLeg = '<span class="px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 font-extrabold text-[10px]">✅ GANADA</span>';
-          } else if (leg.estado_resultado === 'LOSS') {
-            iconoLeg = '<span class="px-2 py-0.5 rounded bg-red-500/25 text-red-300 border border-red-500/40 font-extrabold text-[10px]">❌ PERDIDA</span>';
-          }
-          const tituloCorto = (leg.question || '').split('(')[0].trim();
-          const marcTxt = leg.ultimo_marcador ? `[${leg.ultimo_marcador}]` : '';
-          return `
-            <div class="p-2 rounded-lg bg-gray-900/90 border border-gray-800 flex items-center justify-between gap-2 text-xs">
-              <div class="min-w-0 flex-1">
-                <div class="font-bold text-white truncate">${idx + 1}. ${tituloCorto} <span class="text-amber-300 font-mono">${marcTxt}</span></div>
-                <div class="text-[11px] text-gray-400 truncate">👉 ${leg.outcome}</div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                ${iconoLeg}
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        return `
-          <div class="glass-card rounded-xl p-4 ${borderClase} flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between gap-2 mb-2.5">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50">
-                    🎟️ BOLETO COMBO ${totalLegs}X · ${boleto.hora_creado || ''}
-                  </span>
-                </div>
-                <button onclick="quitarComboFijado('${boleto.id}')" class="flex items-center gap-2 px-2.5 py-1 rounded-full border transition cursor-pointer ${boleto.estado_combo === 'WIN' ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200' : (boleto.estado_combo === 'LOSS' ? 'bg-red-600/30 border-red-400 text-red-200' : 'bg-amber-600/30 border-amber-400 text-amber-200')}" title="Apaga el switch para quitar este Combo de la pantalla">
-                  <span class="text-[11px] font-bold">${labelSwitch}</span>
-                  <div class="w-8 h-4 rounded-full relative transition ${boleto.estado_combo === 'LOSS' ? 'bg-red-500' : 'bg-emerald-500'}">
-                    <div class="w-3 h-3 bg-white rounded-full absolute top-0.5 right-0.5"></div>
-                  </div>
-                </button>
-              </div>
-
-              ${bannerEstado}
-
-              <!-- BARRA DE PROGRESO DEL COMBO -->
-              <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
-                <div class="h-full transition-all duration-300 ${boleto.estado_combo === 'LOSS' ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${boleto.estado_combo === 'LOSS' ? 100 : pctAvance}%"></div>
-              </div>
-
-              <!-- LISTA DE LAS JUGADAS QUE COMPONEN ESTE COMBO -->
-              <div class="space-y-1.5">
-                ${filasLegs}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleAutoConfirmBC() {
-      autoConfirmBC = !autoConfirmBC;
-      actualizarBotonAutoConfirmBC();
-      guardarFiltrosLocales();
-    }
-
-    function actualizarBotonAutoConfirmBC() {
-      const btn = document.getElementById('btn-autoconfirm-bc');
-      if (!btn) return;
-      if (autoConfirmBC) {
-        btn.className = 'ml-1 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px] transition';
-        btn.innerText = 'AUTO: ON';
-      } else {
-        btn.className = 'ml-1 px-2 py-0.5 rounded bg-gray-700 text-gray-300 font-bold text-[11px] transition';
-        btn.innerText = 'AUTO: OFF';
-      }
-    }
-
-    function seleccionarTamanoCombo(n) {
-      comboTamanoBC = n;
-      [2, 3, 4, 5].forEach(num => {
-        const b = document.getElementById('btn-combo-size-' + num);
-        if (!b) return;
-        if (num === n) {
-          b.className = 'px-2.5 py-1 rounded font-bold transition cursor-pointer bg-amber-500 text-gray-950';
-        } else {
-          b.className = 'px-2.5 py-1 rounded font-bold transition cursor-pointer bg-gray-800 text-gray-300 hover:bg-gray-700';
-        }
-      });
-      const txtAuto = document.getElementById('txt-btn-combo-auto');
-      if (txtAuto) txtAuto.innerText = `Auto-Armar Top ${n} en BC`;
-      guardarFiltrosLocales();
-      actualizarVistaComboBC();
-    }
-
-    function obtenerCandidatasComboAuto(cantidadObjetivo) {
-      // Filtrar jugadas de PlayBC válidas, de partidos distintos, priorizando mejor efectividad y buen margen de tiempo
-      const vistasEid = new Set();
-      const candidatas = todasLasOportunidades.filter(o => {
-        if (!o.es_playbc || !o.bc_eid || !o.link) return false;
-        if (esJuegoOPartidaDescartada(o)) return false;
-        const fij = tarjetasFijadas[o.id];
-        if (fij && (fij.estado_resultado === 'WIN' || fij.estado_resultado === 'LOSS')) return false;
-        // Evitar cuotas >91% en Combos porque suelen estar en el último minuto del partido y se bloquean con candado al instante
-        if (o.probability > 91.5) return false;
-        return true;
-      });
-
-      // Ordenar con puntaje inteligente para Combos
-      candidatas.sort((a, b) => {
-        const scoreCombo = (item) => {
-          let s = item.probability; // base 60..94
-          const st = statsPorJuego[item.categoria || 'esoccer'] || { wins: 0, losses: 0 };
-          const tot = (st.wins || 0) + (st.losses || 0);
-          if (tot >= 2) {
-            const wr = (st.wins / tot) * 100;
-            if (wr >= 75) s += 8;
-            else if (wr < 50) s -= 12;
-          }
-          // Preferir ligeramente partidos que no estén por terminar en segundos
-          const tb = (item.tiempo_bc_badge || '').toLowerCase();
-          if (!item.en_vivo_ahora) s += 5; // Próximo a empezar = línea muy estable para armar combo
-          else if (tb.includes('1ª parte') || tb.includes('1º cuarto') || tb.includes('2º cuarto') || tb.includes('set 1') || tb.includes('round 1')) s += 4;
-          else if (tb.includes('4º cuarto') || tb.includes('2ª parte')) s -= 3;
-          return s;
-        };
-        return scoreCombo(b) - scoreCombo(a);
-      });
-
-      const elegidas = [];
-      for (const op of candidatas) {
-        if (vistasEid.has(op.bc_eid)) continue;
-        vistasEid.add(op.bc_eid);
-        elegidas.push(op);
-        if (elegidas.length >= cantidadObjetivo + 4) break; // +4 respaldos por si alguna tiene candado mientras carga
-      }
-      return elegidas;
-    }
-
-    function toggleSeleccionComboManual(opId) {
-      if (comboManualMap[opId]) {
-        delete comboManualMap[opId];
-      } else {
-        const op = tarjetasFijadas[opId] || todasLasOportunidades.find(o => o.id === opId);
-        if (!op || !op.es_playbc) return;
-        // En BC.GAME no se pueden combinar 2 jugadas del mismo partido; si ya había otra del mismo bc_eid, reemplazarla
-        for (const [k, v] of Object.entries(comboManualMap)) {
-          if (v.bc_eid && v.bc_eid === op.bc_eid) {
-            delete comboManualMap[k];
-          }
-        }
-        comboManualMap[opId] = JSON.parse(JSON.stringify(op));
-      }
-      actualizarVistaComboBC();
-      renderizarTarjetas();
-    }
-
-    function limpiarComboManualBC() {
-      comboManualMap = {};
-      actualizarVistaComboBC();
-      renderizarTarjetas();
-    }
-
-    function actualizarVistaComboBC() {
-      const badge = document.getElementById('combo-preview-badge');
-      const detail = document.getElementById('combo-preview-detail');
-      const contManual = document.getElementById('contenedor-combo-manual');
-      const txtManual = document.getElementById('txt-btn-combo-manual');
-      const stakeEl = document.getElementById('bc-combo-stake');
-      const stake = stakeEl ? (parseFloat(stakeEl.value) || 2) : 2;
-
-      const manuales = Object.values(comboManualMap);
-      if (manuales.length > 0) {
-        if (contManual) {
-          contManual.classList.remove('hidden');
-          contManual.classList.add('flex');
-        }
-        const cuotaTotal = manuales.reduce((acc, o) => acc * (parseFloat(o.cuota_bc) || 1.25), 1);
-        const cobroEst = (stake * cuotaTotal).toFixed(2);
-        if (txtManual) txtManual.innerText = `Enviar Mi Combo (${manuales.length}) a BC`;
-        if (badge) {
-          badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-emerald-200 border border-emerald-400';
-          badge.innerText = `🎯 Tu Selección (${manuales.length}) · Cuota Total: ${cuotaTotal.toFixed(2)}x ➔ Cobras $${cobroEst}`;
-        }
-        if (detail) {
-          const nombres = manuales.map(m => m.question.split('(')[0].trim()).join(' + ');
-          detail.innerHTML = `Jugadas elegidas por ti: <b class="text-emerald-300">${nombres}</b> ${manuales.length < 2 ? '— <span class="text-amber-300">(Marca al menos 2 tarjetas para armar combo)</span>' : ''}`;
-        }
-        return;
-      } else if (contManual) {
-        contManual.classList.add('hidden');
-        contManual.classList.remove('flex');
-      }
-
-      const autos = obtenerCandidatasComboAuto(comboTamanoBC).slice(0, comboTamanoBC);
-      if (autos.length >= 2) {
-        const cuotaAuto = autos.reduce((acc, o) => acc * (parseFloat(o.cuota_bc) || 1.25), 1);
-        const cobroAuto = (stake * cuotaAuto).toFixed(2);
-        if (badge) {
-          badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/50';
-          badge.innerText = `⚡ Top ${autos.length} Listo · Cuota Multiplicada: ~${cuotaAuto.toFixed(2)}x ➔ Con $${stake} cobras ~$${cobroAuto}`;
-        }
-        if (detail) {
-          const resumen = autos.map(a => `${a.question.split('vs.')[0].trim()} (${a.cuota_bc})`).join(' · ');
-          detail.innerHTML = `Selección sugerida ahora: <span class="text-gray-200 font-semibold">${resumen}</span> — o usa <b>+ Combo</b> en las tarjetas que prefieras.`;
-        }
-      } else {
-        if (badge) {
-          badge.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-400 border border-gray-700';
-          badge.innerText = `Esperando ${comboTamanoBC} partidas de BC.GAME...`;
-        }
-      }
-    }
-
-    function abrirColaComboEnBC(listaOps, cantidadMeta) {
-      if (!listaOps || listaOps.length < 2) {
-        alert('Se necesitan al menos 2 jugadas de distintos partidos de BC.GAME para armar un Combo.');
-        return;
-      }
-
-      const stakeEl = document.getElementById('bc-combo-stake');
-      const stake = stakeEl ? (parseFloat(stakeEl.value) || 2) : 2;
-      const cidStr = String(Date.now());
-
-      // Crear el Boleto de Combo unificado arriba de todo para ver en vivo cuántas van ganando y si el Combo hizo WIN o LOSS
-      const legsPrincipales = listaOps.slice(0, cantidadMeta).map(op => {
-        const c = JSON.parse(JSON.stringify(op));
-        c.estado_resultado = 'EN_JUEGO';
-        return c;
-      });
-      const cuotaMultiplicada = legsPrincipales.reduce((acc, o) => acc * (parseFloat(o.cuota_bc) || 1.25), 1);
-      const ahora = new Date();
-      const horaTxt = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      combosFijados['combo_' + cidStr] = {
-        id: 'combo_' + cidStr,
-        creado_ts: Date.now(),
-        hora_creado: horaTxt,
-        stake: stake,
-        cuota_total: cuotaMultiplicada,
-        estado_combo: 'EN_JUEGO',
-        ganadas: 0,
-        perdidas: 0,
-        legs: legsPrincipales
-      };
-      guardarCombosLocales();
-      renderizarTarjetas();
-
-      const compactQueue = listaOps.map(op => {
-        let relPath = op.link;
-        try {
-          const uObj = new URL(op.link);
-          relPath = uObj.pathname;
-        } catch (e) {}
-        return {
-          eid: String(op.bc_eid || ''),
-          u: relPath,
-          t: op.tipo_ou || 'WIN',
-          l: op.linea_ou !== undefined ? String(op.linea_ou) : '',
-          o: String(op.bc_outid || ''),
-          k: String(op.cuota_bc || ''),
-          e: (op.outcome || '').split('(Cuota')[0].trim()
-        };
-      });
-
-      const encodedQueue = btoa(unescape(encodeURIComponent(JSON.stringify(compactQueue))));
-      const hashParams = new URLSearchParams({
-        polyedge_combo: '1',
-        cid: cidStr,
-        target: String(cantidadMeta),
-        stake: String(stake),
-        q: encodedQueue
-      });
-
-      const primeraUrl = `${listaOps[0].link}#${hashParams.toString()}`;
-      window.open(primeraUrl, '_blank');
-    }
-
-    function lanzarComboAutomaticoBC() {
-      const candidatas = obtenerCandidatasComboAuto(comboTamanoBC);
-      if (candidatas.length < 2) {
-        alert('En este momento hay menos de 2 partidas activas en BC.GAME con tus filtros actuales. Prueba bajando un poco la Probabilidad Mínima.');
-        return;
-      }
-      const meta = Math.min(comboTamanoBC, candidatas.length);
-      abrirColaComboEnBC(candidatas, meta);
-    }
-
-    function lanzarComboManualBC() {
-      const seleccionadas = Object.values(comboManualMap);
-      if (seleccionadas.length < 2) {
-        alert('Marca al menos 2 tarjetas diferentes usando el botón "+ Combo" para armar tu combinada.');
-        return;
-      }
-      abrirColaComboEnBC(seleccionadas, seleccionadas.length);
-    }
-
-    function abrirAutoApuestaBC(opId) {
-      const op = tarjetasFijadas[opId] || todasLasOportunidades.find(o => o.id === opId);
-      if (!op) return;
-
-      // 1. Fijar automáticamente la tarjeta con el Switch para hacerle seguimiento de WIN
-      if (!tarjetasFijadas[opId]) {
-        toggleSwitchFijar(opId);
-      }
-
-      // 2. Construir enlace con los parámetros de Auto-Apuesta para la extensión de Chrome
-      const stakeEl = document.getElementById('bc-stake-amount');
-      const stake = stakeEl ? (parseFloat(stakeEl.value) || 1) : 1;
-      const hashParams = new URLSearchParams({
-        polyedge_auto: '1',
-        tipo: op.tipo_ou || 'WIN',
-        linea: op.linea_ou !== undefined ? String(op.linea_ou) : '',
-        outid: op.bc_outid || '',
-        spec: op.bc_spec || '',
-        cuota: String(op.cuota_bc || ''),
-        contra: op.es_contra_cebo ? '1' : '0',
-        equipo: op.outcome || '',
-        stake: String(stake),
-        autoconfirm: autoConfirmBC ? '1' : '0'
-      });
-
-      const targetUrl = `${op.link}#${hashParams.toString()}`;
-      window.open(targetUrl, '_blank');
-    }
-
-    function abrirAutoSeleccionPolymarket(opId) {
-      const op = tarjetasFijadas[opId] || todasLasOportunidades.find(o => o.id === opId);
-      if (!op || !op.link) return;
-
-      // 1. Fijar automáticamente la tarjeta para seguir su resultado WIN en PolyEdge
-      if (!tarjetasFijadas[opId]) {
-        toggleSwitchFijar(opId);
-      }
-
-      // 2. Extraer línea exacta O/U (ej. "4.5" o "224.5") y lado (OVER / UNDER)
-      const qTxt = op.question || '';
-      const mLinea = qTxt.match(/O\/U\s*(\d+(?:\.\d+)?)/i) || qTxt.match(/(\d+\.\d+)/);
-      const lineaStr = mLinea ? mLinea[1] : '';
-      const outLow = (op.outcome || '').trim().toLowerCase();
-      const sideStr = (outLow === 'under' || outLow === 'no' || outLow.includes('menos')) ? 'UNDER' : 'OVER';
-      const cents = String(op.centavos || Math.round((op.price || 0) * 100));
-
-      const hashParams = new URLSearchParams({
-        polyedge_poly: '1',
-        ts: String(Date.now()),
-        linea: lineaStr,
-        side: sideStr,
-        outcome: op.outcome || '',
-        cents: cents,
-        q: qTxt
-      });
-
-      const targetUrl = `${op.link}#${hashParams.toString()}`;
-      window.open(targetUrl, '_blank');
-    }
-
-    function toggleModoContraCebo() {
-      modoContraCebo = !modoContraCebo;
-      actualizarBotonModoEstrategia();
-      guardarFiltrosLocales();
-      escanearMercados(false);
-    }
-
-    function actualizarBotonModoEstrategia() {
-      const btn = document.getElementById('btn-modo-estrategia');
-      const txt = document.getElementById('txt-modo-estrategia');
-      if (!btn || !txt) return;
-      if (modoContraCebo) {
-        btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-500/20 text-amber-200 text-xs font-extrabold transition cursor-pointer shadow-[0_0_12px_rgba(251,191,36,0.3)]';
-        txt.innerText = '🔄 Modo: Contra-Cebo BC (~2.05x)';
-      } else {
-        btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cyan-500/50 bg-cyan-500/15 text-cyan-200 text-xs font-bold transition cursor-pointer';
-        txt.innerText = '🛡️ Modo: Francotirador (+EV)';
-      }
-    }
-
-    function inicializarEstructuraStats() {
-      Object.keys(JUEGOS_INFO).forEach(k => {
-        if (!statsPorJuego[k]) statsPorJuego[k] = { wins: 0, losses: 0, racha_loss: 0, pnl_usd: 0 };
-        if (typeof statsPorJuego[k].pnl_usd !== 'number') statsPorJuego[k].pnl_usd = 0;
-      });
-    }
-
-    async function cargarEstadisticasAprendizaje() {
-      try {
-        const raw = localStorage.getItem('polyedge_stats_v2_real_usd');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          statsPorJuego = parsed.statsPorJuego || {};
-          statsPorTorneo = parsed.statsPorTorneo || {};
-          idsYaContados = parsed.idsYaContados || {};
-          colaAuditoria = parsed.colaAuditoria || {};
-          if (typeof parsed.autoDescartarActivo === 'boolean') {
-            autoDescartarActivo = parsed.autoDescartarActivo;
-          }
-        }
-        const totalLocal = Object.values(statsPorJuego).reduce((a, b) => a + (b.wins || 0) + (b.losses || 0), 0);
-        if (totalLocal === 0) {
-          const resp = await fetch('/api/stats');
-          if (resp.ok) {
-            const srv = await resp.json();
-            if (srv && srv.version === 2 && srv.statsPorJuego) {
-              statsPorJuego = srv.statsPorJuego;
-              statsPorTorneo = srv.statsPorTorneo || {};
-              idsYaContados = srv.idsYaContados || {};
-            }
-          }
-        }
-      } catch (e) {}
-      inicializarEstructuraStats();
-      actualizarBotonAutoDescartar();
-      actualizarBotonModoEstrategia();
-      renderizarPanelEfectividad();
-    }
-
-    function guardarEstadisticasAprendizaje() {
-      try {
-        const keysIds = Object.keys(idsYaContados);
-        if (keysIds.length > 400) {
-          keysIds.slice(0, 150).forEach(k => delete idsYaContados[k]);
-        }
-        const payload = {
-          version: 2,
-          statsPorJuego,
-          statsPorTorneo,
-          idsYaContados,
-          colaAuditoria,
-          autoDescartarActivo
-        };
-        localStorage.setItem('polyedge_stats_v2_real_usd', JSON.stringify(payload));
-        fetch('/api/stats', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ version: 2, statsPorJuego, statsPorTorneo, idsYaContados })
-        }).catch(() => {});
-      } catch (e) {}
-      renderizarPanelEfectividad();
-    }
-
-    function registrarResultadoPrediccion(op, resultado) {
-      if (!op || !op.id || idsYaContados[op.id]) return;
-      if (resultado !== 'WIN' && resultado !== 'LOSS') return;
-
-      const cat = op.categoria || 'esoccer';
-      if (!statsPorJuego[cat]) statsPorJuego[cat] = { wins: 0, losses: 0, racha_loss: 0, pnl_usd: 0 };
-
-      // Calcular ganancia o pérdida REAL en dólares con tiro base de $0.50 USD a la cuota original de entrada
-      const stakeBase = 0.50;
-      const cuotaEntrada = parseFloat(op.entry_cuota || op.cuota_bc || (op.price > 0 ? (1.0 / op.price) : 1.30)) || 1.30;
-      const deltaUsd = (resultado === 'WIN')
-        ? parseFloat((stakeBase * (cuotaEntrada - 1.0)).toFixed(3))
-        : -stakeBase;
-
-      idsYaContados[op.id] = resultado;
-      if (resultado === 'WIN') {
-        statsPorJuego[cat].wins += 1;
-        statsPorJuego[cat].racha_loss = 0;
-      } else {
-        statsPorJuego[cat].losses += 1;
-        statsPorJuego[cat].racha_loss = (statsPorJuego[cat].racha_loss || 0) + 1;
-      }
-      statsPorJuego[cat].pnl_usd = parseFloat(((statsPorJuego[cat].pnl_usd || 0) + deltaUsd).toFixed(3));
-
-      if (op.sub_torneo) {
-        const tKey = `${cat}_${op.sub_torneo}`;
-        if (!statsPorTorneo[tKey]) statsPorTorneo[tKey] = { wins: 0, losses: 0, racha_loss: 0, pnl_usd: 0 };
-        if (resultado === 'WIN') {
-          statsPorTorneo[tKey].wins += 1;
-          statsPorTorneo[tKey].racha_loss = 0;
-        } else {
-          statsPorTorneo[tKey].losses += 1;
-          statsPorTorneo[tKey].racha_loss = (statsPorTorneo[tKey].racha_loss || 0) + 1;
-        }
-        statsPorTorneo[tKey].pnl_usd = parseFloat(((statsPorTorneo[tKey].pnl_usd || 0) + deltaUsd).toFixed(3));
-      }
-
-      delete colaAuditoria[op.id];
-      guardarEstadisticasAprendizaje();
-    }
-
-    function esJuegoOPartidaDescartada(op) {
-      if (!autoDescartarActivo) return false;
-      const cat = op.categoria || 'esoccer';
-      const st = statsPorJuego[cat];
-      if (st) {
-        const tot = (st.wins || 0) + (st.losses || 0);
-        const pnl = st.pnl_usd || 0;
-        // CRITERIO REAL EN DÓLARES: si tras 4+ tiros ese juego va perdiendo más de -$0.55 USD (aunque tenga 75% acierto), se descarta!
-        if ((tot >= 4 && pnl <= -0.55) || (st.racha_loss >= 2 && (st.wins || 0) === 0)) {
-          return true;
-        }
-      }
-      if (op.sub_torneo) {
-        const tst = statsPorTorneo[`${cat}_${op.sub_torneo}`];
-        if (tst) {
-          const tTot = (tst.wins || 0) + (tst.losses || 0);
-          const tPnl = tst.pnl_usd || 0;
-          if ((tTot >= 3 && tPnl <= -0.50) || tst.racha_loss >= 2) {
-            return true;
-          }
-        }
+    function conjuntosCoinciden(setA, setB) {
+      for (const w of setA) {
+        if (setB.has(w)) return true;
       }
       return false;
     }
 
-    function toggleAutoDescartar() {
-      autoDescartarActivo = !autoDescartarActivo;
-      actualizarBotonAutoDescartar();
-      guardarEstadisticasAprendizaje();
+    function actualizarSlidersUI() {
+      document.getElementById('val-ev').innerText = parseFloat(document.getElementById('slider-ev').value).toFixed(1) + '%';
+      const d = parseInt(document.getElementById('slider-dias').value, 10);
+      document.getElementById('val-dias').innerText = d === 1 ? '1 día (Hoy / En Vivo)' : `${d} días`;
+      document.getElementById('val-prob').innerText = document.getElementById('slider-prob').value + '%';
+    }
+
+    function toggleAutoConfirmBC() {
+      autoConfirmBC = !autoConfirmBC;
+      const btn = document.getElementById('btn-autoconfirm-bc');
+      if (btn) {
+        btn.className = autoConfirmBC
+          ? 'px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[11px] transition cursor-pointer'
+          : 'px-2 py-0.5 rounded bg-gray-700 text-gray-200 font-bold text-[11px] transition cursor-pointer';
+        btn.innerText = autoConfirmBC ? 'ON (1-Clic)' : 'OFF (Seguro)';
+      }
+      guardarFiltros();
+    }
+
+    function seleccionarFiltro(f) {
+      filtroActivo = f;
+      const tabs = ['todos', 'fijadas', 'arbitraje', 'ev_bc', 'ev_poly', 'nba', 'nhl', 'futbol'];
+      tabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (!el) return;
+        if (t === filtroActivo) el.classList.add('ring-2', 'ring-white', 'scale-105');
+        else el.classList.remove('ring-2', 'ring-white', 'scale-105');
+      });
+      guardarFiltros();
       renderizarTarjetas();
     }
 
-    function actualizarBotonAutoDescartar() {
-      const btn = document.getElementById('btn-autodescartar');
-      const txt = document.getElementById('txt-autodescartar');
-      if (!btn || !txt) return;
-      if (autoDescartarActivo) {
-        btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 text-xs font-bold transition cursor-pointer';
-        txt.innerText = 'Auto-Descartar (-$): ON';
-      } else {
-        btn.className = 'flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-800 text-gray-400 text-xs font-bold transition cursor-pointer';
-        txt.innerText = 'Auto-Descartar (-$): OFF';
-      }
-    }
-
-    function reiniciarEstadisticas() {
-      statsPorJuego = {};
-      statsPorTorneo = {};
-      idsYaContados = {};
-      colaAuditoria = {};
-      inicializarEstructuraStats();
-      guardarEstadisticasAprendizaje();
-      renderizarTarjetas();
-    }
-
-    function renderizarPanelEfectividad() {
-      inicializarEstructuraStats();
-      let totalWins = 0;
-      let totalLosses = 0;
-      let totalPnlUsd = 0;
-      let mejorJuegoNombre = 'Auditando en vivo...';
-      let mejorJuegoPnl = -999;
-
-      const cont = document.getElementById('contenedor-stats-juegos');
-      const tarjetasHtml = [];
-
-      for (const [catKey, info] of Object.entries(JUEGOS_INFO)) {
-        const st = statsPorJuego[catKey] || { wins: 0, losses: 0, racha_loss: 0, pnl_usd: 0 };
-        const w = st.wins || 0;
-        const l = st.losses || 0;
-        const pnl = parseFloat((st.pnl_usd || 0).toFixed(2));
-        const tot = w + l;
-        totalWins += w;
-        totalLosses += l;
-        totalPnlUsd += pnl;
-
-        const wr = tot > 0 ? Math.round((w / tot) * 100) : null;
-        const descartado = autoDescartarActivo && ((tot >= 4 && pnl <= -0.55) || (st.racha_loss >= 2 && w === 0));
-
-        if (tot >= 1 && pnl > mejorJuegoPnl) {
-          mejorJuegoPnl = pnl;
-          const signo = pnl >= 0 ? '+' : '';
-          mejorJuegoNombre = `${info.icono} ${info.nombre} (${signo}$${pnl.toFixed(2)})`;
-        }
-
-        let badgeEstado = '<span class="text-[10px] text-gray-500">En espera</span>';
-        let colorPnl = 'text-gray-400';
-        const txtPnl = tot > 0 ? `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}` : '$0.00';
-
-        if (descartado) {
-          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 font-bold">🚫 Cortado</span>';
-          colorPnl = 'text-red-400';
-        } else if (tot > 0 && pnl > 0) {
-          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">💰 Rentable</span>';
-          colorPnl = 'text-emerald-400';
-        } else if (tot > 0 && pnl === 0) {
-          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">⚖️ Tablas</span>';
-          colorPnl = 'text-amber-300';
-        } else if (tot > 0 && pnl < 0) {
-          badgeEstado = '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-300">📉 Negativo</span>';
-          colorPnl = 'text-red-400';
-        }
-
-        tarjetasHtml.push(`
-          <div onclick="seleccionarCategoria('${catKey}')" class="p-2.5 rounded-lg bg-gray-900/90 border ${descartado ? 'border-red-500/50 opacity-60' : info.border} cursor-pointer hover:bg-gray-800/80 transition flex flex-col justify-between">
-            <div class="flex items-center justify-between gap-1 mb-1">
-              <span class="text-[11px] font-bold ${info.color} truncate">${info.icono} ${info.nombre}</span>
-              ${badgeEstado}
-            </div>
-            <div class="flex items-baseline justify-between mt-1">
-              <span class="text-sm font-black font-mono ${colorPnl}">${txtPnl}</span>
-              <span class="text-[10px] font-mono text-gray-300">
-                <b class="text-emerald-400">${w}W</b>-<b class="text-red-400">${l}L</b> ${wr !== null ? '(' + wr + '%)' : ''}
-              </span>
-            </div>
-            <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-1.5">
-              <div class="h-full ${pnl < 0 ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${wr !== null ? wr : 0}%"></div>
-            </div>
-          </div>
-        `);
-      }
-
-      if (cont) cont.innerHTML = tarjetasHtml.join('');
-
-      const globalTot = totalWins + totalLosses;
-      const globalWr = globalTot > 0 ? ((totalWins / globalTot) * 100).toFixed(1) + '%' : '--%';
-      const pnlFixed = totalPnlUsd.toFixed(2);
-      const txtGlobalPnl = `${totalPnlUsd >= 0 ? '+' : ''}$${pnlFixed}`;
-
-      const elW = document.getElementById('stat-global-wins');
-      const elL = document.getElementById('stat-global-losses');
-      const elWr = document.getElementById('stat-global-winrate');
-      const elPnl = document.getElementById('stat-global-pnl');
-      const elBest = document.getElementById('stat-best-game');
-      const elQueue = document.getElementById('stat-audit-queue');
-
-      if (elW) elW.innerText = totalWins;
-      if (elL) elL.innerText = totalLosses;
-      if (elWr) elWr.innerText = globalWr;
-      if (elPnl) {
-        elPnl.innerText = txtGlobalPnl;
-        elPnl.className = `text-2xl font-black font-mono ${totalPnlUsd > 0 ? 'text-emerald-400' : (totalPnlUsd < 0 ? 'text-red-400' : 'text-gray-200')}`;
-      }
-      if (elBest) elBest.innerText = mejorJuegoNombre;
-      if (elQueue) elQueue.innerText = `${Object.keys(colaAuditoria).length} partidas auditándose en vivo`;
-    }
-
-    function cargarFijadasLocales() {
+    function guardarFiltros() {
       try {
-        const raw = localStorage.getItem('polyedge_fijadas_v1');
-        if (raw) {
-          tarjetasFijadas = JSON.parse(raw) || {};
-        }
-      } catch (e) {
-        tarjetasFijadas = {};
-      }
-      actualizarContadorFijadas();
-    }
-
-    function guardarFijadasLocales() {
-      try {
-        localStorage.setItem('polyedge_fijadas_v1', JSON.stringify(tarjetasFijadas));
-      } catch (e) {}
-      actualizarContadorFijadas();
-    }
-
-    function actualizarContadorFijadas() {
-      const el = document.getElementById('count-fijadas');
-      if (el) el.innerText = Object.keys(tarjetasFijadas).length;
-    }
-
-    function toggleSwitchFijar(opId) {
-      if (tarjetasFijadas[opId]) {
-        // Si estaba activado el switch y lo apaga, se quita de las fijadas
-        delete tarjetasFijadas[opId];
-        guardarFijadasLocales();
-        renderizarTarjetas();
-      } else {
-        // Buscar la tarjeta en las oportunidades actuales y fijarla
-        const encontrada = todasLasOportunidades.find(o => o.id === opId);
-        if (encontrada) {
-          const copia = JSON.parse(JSON.stringify(encontrada));
-          copia.entry_centavos = copia.centavos || Math.round(copia.price * 100);
-          copia.fijada_ts = Date.now();
-          copia.estado_resultado = copia.probability >= 98.5 ? 'WIN' : 'EN_JUEGO';
-          tarjetasFijadas[opId] = copia;
-          guardarFijadasLocales();
-          renderizarTarjetas();
-          verificarEstadoFijadas();
-        }
-      }
-    }
-
-    async function verificarEstadoFijadas() {
-      const ids = Object.keys(tarjetasFijadas);
-      if (ids.length === 0) return;
-
-      let huboCambio = false;
-
-      // 1. Las partidas fijadas de BC.GAME se actualizan directamente con el snapshot de allEvs (HTTP 200) en cargarPlayBCDirecto
-      // 2. Verificar partidas fijadas de Polymarket en el servidor
-      const polyIds = ids.filter(id => !String(tarjetasFijadas[id].market_id || '').startsWith('bc_'));
-      if (polyIds.length > 0) {
-        const items = polyIds.map(id => ({
-          id: id,
-          market_id: tarjetasFijadas[id].market_id,
-          outcome: tarjetasFijadas[id].outcome
+        localStorage.setItem('polyedge_pro_filtros_v3', JSON.stringify({
+          ev: document.getElementById('slider-ev').value,
+          dias: document.getElementById('slider-dias').value,
+          prob: document.getElementById('slider-prob').value,
+          inv: document.getElementById('input-inversion').value,
+          filtro: filtroActivo,
+          autoConfirmBC: autoConfirmBC
         }));
+      } catch (e) {}
+    }
+
+    function cargarFiltros() {
+      try {
+        const raw = localStorage.getItem('polyedge_pro_filtros_v3');
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.ev !== undefined) document.getElementById('slider-ev').value = s.ev;
+          if (s.dias !== undefined) document.getElementById('slider-dias').value = s.dias;
+          if (s.prob !== undefined) document.getElementById('slider-prob').value = s.prob;
+          if (s.inv !== undefined) document.getElementById('input-inversion').value = s.inv;
+          if (typeof s.autoConfirmBC === 'boolean') {
+            autoConfirmBC = !s.autoConfirmBC;
+            toggleAutoConfirmBC();
+          }
+          if (s.filtro) seleccionarFiltro(s.filtro);
+        } else {
+          seleccionarFiltro('todos');
+        }
+      } catch (e) {}
+      actualizarSlidersUI();
+    }
+
+    function cargarFijadas() {
+      try {
+        const raw = localStorage.getItem('polyedge_pro_fijadas_v3');
+        if (raw) tarjetasFijadas = JSON.parse(raw) || {};
+      } catch (e) { tarjetasFijadas = {}; }
+      document.getElementById('count-fijadas').innerText = Object.keys(tarjetasFijadas).length;
+    }
+
+    function guardarFijadas() {
+      try {
+        localStorage.setItem('polyedge_pro_fijadas_v3', JSON.stringify(tarjetasFijadas));
+      } catch (e) {}
+      document.getElementById('count-fijadas').innerText = Object.keys(tarjetasFijadas).length;
+    }
+
+    function toggleFijar(id) {
+      if (tarjetasFijadas[id]) {
+        delete tarjetasFijadas[id];
+      } else {
+        const op = oportunidadesCruzadas.find(o => o.id === id);
+        if (op) tarjetasFijadas[id] = JSON.parse(JSON.stringify(op));
+      }
+      guardarFijadas();
+      renderizarTarjetas();
+    }
+
+    // Descarga eventos reales (sp 1 = Fútbol, sp 2 = Basket NBA, sp 4 = Hockey NHL) desde la API de BC.GAME
+    async function descargarEventosRealesBC() {
+      const allEvs = {};
+      const sports = {};
+      const categories = {};
+      const tournaments = {};
+
+      for (const mode of ['live', 'prematch']) {
         try {
-          const resp = await fetch('/api/check-pinned', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({items})
-          });
-          const data = await resp.json();
-          if (data.success && data.updates) {
-            for (const [id, info] of Object.entries(data.updates)) {
-              if (tarjetasFijadas[id]) {
-                tarjetasFijadas[id].price = info.current_price;
-                tarjetasFijadas[id].centavos = Math.round(info.current_centavos);
-                tarjetasFijadas[id].probability = info.current_probability;
-                tarjetasFijadas[id].estado_resultado = info.estado_resultado;
-                tarjetasFijadas[id].closed = info.closed;
-                if (info.estado_resultado === 'WIN' || info.estado_resultado === 'LOSS') {
-                  registrarResultadoPrediccion(tarjetasFijadas[id], info.estado_resultado);
-                }
-                huboCambio = true;
+          const base = `https://api-k-c7818b61-623.sptpub.com/api/v4/${mode}/brand/2103509236163162112/en`;
+          const r0 = await fetch(`${base}/0`);
+          const init = await r0.json();
+          const versions = [...(init.top_events_versions || []), ...(init.rest_events_versions || [])].slice(0, 7);
+          const payloads = await Promise.all(versions.map(v => fetch(`${base}/${v}`).then(r => r.json()).catch(() => ({}))));
+          for (const d of payloads) {
+            Object.assign(sports, d.sports || {});
+            Object.assign(categories, d.categories || {});
+            Object.assign(tournaments, d.tournaments || {});
+            for (const [eid, ev] of Object.entries(d.events || {})) {
+              const sp = String((ev.desc || {}).sport || '');
+              if (sp !== '1' && sp !== '2' && sp !== '4') continue;
+              if (!allEvs[eid]) {
+                ev._is_live = (mode === 'live');
+                allEvs[eid] = ev;
               }
             }
           }
         } catch (e) {}
       }
 
-      if (huboCambio) {
-        guardarFijadasLocales();
-        renderizarTarjetas();
+      // Pre-indexar por deporte con tokens normalizados para cruce ultrarrápido
+      const listaIndexada = [];
+      for (const [eid, ev] of Object.entries(allEvs)) {
+        const desc = ev.desc || {};
+        const comps = (desc.competitors || []).map(c => c.name || '');
+        if (comps.length !== 2) continue;
+        const sp = String(desc.sport || '');
+        const spSlug = (sports[sp] || {}).slug || 'soccer';
+        const cSlug = (categories[String(desc.category)] || {}).slug || 'all';
+        const tInfo = tournaments[String(desc.tournament)] || {};
+        const tSlug = tInfo.slug || 'all';
+        const evSlug = desc.slug || 'match';
+        const urlBc = `https://playbc.fun/sports/${spSlug}/${cSlug}/${tSlug}/${evSlug}-${eid}`;
+
+        listaIndexada.push({
+          eid,
+          sp,
+          esVivo: Boolean(ev._is_live),
+          scheduled: Number(desc.scheduled || 0),
+          comps,
+          tok0: normalizarTokensEquipo(comps[0]),
+          tok1: normalizarTokensEquipo(comps[1]),
+          markets: ev.markets || {},
+          score: ev.score || {},
+          urlBc
+        });
       }
+      return listaIndexada;
     }
 
-    function seleccionarCategoria(cat) {
-      categoriaActiva = cat;
-      if (cat !== 'todos' && cat !== 'fijadas') {
-        document.getElementById('filtro-texto').value = '';
-      }
-      actualizarBotonesCategoria();
-      guardarFiltrosLocales();
-      renderizarTarjetas();
-    }
-
-    function actualizarBotonesCategoria() {
-      const cats = ['todos', 'fijadas', 'futbolreal', 'esoccer', 'ebasketball', 'epenalty', 'efighting', 'etennis', 'basket', 'hockey'];
-      cats.forEach(c => {
-        const el = document.getElementById('cat-' + c);
-        if (!el) return;
-        if (c === categoriaActiva) {
-          el.classList.add('ring-2', 'ring-white', 'scale-105');
-        } else {
-          el.classList.remove('ring-2', 'ring-white', 'scale-105');
-        }
-      });
-    }
-
-    function actualizarSlider(tipo) {
-      if (tipo === 'prob') document.getElementById('val-prob').innerText = document.getElementById('slider-prob').value + '%';
-      if (tipo === 'dias') document.getElementById('val-dias').innerText = document.getElementById('slider-dias').value + ' días';
-      if (tipo === 'apr') document.getElementById('val-apr').innerText = document.getElementById('slider-apr').value + '% APR';
-    }
-
-    function guardarFiltrosLocales() {
-      try {
-        const estado = {
-          prob: document.getElementById('slider-prob').value,
-          dias: document.getElementById('slider-dias').value,
-          apr: document.getElementById('slider-apr').value,
-          bankroll: document.getElementById('user-bankroll').value,
-          bcStake: document.getElementById('bc-stake-amount') ? document.getElementById('bc-stake-amount').value : '1',
-          bcComboStake: document.getElementById('bc-combo-stake') ? document.getElementById('bc-combo-stake').value : '2',
-          comboTamanoBC: comboTamanoBC,
-          modoContraCebo: modoContraCebo,
-          autoConfirmBC: autoConfirmBC,
-          texto: document.getElementById('filtro-texto').value,
-          categoria: categoriaActiva
-        };
-        localStorage.setItem('polyedge_filtros_v1', JSON.stringify(estado));
-      } catch (e) {}
-    }
-
-    function cargarFiltrosLocales() {
-      try {
-        const raw = localStorage.getItem('polyedge_filtros_v1');
-        if (!raw) return;
-        const estado = JSON.parse(raw);
-        if (estado.prob) {
-          document.getElementById('slider-prob').value = estado.prob;
-          actualizarSlider('prob');
-        }
-        if (estado.dias) {
-          document.getElementById('slider-dias').value = estado.dias;
-          actualizarSlider('dias');
-        }
-        if (estado.apr) {
-          document.getElementById('slider-apr').value = estado.apr;
-          actualizarSlider('apr');
-        }
-        if (estado.bankroll) {
-          document.getElementById('user-bankroll').value = estado.bankroll;
-        }
-        if (estado.bcStake && document.getElementById('bc-stake-amount')) {
-          document.getElementById('bc-stake-amount').value = estado.bcStake;
-        }
-        if (estado.bcComboStake && document.getElementById('bc-combo-stake')) {
-          document.getElementById('bc-combo-stake').value = estado.bcComboStake;
-        }
-        if (estado.comboTamanoBC && [2, 3, 4, 5].includes(Number(estado.comboTamanoBC))) {
-          seleccionarTamanoCombo(Number(estado.comboTamanoBC));
-        }
-        if (typeof estado.modoContraCebo === 'boolean') {
-          modoContraCebo = estado.modoContraCebo;
-          actualizarBotonModoEstrategia();
-        }
-        if (typeof estado.autoConfirmBC === 'boolean') {
-          autoConfirmBC = estado.autoConfirmBC;
-          actualizarBotonAutoConfirmBC();
-        }
-        if (typeof estado.texto === 'string') {
-          // Si antes se había quedado escrito 'bitcoin', limpiarlo para que vea todos los colores
-          if (estado.texto.toLowerCase().trim() === 'bitcoin') {
-            document.getElementById('filtro-texto').value = '';
-          } else {
-            document.getElementById('filtro-texto').value = estado.texto;
-          }
-        }
-        if (estado.categoria) {
-          const validas = ['todos', 'fijadas', 'futbolreal', 'esoccer', 'ebasketball', 'epenalty', 'efighting', 'etennis', 'basket', 'hockey'];
-          if (!validas.includes(estado.categoria)) {
-            categoriaActiva = 'todos';
-          } else {
-            categoriaActiva = estado.categoria;
-          }
-          actualizarBotonesCategoria();
-        }
-      } catch (e) {}
-    }
-
-    async function cargarPlayBCDirecto(pMin) {
-      try {
-        const allEvs = {};
-        const sports = {};
-        const categories = {};
-        const tournaments = {};
-
-        // En Modo Francotirador SOLO consultamos 'live' (prohibido entrar a ciegas en 0:0 prematch); en Contra-Cebo incluimos ambos
-        const modosConsulta = modoContraCebo ? ['live', 'prematch'] : ['live'];
-        for (const mode of modosConsulta) {
-          try {
-            const base = `https://api-k-c7818b61-623.sptpub.com/api/v4/${mode}/brand/2103509236163162112/es`;
-            const r0 = await fetch(`${base}/0`);
-            const init = await r0.json();
-            const versions = [...(init.top_events_versions || []), ...(init.rest_events_versions || [])].slice(0, 3);
-            const payloads = await Promise.all(versions.map(v => fetch(`${base}/${v}`).then(r => r.json()).catch(() => ({}))));
-            for (const d of payloads) {
-              Object.assign(sports, d.sports || {});
-              Object.assign(categories, d.categories || {});
-              Object.assign(tournaments, d.tournaments || {});
-              for (const [eid, ev] of Object.entries(d.events || {})) {
-                if (!allEvs[eid]) {
-                  ev._is_live = (mode === 'live');
-                  allEvs[eid] = ev;
-                }
-              }
-            }
-          } catch (e) {}
-        }
-
-        // Deportes activos: Fútbol Real humano (sp '1') + eSports filtrados sin FC27/Volta trampa
-        const mapaDeportesBC = {
-          '1':   { cat: 'futbolreal',  label: '⚽🏆 Fútbol Real (BC)', esReal: true },
-          '300': { cat: 'esoccer',     label: '🟢 ⚽🤖 eSoccer (BC)', esReal: false },
-          '302': { cat: 'ebasketball', label: '🟠 🏀🤖 eBasketball (BC)', esReal: false },
-          '153': { cat: 'ebasketball', label: '🟠 🏀🤖 eBasketball 2K (BC)', esReal: false },
-          '307': { cat: 'epenalty',    label: '🟡 🥅🤖 eSoccer: Penalty (BC)', esReal: false },
-          '304': { cat: 'efighting',   label: '🔴 🥊🤖 eFighting (BC)', esReal: false },
-          '303': { cat: 'etennis',     label: '🟣 🎾🤖 eTennis (BC)', esReal: false }
-        };
-
-        // Lista negra detectada en la auditoría de torneos agujero negro
-        const regexTorneosTrampa = /2x4\s*min|1\s*min\s*de\s*juego|superliga\s*china|liga\s*de\s*portugal|euroliga|volta|h2h\s*gg|jupiler/i;
-
-        const extraidas = [];
-
-        for (const [eid, ev] of Object.entries(allEvs)) {
-          const desc = ev.desc || {};
-          const sp = String(desc.sport || '');
-          const infoCat = mapaDeportesBC[sp];
-          if (!infoCat || !ev.markets) continue;
-
-          const comps = (desc.competitors || []).map(c => c.name || '');
-          if (comps.length < 2) continue;
-
-          const spInfo = sports[sp] || {};
-          const spName = spInfo.name || 'Deportes';
-          const spSlug = spInfo.slug || 'soccer';
-          const cSlug = (categories[String(desc.category)] || {}).slug || 'all';
-          const tInfo = tournaments[String(desc.tournament)] || {};
-          const tSlug = tInfo.slug || 'all';
-          const tName = tInfo.name || '';
-
-          // En modo Francotirador descartar todos los torneos ultracortos o manipulados de la lista negra
-          if (!modoContraCebo && !infoCat.esReal && regexTorneosTrampa.test(`${tName} ${spName}`)) {
-            continue;
-          }
-
-          const evSlug = desc.slug || 'match';
-          const sc = ev.score || {};
-          const esVivo = Boolean(ev._is_live);
-          const hsNum = parseInt(sc.home_score ?? 0, 10) || 0;
-          const asNum = parseInt(sc.away_score ?? 0, 10) || 0;
-          const totalActual = hsNum + asNum;
-          const marcador = esVivo ? `${hsNum} - ${asNum}` : '0 - 0 (Próximo)';
-
-          const pScores = sc.period_scores || [];
-          const clockTime = ((ev.state || {}).clock || {}).match_time || '';
-          const minReloj = clockTime ? (parseInt(String(clockTime).split(':')[0], 10) || 0) : 0;
-          const numPeriodo = pScores.length;
-          const redCards = (((sc.statistics || {}).red_cards || {}).home || 0) + (((sc.statistics || {}).red_cards || {}).away || 0);
-
-          // Prohibir 0:0 sin empezar en Modo Francotirador
-          if (!modoContraCebo && !esVivo) continue;
-
-          let tiempoBcBadge = '';
-          if (esVivo) {
-            let faseTxt = 'En Juego';
-            if (infoCat.cat === 'futbolreal' || infoCat.cat === 'esoccer') {
-              faseTxt = numPeriodo >= 2 ? '2ª Parte' : '1ª Parte';
-            } else if (infoCat.cat === 'ebasketball') {
-              faseTxt = numPeriodo > 0 ? `${numPeriodo}º Cuarto` : 'En Juego';
-            } else if (infoCat.cat === 'efighting') {
-              faseTxt = numPeriodo > 0 ? `Round ${numPeriodo}` : 'Peleando';
-            } else if (infoCat.cat === 'etennis') {
-              faseTxt = numPeriodo > 0 ? `Set ${numPeriodo}` : 'En Juego';
-            }
-            const durTxt = infoCat.esReal ? 'Real' : 'Bot';
-            tiempoBcBadge = `🔴 EN VIVO (${faseTxt}${clockTime && clockTime !== '0:00' ? ' · ' + clockTime + "'" : ''} · ${durTxt})`;
-          } else {
-            tiempoBcBadge = `⏳ PRE-PARTIDO (0:0)`;
-          }
-          const urlBc = `https://playbc.fun/es/sports/${spSlug}/${cSlug}/${tSlug}/${evSlug}-${eid}`;
-
-          let mejorOU = null;
-          let mejorScoreOU = -1;
-
-          for (const [mType, specDict] of Object.entries(ev.markets)) {
-            if (!specDict || typeof specDict !== 'object') continue;
-            for (const [spec, outDict] of Object.entries(specDict)) {
-              if (!outDict || typeof outDict !== 'object') continue;
-              if (!spec.includes('total=') || spec.includes('gamenr=') || spec.includes('roundnr=') || spec.includes('setnr=')) continue;
-
-              const mTot = spec.match(/total=(\d+\.?\d*)/);
-              if (!mTot) continue;
-              const lv = parseFloat(mTot[1]);
-              if (Math.round(lv * 100) % 50 !== 0) continue; // Solo líneas exactas .5 o enteras, nunca .25/.75 asiáticas partidas
-
-              const dOver = outDict['12'];
-              const dUnder = outDict['13'];
-              if (!dOver || !dUnder || dOver.b || dUnder.b) continue;
-              const kOver = parseFloat(dOver.k || 0);
-              const kUnder = parseFloat(dUnder.k || 0);
-              if (kOver <= 1.02 || kUnder <= 1.02) continue;
-
-              // Calcular Comisión Oculta exacta de BC (Vig) en esta línea
-              const sumInv = (1.0 / kOver) + (1.0 / kUnder);
-              const vigPct = (sumInv - 1.0) * 100;
-
-              // ===============================================================
-              // MODO B: CONTRA-CEBO BC (INVERTIR EL CEBO 1.58-1.68 -> CUOTA ~2.05x)
-              // ===============================================================
-              if (modoContraCebo) {
-                let outElegido = null;
-                let kElegida = 0;
-                let kCebo = 0;
-                if (kOver >= 1.58 && kOver <= 1.69 && kUnder >= 1.92 && kUnder <= 2.30) {
-                  outElegido = '13'; // BC puso el cebo en Over 1.65 -> Nosotros jugamos UNDER ~2.05!
-                  kElegida = kUnder;
-                  kCebo = kOver;
-                } else if (kUnder >= 1.58 && kUnder <= 1.69 && kOver >= 1.92 && kOver <= 2.30) {
-                  outElegido = '12'; // BC puso el cebo en Under 1.65 -> Nosotros jugamos OVER ~2.05!
-                  kElegida = kOver;
-                  kCebo = kUnder;
-                }
-                if (!outElegido) continue;
-
-                const pRealContra = (1.0 / kElegida) / sumInv;
-                const roi = (kElegida - 1.0) * 100;
-                const cobro10 = (10 * kElegida).toFixed(2);
-                const minOver = (lv % 1 !== 0) ? (Math.floor(lv) + 1) : (lv + 1);
-                const maxUnder = (lv % 1 !== 0) ? Math.floor(lv) : (lv - 1);
-                const labelBoton = outElegido === '12'
-                  ? `🔄 Más de ${lv} / Over (Cuota ${kElegida.toFixed(2)})`
-                  : `🔄 Menos de ${lv} / Under (Cuota ${kElegida.toFixed(2)})`;
-                const comoGanas = `🔄 CONTRA-CEBO BC [Cebo público estaba en ${kCebo.toFixed(2)}]: Apostamos en contra de la trampa cobrando cuota doble (${kElegida.toFixed(2)}x). Ganas con ${outElegido === '12' ? (minOver + ' o más') : (maxUnder + ' o menos')}.`;
-
-                if (kElegida > mejorScoreOU) {
-                  mejorScoreOU = kElegida;
-                  mejorOU = {
-                    id: `bc_${eid}_${mType}_${outElegido}_contra`,
-                    market_id: `bc_${eid}`,
-                    bc_eid: String(eid),
-                    bc_mtype: String(mType),
-                    bc_spec: String(spec),
-                    bc_outid: String(outElegido),
-                    es_contra_cebo: true,
-                    linea_ou: lv,
-                    tipo_ou: (outElegido === '12' ? 'OVER' : 'UNDER'),
-                    ultimo_total: totalActual,
-                    ultimo_marcador: marcador,
-                    visto_tramo_final: (minReloj >= 70 || numPeriodo >= 3),
-                    tiempo_bc_badge: tiempoBcBadge,
-                    question: `${comps[0]} vs. ${comps[1]} (${esVivo ? 'En Vivo: ' + marcador : 'Cebo 0:0'})`,
-                    outcome: labelBoton,
-                    probability: parseFloat((pRealContra * 100).toFixed(1)),
-                    price: parseFloat(pRealContra.toFixed(4)),
-                    centavos: Math.round(pRealContra * 100),
-                    cuota_bc: kElegida.toFixed(2),
-                    entry_cuota: kElegida,
-                    roi: parseFloat(roi.toFixed(2)),
-                    days_left: 0.04,
-                    hours_left: 1,
-                    en_vivo_ahora: esVivo,
-                    es_playbc: true,
-                    categoria: infoCat.cat,
-                    categoria_label: infoCat.label,
-                    apr: Math.round((roi / 0.04) * 365),
-                    kelly_pct: 2.0,
-                    como_ganas: comoGanas,
-                    instruccion_boton: `En PlayBC busca «Total (${lv})» y toca el lado contrario al 1.65: «${labelBoton}».`,
-                    cobro_10: cobro10,
-                    ganancia_10: (cobro10 - 10).toFixed(2),
-                    link: urlBc
-                  };
-                }
-                continue;
-              }
-
-              // ===============================================================
-              // MODO A (POR DEFECTO): FRANCOTIRADOR ANTI-TRAMPA (+EV EN VIVO)
-              // ===============================================================
-              if (vigPct > 9.2) continue; // Rechazar mercados donde BC esté robando más de 9.2% de comisión
-
-              for (const outId of ['12', '13']) {
-                const k = (outId === '12') ? kOver : kUnder;
-                // Prohibido <1.25 (1 pérdida borra 5 victorias) y prohibido >1.52 (cebo 50/50 tipo 1.65)
-                if (k < 1.25 || k > 1.52) continue;
-
-                const pReal = (1.0 / k) / sumInv; // Probabilidad Real descontando la comisión de BC
-                if (pReal < Math.max(pMin * 0.94, 0.63)) continue;
-
-                const esOver = (outId === '12');
-                const minOver = (lv % 1 !== 0) ? (Math.floor(lv) + 1) : (lv + 1);
-                const maxUnder = (lv % 1 !== 0) ? Math.floor(lv) : (lv - 1);
-
-                // REGLAS ESTRICTAS DE RELOJ Y MARCADOR REAL PARA NO CAER EN TRAMPAS DE BC
-                let pasaFiltroVivo = false;
-                let razonVentaja = '';
-
-                if (infoCat.cat === 'futbolreal' || infoCat.cat === 'esoccer') {
-                  if (!esOver) {
-                    // UNDER en Fútbol / eSoccer: SOLO en 2ª parte avanzada (>=62') con colchón de goles y sin rojas
-                    const colchonGoles = lv - totalActual;
-                    if (minReloj >= 62 && colchonGoles >= 1.5 && redCards === 0) {
-                      pasaFiltroVivo = true;
-                      razonVentaja = `🛡️ Reloj a favor (${minReloj}'): Faltan pocos minutos y tendrían que caer 2+ goles seguidos.`;
-                    } else if (infoCat.esReal && minReloj >= 74 && colchonGoles >= 0.5 && redCards === 0) {
-                      pasaFiltroVivo = true;
-                      razonVentaja = `🛡️ Fútbol Real (${minReloj}'): Recta final del partido con marcador cerrado.`;
-                    }
-                  } else {
-                    // OVER en Fútbol / eSoccer: SOLO si ya abrieron el marcador y falta exactamente 1 gol con tiempo amplio
-                    const faltanGoles = minOver - totalActual;
-                    if (totalActual >= 1 && faltanGoles === 1 && minReloj >= 15 && minReloj <= 66) {
-                      pasaFiltroVivo = true;
-                      razonVentaja = `🔥 Ritmo goleador activo (${marcador} al ${minReloj}'): Solo falta 1 gol más.`;
-                    }
-                  }
-                } else if (infoCat.cat === 'ebasketball') {
-                  // PROHIBIDO 0:0 y 1º Cuarto en eBasketball! Solo desde mitad del 2º, 3º o 4º Cuarto con ritmo real medido
-                  if (numPeriodo >= 2 && totalActual >= 24) {
-                    if (esOver && (lv - totalActual) <= (4 - numPeriodo + 1) * 23) {
-                      pasaFiltroVivo = true;
-                      razonVentaja = `🏀 Ritmo alto confirmado en ${numPeriodo}º Cuarto (${marcador}).`;
-                    } else if (!esOver && numPeriodo >= 3 && (lv - totalActual) >= (4 - numPeriodo + 1) * 21) {
-                      pasaFiltroVivo = true;
-                      razonVentaja = `🛡️ Ritmo bajo en ${numPeriodo}º Cuarto (${marcador}) con colchón amplio.`;
-                    }
-                  }
-                } else if (infoCat.cat === 'epenalty') {
-                  // En Penaltis prohibidas las cuotas 1.20; solo si ya están pateando en vivo (totalActual >= 1) y paga >= 1.28
-                  if (totalActual >= 1 && k >= 1.28) {
-                    pasaFiltroVivo = true;
-                    razonVentaja = `🥅 Tanda ya iniciada (${marcador}) con cuota rentable (${k.toFixed(2)}).`;
-                  }
-                } else if (infoCat.cat === 'etennis' || infoCat.cat === 'efighting') {
-                  if (totalActual >= 1 && vigPct <= 7.8) {
-                    pasaFiltroVivo = true;
-                    razonVentaja = `🛡️ Baja comisión (${vigPct.toFixed(1)}%) con partida ya en curso (${marcador}).`;
-                  }
-                }
-
-                if (!pasaFiltroVivo) continue;
-
-                const roi = (k - 1.0) * 100;
-                const cobro10 = (10 * k).toFixed(2);
-                const labelBoton = esOver
-                  ? `Más de ${lv} / Over (Cuota ${k.toFixed(2)})`
-                  : `Menos de ${lv} / Under (Cuota ${k.toFixed(2)})`;
-                const comoGanas = `${razonVentaja} Ganas si suman ${esOver ? (minOver + ' o más') : (maxUnder + ' o menos')} (Prob. Real sin comisión: ${(pReal * 100).toFixed(1)}%).`;
-
-                const scoreCalidad = pReal + (infoCat.esReal ? 0.12 : 0) - (vigPct / 200);
-                if (scoreCalidad > mejorScoreOU) {
-                  mejorScoreOU = scoreCalidad;
-                  mejorOU = {
-                    id: `bc_${eid}_${mType}_${outId}`,
-                    market_id: `bc_${eid}`,
-                    bc_eid: String(eid),
-                    bc_mtype: String(mType),
-                    bc_spec: String(spec),
-                    bc_outid: String(outId),
-                    linea_ou: lv,
-                    tipo_ou: (esOver ? 'OVER' : 'UNDER'),
-                    ultimo_total: totalActual,
-                    ultimo_marcador: marcador,
-                    visto_tramo_final: (minReloj >= 70 || numPeriodo >= 3),
-                    tiempo_bc_badge: tiempoBcBadge,
-                    question: `${comps[0]} vs. ${comps[1]} (En Vivo: ${marcador})`,
-                    outcome: labelBoton,
-                    probability: parseFloat((pReal * 100).toFixed(1)),
-                    price: parseFloat(pReal.toFixed(4)),
-                    centavos: Math.round(pReal * 100),
-                    cuota_bc: k.toFixed(2),
-                    entry_cuota: k,
-                    roi: parseFloat(roi.toFixed(2)),
-                    days_left: 0.04,
-                    hours_left: 1,
-                    en_vivo_ahora: true,
-                    es_playbc: true,
-                    categoria: infoCat.cat,
-                    categoria_label: infoCat.label,
-                    apr: Math.round((roi / 0.04) * 365),
-                    kelly_pct: 2.5,
-                    como_ganas: comoGanas,
-                    instruccion_boton: `En PlayBC busca «Total (${lv})» y toca «${labelBoton}».`,
-                    cobro_10: cobro10,
-                    ganancia_10: (cobro10 - 10).toFixed(2),
-                    link: urlBc
-                  };
-                }
-              }
-            }
-          }
-
-          if (mejorOU) {
-            mejorOU.sub_torneo = tName || spName;
-            extraidas.push(mejorOU);
-            // Auditar automáticamente en vivo solo señales con línea numérica verificable
-            if (mejorOU.en_vivo_ahora && typeof mejorOU.linea_ou === 'number' && !idsYaContados[mejorOU.id] && !colaAuditoria[mejorOU.id]) {
-              if (Object.keys(colaAuditoria).length < 80) {
-                colaAuditoria[mejorOU.id] = JSON.parse(JSON.stringify(mejorOU));
-              }
-            }
-          }
-        }
-
-        // EVALUADOR 100% HONESTO (CERO FALSOS WIN)
-        function evaluarItemBC(idItem, itemObj) {
-          const eid = itemObj.bc_eid || String(itemObj.market_id).replace('bc_', '');
-          const evVivo = allEvs[eid];
-
-          if (evVivo) {
-            const sc = evVivo.score || {};
-            const hs = parseInt(sc.home_score ?? 0, 10) || 0;
-            const as = parseInt(sc.away_score ?? 0, 10) || 0;
-            const tot = hs + as;
-            const marc = `${hs} - ${as}`;
-            const pScores = sc.period_scores || [];
-            const clockStr = ((evVivo.state || {}).clock || {}).match_time || '';
-            const minR = clockStr ? (parseInt(String(clockStr).split(':')[0], 10) || 0) : 0;
-
-            itemObj.ultimo_total = tot;
-            itemObj.ultimo_marcador = marc;
-            itemObj.en_vivo_ahora = Boolean(evVivo._is_live);
-            if (minR >= 72 || pScores.length >= 3 || (itemObj.categoria === 'epenalty' && tot >= 4)) {
-              itemObj.visto_tramo_final = true;
-            }
-            itemObj.question = itemObj.question.replace(/\(En Vivo:.*?\)|\(Próximo\)|\(Cebo 0:0\)/, `(En Vivo: ${marc})`);
-
-            // En vivo SOLO un OVER superado ya es matemáticamente definitivo (los goles/puntos nunca bajan)
-            if (itemObj.tipo_ou === 'OVER' && typeof itemObj.linea_ou === 'number' && tot > itemObj.linea_ou) {
-              itemObj.estado_resultado = 'WIN';
-              itemObj.probability = 100;
-              itemObj.centavos = 100;
-              itemObj.tiempo_bc_badge = `🏆 GANADA EN VIVO (${marc})`;
-              registrarResultadoPrediccion(itemObj, 'WIN');
-              return true;
-            }
-            // Y un UNDER superado en vivo ya es matemáticamente LOSS inmediato
-            if (itemObj.tipo_ou === 'UNDER' && typeof itemObj.linea_ou === 'number' && tot > itemObj.linea_ou) {
-              itemObj.estado_resultado = 'LOSS';
-              itemObj.tiempo_bc_badge = `❌ LÍNEA SUPERADA (${marc})`;
-              registrarResultadoPrediccion(itemObj, 'LOSS');
-              return true;
-            }
-
-            // Actualizar cuota actual sin dar por WIN prematuramente antes del pitazo final
-            const parts = String(idItem).split('_');
-            const mType = itemObj.bc_mtype || parts[2] || '';
-            const outId = itemObj.bc_outid || parts[3] || '';
-            const specDict = ((evVivo.markets || {})[mType]) || {};
-            for (const [spKey, outDict] of Object.entries(specDict)) {
-              if (itemObj.bc_spec && spKey !== itemObj.bc_spec) continue;
-              if (outDict && outDict[outId] && !outDict[outId].b) {
-                const kv = parseFloat(outDict[outId].k || 0);
-                if (kv > 1.0) {
-                  const pNow = Math.min(Math.max(1.0 / kv, 0.01), 0.98);
-                  itemObj.price = parseFloat(pNow.toFixed(4));
-                  itemObj.centavos = Math.round(pNow * 100);
-                  itemObj.probability = parseFloat((pNow * 100).toFixed(1));
-                  itemObj.cuota_bc = kv.toFixed(2);
-                  return true;
-                }
-              }
-            }
-          } else if (itemObj.en_vivo_ahora) {
-            // El partido terminó y salió de la lista en vivo
-            if (itemObj.tipo_ou === 'UNDER' && typeof itemObj.linea_ou === 'number') {
-              if ((itemObj.ultimo_total ?? 0) > itemObj.linea_ou) {
-                itemObj.estado_resultado = 'LOSS';
-                registrarResultadoPrediccion(itemObj, 'LOSS');
-                return true;
-              }
-              // Solo contar UNDER como WIN si vimos el partido llegar al tramo final (evita falsos WIN por cortes tempranos)
-              if (itemObj.visto_tramo_final) {
-                itemObj.estado_resultado = 'WIN';
-                itemObj.probability = 100;
-                itemObj.centavos = 100;
-                itemObj.tiempo_bc_badge = `🏁 FINALIZADA (${itemObj.ultimo_marcador || 'OK'})`;
-                registrarResultadoPrediccion(itemObj, 'WIN');
-                return true;
-              } else {
-                delete colaAuditoria[idItem];
-                return false;
-              }
-            } else if (itemObj.tipo_ou === 'OVER' && typeof itemObj.linea_ou === 'number') {
-              if ((itemObj.ultimo_total ?? 0) > itemObj.linea_ou) {
-                itemObj.estado_resultado = 'WIN';
-                itemObj.probability = 100;
-                itemObj.centavos = 100;
-                itemObj.tiempo_bc_badge = `🏁 FINALIZADA (${itemObj.ultimo_marcador || ''})`;
-                registrarResultadoPrediccion(itemObj, 'WIN');
-                return true;
-              } else if (itemObj.visto_tramo_final) {
-                itemObj.estado_resultado = 'LOSS';
-                itemObj.tiempo_bc_badge = `🏁 FINALIZADA (${itemObj.ultimo_marcador || ''})`;
-                registrarResultadoPrediccion(itemObj, 'LOSS');
-                return true;
-              } else {
-                delete colaAuditoria[idItem];
-                return false;
-              }
-            } else {
-              // Nunca adivinar WIN/LOSS si no era Over/Under con marcador verificable
-              delete colaAuditoria[idItem];
-              return false;
-            }
-          }
-          return false;
-        }
-
-        // 1. Evaluar las tarjetas individuales fijadas por el usuario
-        let cambioEnFijadasBC = false;
-        for (const [idFij, itemFij] of Object.entries(tarjetasFijadas)) {
-          if (!String(itemFij.market_id || '').startsWith('bc_')) continue;
-          if (itemFij.estado_resultado === 'WIN' || itemFij.estado_resultado === 'LOSS') continue;
-          if (evaluarItemBC(idFij, itemFij)) cambioEnFijadasBC = true;
-        }
-        if (cambioEnFijadasBC) guardarFijadasLocales();
-
-        // 1B. Evaluar todas las jugadas dentro de los Boletos de Combo fijados
-        let cambioEnCombosBC = false;
-        for (const boleto of Object.values(combosFijados)) {
-          if (!Array.isArray(boleto.legs)) continue;
-          for (const leg of boleto.legs) {
-            if (leg.estado_resultado === 'WIN' || leg.estado_resultado === 'LOSS') continue;
-            if (evaluarItemBC(leg.id, leg)) cambioEnCombosBC = true;
-          }
-          const estadoPrevio = boleto.estado_combo;
-          recalcularEstadoDeUnCombo(boleto);
-          if (boleto.estado_combo !== estadoPrevio) cambioEnCombosBC = true;
-        }
-        if (cambioEnCombosBC || Object.keys(combosFijados).length > 0) {
-          guardarCombosLocales();
-        }
-
-        // 2. Evaluar automáticamente todas las partidas en la cola de auditoría para actualizar el Average de cada juego
-        for (const [idAud, itemAud] of Object.entries(colaAuditoria)) {
-          evaluarItemBC(idAud, itemAud);
-        }
-        guardarEstadisticasAprendizaje();
-
-        extraidas.sort((a, b) => (b.en_vivo_ahora - a.en_vivo_ahora) || (b.probability - a.probability));
-        return extraidas;
-      } catch (e) {
-        return [];
-      }
-    }
-
-    async function escanearMercados(silencioso = false) {
-      const btn = document.getElementById('btn-scan');
+    // MOTOR PRINCIPAL DE CRUCE MATEMÁTICO POLYMARKET ⚡ BC.GAME
+    async function escanearMercadosCruzados(silencioso = false) {
       const icon = document.getElementById('scan-icon');
       const spinner = document.getElementById('loading-spinner');
-      const container = document.getElementById('contenedor-tarjetas');
-      
       icon.classList.add('fa-spin');
-      if (!silencioso && todasLasOportunidades.length === 0) {
+      if (!silencioso && oportunidadesCruzadas.length === 0) {
         spinner.classList.remove('hidden');
-        container.innerHTML = '';
-        document.getElementById('no-results').classList.add('hidden');
       }
 
-      const pMin = parseFloat(document.getElementById('slider-prob').value) / 100;
-      const dMax = parseFloat(document.getElementById('slider-dias').value);
-      const aMin = parseFloat(document.getElementById('slider-apr').value);
+      const maxDias = parseFloat(document.getElementById('slider-dias').value) || 2;
 
       try {
-        const resp = await fetch(`/api/opportunities?prob_min=${pMin}&max_days=${dMax}&min_apr=${aMin}`);
-        const data = await resp.json();
-        let opsServidor = data.opportunities || [];
-        if (!opsServidor.some(o => o.es_playbc)) {
-          const bcDirectas = await cargarPlayBCDirecto(pMin);
-          opsServidor = [...bcDirectas, ...opsServidor];
+        const [polyResp, bcLista] = await Promise.all([
+          fetch(`/api/opportunities?max_days=${maxDias}`).then(r => r.json()),
+          descargarEventosRealesBC()
+        ]);
+
+        const polyMarkets = polyResp.opportunities || [];
+        const hallazgos = [];
+        let paresContados = 0;
+
+        for (const pm of polyMarkets) {
+          const tituloEv = pm.event_title || '';
+          const partesVs = tituloEv.split(/\s+vs\.?\s+/i);
+          if (partesVs.length !== 2) continue;
+
+          const polyTokA = normalizarTokensEquipo(partesVs[0]);
+          const polyTokB = normalizarTokensEquipo(partesVs[1].split(':')[0]);
+          const spEsperado = pm.deporte === 'nba' ? '2' : (pm.deporte === 'nhl' ? '4' : '1');
+
+          // Buscar exactamente el mismo partido y fecha en BC.GAME (máx 36h de diferencia)
+          let matchBC = null;
+          let ordenInvertido = false;
+          for (const bev of bcLista) {
+            if (bev.sp !== spEsperado) continue;
+            if (pm.event_ts > 0 && bev.scheduled > 0 && Math.abs(pm.event_ts - bev.scheduled) > 36 * 3600) continue;
+
+            const directo = conjuntosCoinciden(polyTokA, bev.tok0) && conjuntosCoinciden(polyTokB, bev.tok1);
+            const invertido = conjuntosCoinciden(polyTokA, bev.tok1) && conjuntosCoinciden(polyTokB, bev.tok0);
+            if (directo || invertido) {
+              matchBC = bev;
+              ordenInvertido = invertido && !directo;
+              break;
+            }
+          }
+
+          if (!matchBC) continue;
+
+          const mktsBC = matchBC.markets;
+          const preciosPoly = pm.prices || [];
+          const nombresPoly = pm.outcomes || [];
+          if (preciosPoly.length !== 2 || nombresPoly.length !== 2) continue;
+
+          const esVivo = Boolean(pm.en_vivo_ahora || matchBC.esVivo);
+          const sc = matchBC.score || {};
+          const marcadorVivo = esVivo && sc.home_score !== undefined ? `${sc.home_score} - ${sc.away_score}` : '';
+
+          // Construir pares equivalentes 100% misma regla de liquidación (incluyendo prórroga donde aplica)
+          let paresEvaluar = [];
+
+          if (pm.es_ou && typeof pm.linea_ou === 'number') {
+            const lv = pm.linea_ou;
+            const specStr = `total=${lv}`;
+            let bcOuObj = null;
+            let bcMtype = '';
+
+            if (pm.deporte === 'nba') {
+              // NBA mType 225 = Total (incl. overtime) -> 100% idéntico a Polymarket NBA O/U
+              bcOuObj = (mktsBC['225'] || {})[specStr];
+              bcMtype = '225';
+            } else if (pm.deporte === 'nhl') {
+              // NHL: mType 410 incluye OT/SO. Y en líneas impares.5 (3.5, 5.5, 7.5) mType 18 es 100% idéntico matemáticamente porque un empate 2-2 + 1 gol OT = 5 (<5.5) y 3-3 = 6 (>5.5)!
+              if ((mktsBC['410'] || {})[specStr]) {
+                bcOuObj = mktsBC['410'][specStr];
+                bcMtype = '410';
+              } else if (Math.floor(lv) % 2 === 1 && (lv % 1 === 0.5) && (mktsBC['18'] || {})[specStr]) {
+                bcOuObj = mktsBC['18'][specStr];
+                bcMtype = '18';
+              }
+            } else {
+              // Fútbol 90 min reglamentarios -> mType 18 idéntico en ambos
+              bcOuObj = (mktsBC['18'] || {})[specStr];
+              bcMtype = '18';
+            }
+
+            if (bcOuObj && bcOuObj['12'] && bcOuObj['13'] && !bcOuObj['12'].b && !bcOuObj['13'].b) {
+              const kOver = parseFloat(bcOuObj['12'].k || 0);
+              const kUnder = parseFloat(bcOuObj['13'].k || 0);
+              if (kOver > 1.02 && kUnder > 1.02) {
+                paresEvaluar.push(
+                  {
+                    subId: 'over',
+                    tipoMercado: 'OU',
+                    linea: lv,
+                    polySide: 'OVER',
+                    polyLabel: `Over ${lv} (Más de ${lv})`,
+                    pPoly: preciosPoly[0],
+                    bcSameLabel: `Más de ${lv} (Over ${lv})`,
+                    kBcSame: kOver,
+                    bcSameOutId: '12',
+                    bcOppLabel: `Menos de ${lv} (Under ${lv})`,
+                    kBcOpp: kUnder,
+                    bcOppOutId: '13',
+                    bcSpec: specStr,
+                    bcMtype
+                  },
+                  {
+                    subId: 'under',
+                    tipoMercado: 'OU',
+                    linea: lv,
+                    polySide: 'UNDER',
+                    polyLabel: `Under ${lv} (Menos de ${lv})`,
+                    pPoly: preciosPoly[1],
+                    bcSameLabel: `Menos de ${lv} (Under ${lv})`,
+                    kBcSame: kUnder,
+                    bcSameOutId: '13',
+                    bcOppLabel: `Más de ${lv} (Over ${lv})`,
+                    kBcOpp: kOver,
+                    bcOppOutId: '12',
+                    bcSpec: specStr,
+                    bcMtype
+                  }
+                );
+              }
+            }
+          } else if (!pm.es_ou && (pm.deporte === 'nba' || pm.deporte === 'nhl')) {
+            // Ganador Partido Completo incluyendo Overtime / Penaltis (NBA mType 219, NHL mType 406)
+            const mt = pm.deporte === 'nba' ? '219' : '406';
+            const bcMlObj = (mktsBC[mt] || {})[''];
+            if (bcMlObj && bcMlObj['4'] && bcMlObj['5'] && !bcMlObj['4'].b && !bcMlObj['5'].b) {
+              const kHome = parseFloat(bcMlObj['4'].k || 0);
+              const kAway = parseFloat(bcMlObj['5'].k || 0);
+              if (kHome > 1.02 && kAway > 1.02) {
+                const k0 = ordenInvertido ? kAway : kHome;
+                const out0 = ordenInvertido ? '5' : '4';
+                const nameBC0 = ordenInvertido ? matchBC.comps[1] : matchBC.comps[0];
+
+                const k1 = ordenInvertido ? kHome : kAway;
+                const out1 = ordenInvertido ? '4' : '5';
+                const nameBC1 = ordenInvertido ? matchBC.comps[0] : matchBC.comps[1];
+
+                paresEvaluar.push(
+                  {
+                    subId: 'ml0',
+                    tipoMercado: 'ML',
+                    linea: null,
+                    polySide: 'ML',
+                    polyOutcomeExacto: nombresPoly[0],
+                    polyLabel: `Gana ${nombresPoly[0]}`,
+                    pPoly: preciosPoly[0],
+                    bcSameLabel: `Gana ${nameBC0}`,
+                    kBcSame: k0,
+                    bcSameOutId: out0,
+                    bcOppLabel: `Gana ${nameBC1}`,
+                    kBcOpp: k1,
+                    bcOppOutId: out1,
+                    bcSpec: '',
+                    bcMtype: mt
+                  },
+                  {
+                    subId: 'ml1',
+                    tipoMercado: 'ML',
+                    linea: null,
+                    polySide: 'ML',
+                    polyOutcomeExacto: nombresPoly[1],
+                    polyLabel: `Gana ${nombresPoly[1]}`,
+                    pPoly: preciosPoly[1],
+                    bcSameLabel: `Gana ${nameBC1}`,
+                    kBcSame: k1,
+                    bcSameOutId: out1,
+                    bcOppLabel: `Gana ${nameBC0}`,
+                    kBcOpp: k0,
+                    bcOppOutId: out0,
+                    bcSpec: '',
+                    bcMtype: mt
+                  }
+                );
+              }
+            }
+          }
+
+          const polySum = preciosPoly[0] + preciosPoly[1];
+          if (polySum <= 0.8) continue;
+
+          for (const par of paresEvaluar) {
+            // Evitar colas ilíquidas (<18¢ o >92¢) donde el spread engaña
+            if (par.pPoly < 0.18 || par.pPoly > 0.92) continue;
+            paresContados += 1;
+
+            const bcSum = (1.0 / par.kBcSame) + (1.0 / par.kBcOpp);
+            const pFairPoly = par.pPoly / polySum;
+            const pFairBC = (1.0 / par.kBcSame) / bcSum;
+
+            // Costo de Arbitraje: Comprar par.polyLabel en Polymarket (pPoly) + Apostar par.bcOppLabel en BC.GAME (1 / kBcOpp)
+            const arbCost = par.pPoly + (1.0 / par.kBcOpp);
+            const esArbitraje = arbCost < 0.999;
+            const arbProfitPct = esArbitraje ? (((1.0 / arbCost) - 1.0) * 100) : 0;
+
+            // Ventaja +EV en BC.GAME (usando a Polymarket como Oráculo real sin margen)
+            const evEnBC = ((pFairPoly * par.kBcSame) - 1.0) * 100;
+
+            // Ventaja +EV en Polymarket (usando la probabilidad limpia mundial de BC sin vig frente al precio de Polymarket)
+            const evEnPoly = ((pFairBC / par.pPoly) - 1.0) * 100;
+
+            const mejorEv = Math.max(arbProfitPct, evEnBC, evEnPoly);
+            if (!esArbitraje && mejorEv < 0.2) continue;
+
+            let tipoOportunidad = 'ev_poly';
+            if (esArbitraje) tipoOportunidad = 'arbitraje';
+            else if (evEnBC >= evEnPoly) tipoOportunidad = 'ev_bc';
+
+            const probRealPct = parseFloat((((pFairPoly + pFairBC) / 2.0) * 100).toFixed(1));
+            const cuotaMinSeguraBC = parseFloat((1.0 / pFairPoly).toFixed(2));
+
+            hallazgos.push({
+              id: `cross_${pm.market_id}_${par.subId}`,
+              tipoOportunidad, // 'arbitraje', 'ev_bc', 'ev_poly'
+              esArbitraje,
+              arbCost: parseFloat(arbCost.toFixed(4)),
+              arbProfitPct: parseFloat(arbProfitPct.toFixed(2)),
+              evEnBC: parseFloat(evEnBC.toFixed(2)),
+              evEnPoly: parseFloat(evEnPoly.toFixed(2)),
+              edgePrincipal: parseFloat((esArbitraje ? arbProfitPct : Math.max(evEnBC, evEnPoly)).toFixed(2)),
+              probRealPct,
+              deporte: pm.deporte,
+              deporteLabel: pm.deporte_label,
+              esVivo,
+              marcadorVivo,
+              daysLeft: pm.days_left,
+              hoursLeft: pm.hours_left,
+              partidoTitulo: `${matchBC.comps[0]} vs. ${matchBC.comps[1]}`,
+              preguntaPoly: pm.question,
+              tipoMercado: par.tipoMercado,
+              linea: par.linea,
+              polySide: par.polySide,
+              polyOutcomeExacto: par.polyOutcomeExacto || '',
+              polyLabel: par.polyLabel,
+              pPoly: par.pPoly,
+              centavosPoly: parseFloat((par.pPoly * 100).toFixed(1)),
+              cuotaEqPoly: (1.0 / par.pPoly).toFixed(2),
+              bcSameLabel: par.bcSameLabel,
+              kBcSame: par.kBcSame,
+              bcSameOutId: par.bcSameOutId,
+              bcOppLabel: par.bcOppLabel,
+              kBcOpp: par.kBcOpp,
+              bcOppOutId: par.bcOppOutId,
+              bcSpec: par.bcSpec,
+              bcMtype: par.bcMtype,
+              bcEid: matchBC.eid,
+              cuotaMinSeguraBC,
+              linkPoly: pm.link,
+              linkBC: matchBC.urlBc
+            });
+          }
         }
-        todasLasOportunidades = opsServidor;
-        await verificarEstadoFijadas();
-        actualizarStats(todasLasOportunidades);
-        actualizarVistaComboBC();
+
+        // Ordenar: Primero Arbitrajes Seguros (0% riesgo), luego mayor ventaja matemática (+EV)
+        hallazgos.sort((a, b) => (b.esArbitraje - a.esArbitraje) || (b.edgePrincipal - a.edgePrincipal));
+
+        oportunidadesCruzadas = hallazgos;
+        totalParesComparados = paresContados;
+
+        // Actualizar fijadas si siguen activas
+        for (const [idF, objF] of Object.entries(tarjetasFijadas)) {
+          const fresco = hallazgos.find(h => h.id === idF);
+          if (fresco) tarjetasFijadas[idF] = fresco;
+        }
+        guardarFijadas();
+
+        actualizarKPIs();
         renderizarTarjetas();
+        document.getElementById('status-cruce').innerText = `${paresContados} líneas reales cruzadas`;
       } catch (err) {
-        console.error("Error al escanear:", err);
+        console.error('Error en cruce:', err);
       } finally {
         icon.classList.remove('fa-spin');
         spinner.classList.add('hidden');
       }
     }
 
-    function actualizarStats(ops) {
-      document.getElementById('stat-total').innerText = ops.length;
-      if (ops.length === 0) {
-        document.getElementById('stat-max-apr').innerText = '0%';
-        document.getElementById('stat-avg-prob').innerText = '0%';
-        document.getElementById('stat-min-time').innerText = '--';
-        return;
-      }
-      const maxApr = Math.max(...ops.map(o => o.apr));
-      const avgProb = ops.reduce((acc, o) => acc + o.probability, 0) / ops.length;
-      const minDays = Math.min(...ops.map(o => o.days_left));
+    function actualizarKPIs() {
+      const arbs = oportunidadesCruzadas.filter(o => o.esArbitraje).length;
+      const evBc = oportunidadesCruzadas.filter(o => !o.esArbitraje && o.tipoOportunidad === 'ev_bc' && o.evEnBC >= 1.5).length;
+      const evPoly = oportunidadesCruzadas.filter(o => !o.esArbitraje && o.tipoOportunidad === 'ev_poly' && o.evEnPoly >= 1.5).length;
+      const maxEdge = oportunidadesCruzadas.length > 0 ? Math.max(...oportunidadesCruzadas.map(o => o.edgePrincipal)) : 0;
 
-      document.getElementById('stat-max-apr').innerText = `${Math.round(maxApr).toLocaleString()}%`;
-      document.getElementById('stat-avg-prob').innerText = `${avgProb.toFixed(1)}%`;
-      document.getElementById('stat-min-time').innerText = minDays < 1 ? `${Math.round(minDays * 24)}h` : `${minDays.toFixed(1)}d`;
+      document.getElementById('kpi-arbs').innerText = arbs;
+      document.getElementById('kpi-ev-bc').innerText = evBc;
+      document.getElementById('kpi-ev-poly').innerText = evPoly;
+      document.getElementById('kpi-pares').innerText = totalParesComparados;
+      document.getElementById('kpi-mejor-edge').innerText = maxEdge > 0 ? `Mejor ventaja hoy: +${maxEdge.toFixed(1)}%` : 'Escaneando...';
     }
 
-    function filtrarLocalmente() {
-      renderizarTarjetas();
+    // Acciones 1-Clic hacia la Extensión Chrome
+    function abrirLadoPolymarket(opId, montoSugerido) {
+      const op = tarjetasFijadas[opId] || oportunidadesCruzadas.find(o => o.id === opId);
+      if (!op) return;
+
+      const hashParams = new URLSearchParams({
+        polyedge_poly: '1',
+        ts: String(Date.now()),
+        tipo: op.tipoMercado || 'OU',
+        linea: op.linea !== null && op.linea !== undefined ? String(op.linea) : '',
+        side: op.polySide || 'OVER',
+        outcome: op.polyOutcomeExacto || (op.polySide === 'UNDER' ? 'Under' : 'Over'),
+        stake: String(montoSugerido || ''),
+        cents: String(op.centavosPoly),
+        q: op.preguntaPoly || ''
+      });
+      window.open(`${op.linkPoly}#${hashParams.toString()}`, '_blank');
+    }
+
+    function abrirLadoBC(opId, usarLadoOpuestoArb, montoExacto, cuotaMinima) {
+      const op = tarjetasFijadas[opId] || oportunidadesCruzadas.find(o => o.id === opId);
+      if (!op) return;
+
+      const outId = usarLadoOpuestoArb ? op.bcOppOutId : op.bcSameOutId;
+      const label = usarLadoOpuestoArb ? op.bcOppLabel : op.bcSameLabel;
+      const cuotaRef = usarLadoOpuestoArb ? op.kBcOpp : op.kBcSame;
+      let tipoStr = 'WIN';
+      if (op.tipoMercado === 'OU') {
+        tipoStr = outId === '12' ? 'OVER' : 'UNDER';
+      }
+
+      const hashParams = new URLSearchParams({
+        polyedge_auto: '1',
+        tipo: tipoStr,
+        linea: op.linea !== null && op.linea !== undefined ? String(op.linea) : '',
+        outid: String(outId),
+        spec: op.bcSpec || '',
+        cuota: String(cuotaRef.toFixed(2)),
+        min_k: String(cuotaMinima || (cuotaRef * 0.97).toFixed(2)),
+        equipo: label,
+        stake: String(montoExacto),
+        // En Arbitraje SIEMPRE autoconfirm=0 para que verifiques ambos lados antes de dar Place Bet
+        autoconfirm: (!usarLadoOpuestoArb && autoConfirmBC) ? '1' : '0'
+      });
+      window.open(`${op.linkBC}#${hashParams.toString()}`, '_blank');
     }
 
     function renderizarTarjetas() {
       const container = document.getElementById('contenedor-tarjetas');
       const noResults = document.getElementById('no-results');
-      const query = document.getElementById('filtro-texto').value.toLowerCase().trim();
-      const bankroll = parseFloat(document.getElementById('user-bankroll').value) || 1000;
-      const maxDiasSlider = parseFloat(document.getElementById('slider-dias').value) || 30;
-      const minProbSlider = parseFloat(document.getElementById('slider-prob').value) || 70;
+      const query = (document.getElementById('filtro-texto').value || '').toLowerCase().trim();
+      const inversionTotal = Math.max(parseFloat(document.getElementById('input-inversion').value) || 10, 1);
+      const minEv = parseFloat(document.getElementById('slider-ev').value) || 0;
+      const maxDias = parseFloat(document.getElementById('slider-dias').value) || 2;
+      const minProb = parseFloat(document.getElementById('slider-prob').value) || 35;
 
-      // Combinar las tarjetas fijadas (con el switch activo) + las oportunidades del escáner sin duplicar
-      const listaCombinada = [];
-      const idsIncluidos = new Set();
+      const combinada = [];
+      const vistos = new Set();
+      Object.values(tarjetasFijadas).forEach(f => { combinada.push(f); vistos.add(f.id); });
+      oportunidadesCruzadas.forEach(o => { if (!vistos.has(o.id)) { combinada.push(o); vistos.add(o.id); } });
 
-      // 1. Poner primero todas las tarjetas que el usuario tiene fijadas con el switch
-      Object.values(tarjetasFijadas).forEach(fijada => {
-        // Si también viene en el escáner vivo, actualizar datos pero conservar estado_resultado y entry_centavos
-        const enVivo = todasLasOportunidades.find(o => o.id === fijada.id);
-        if (enVivo && fijada.estado_resultado !== 'WIN' && fijada.estado_resultado !== 'LOSS') {
-          fijada.price = enVivo.price;
-          fijada.centavos = enVivo.centavos;
-          fijada.probability = enVivo.probability;
-          if (fijada.probability >= 98.5) fijada.estado_resultado = 'WIN';
-        }
-        listaCombinada.push(fijada);
-        idsIncluidos.add(fijada.id);
-      });
+      const filtradas = combinada.filter(o => {
+        const fij = Boolean(tarjetasFijadas[o.id]);
+        if (filtroActivo === 'fijadas') return fij;
 
-      // 2. Agregar el resto de oportunidades del escáner
-      todasLasOportunidades.forEach(op => {
-        if (!idsIncluidos.has(op.id)) {
-          listaCombinada.push(op);
-          idsIncluidos.add(op.id);
+        if (!fij) {
+          if (o.daysLeft > (maxDias + 0.15)) return false;
+          if (!o.esArbitraje && o.probRealPct < minProb) return false;
+          if (!o.esArbitraje && o.edgePrincipal < minEv) return false;
         }
-      });
 
-      const filtradas = listaCombinada.filter(o => {
-        const estaFijada = Boolean(tarjetasFijadas[o.id]);
-        if (categoriaActiva === 'fijadas') {
-          return estaFijada;
-        }
-        // Si Auto-Descartar está activo y estamos en 'todos', ocultar los juegos o torneos que repiten pérdidas
-        if (!estaFijada && categoriaActiva === 'todos' && esJuegoOPartidaDescartada(o)) {
-          return false;
-        }
-        // Filtrar estrictamente por Días Máx. de Cierre (1 día = hoy / ≤24h, 2 días = hasta 48h, etc.) y Probabilidad Mínima en tarjetas no fijadas
-        if (!estaFijada && !o.es_playbc) {
-          if ((o.days_left || 0) > (maxDiasSlider + 0.12)) {
-            return false;
-          }
-          if ((o.probability || 0) < (minProbSlider - 0.5)) {
-            return false;
-          }
-        }
-        if (categoriaActiva !== 'todos' && (o.categoria || 'esoccer') !== categoriaActiva) {
-          return false;
-        }
+        if (filtroActivo === 'arbitraje' && !o.esArbitraje) return false;
+        if (filtroActivo === 'ev_bc' && (o.esArbitraje || o.tipoOportunidad !== 'ev_bc')) return false;
+        if (filtroActivo === 'ev_poly' && (o.esArbitraje || o.tipoOportunidad !== 'ev_poly')) return false;
+        if (['nba', 'nhl', 'futbol'].includes(filtroActivo) && o.deporte !== filtroActivo) return false;
+
         if (!query) return true;
-        return o.question.toLowerCase().includes(query) || o.outcome.toLowerCase().includes(query) || (o.categoria_label || '').toLowerCase().includes(query);
+        return (
+          o.partidoTitulo.toLowerCase().includes(query) ||
+          o.polyLabel.toLowerCase().includes(query) ||
+          o.deporteLabel.toLowerCase().includes(query)
+        );
       });
 
       if (filtradas.length === 0) {
@@ -1994,224 +792,169 @@
         noResults.classList.remove('hidden');
         return;
       }
-
-      const estilosCategoria = {
-        futbolreal: {
-          border: 'border-2 border-lime-400 shadow-[0_0_18px_rgba(163,230,53,0.3)]',
-          badge: 'bg-lime-400/20 text-lime-200 border border-lime-400/60',
-          label: '⚽🏆 FÚTBOL REAL (BC)'
-        },
-        esoccer: {
-          border: 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.28)]',
-          badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50',
-          label: '🟢 ⚽🤖 eSoccer (BC)'
-        },
-        ebasketball: {
-          border: 'border-2 border-orange-500 shadow-[0_0_18px_rgba(249,115,22,0.28)]',
-          badge: 'bg-orange-500/20 text-orange-300 border border-orange-500/50',
-          label: '🟠 🏀🤖 eBasketball (BC)'
-        },
-        epenalty: {
-          border: 'border-2 border-yellow-400 shadow-[0_0_18px_rgba(250,204,21,0.28)]',
-          badge: 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50',
-          label: '🟡 🥅🤖 eSoccer: Penalty (BC)'
-        },
-        efighting: {
-          border: 'border-2 border-red-500 shadow-[0_0_18px_rgba(239,68,68,0.28)]',
-          badge: 'bg-red-500/20 text-red-300 border border-red-500/50',
-          label: '🔴 🥊🤖 eFighting (BC)'
-        },
-        etennis: {
-          border: 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.28)]',
-          badge: 'bg-purple-500/20 text-purple-300 border border-purple-500/50',
-          label: '🟣 🎾🤖 eTennis (BC)'
-        },
-        basket: {
-          border: 'border-2 border-blue-500 shadow-[0_0_18px_rgba(59,130,246,0.28)]',
-          badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/50',
-          label: '🔵 🏀 BASKET NBA (O/U)'
-        },
-        hockey: {
-          border: 'border-2 border-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.28)]',
-          badge: 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/50',
-          label: '🩵 🏒 HOCKEY NHL (O/U)'
-        }
-      };
-
       noResults.classList.add('hidden');
-      container.innerHTML = filtradas.map(op => {
-        const estaFijada = Boolean(tarjetasFijadas[op.id]);
-        const estadoRes = estaFijada ? (tarjetasFijadas[op.id].estado_resultado || 'EN_JUEGO') : null;
-        const entryCentavos = estaFijada ? (tarjetasFijadas[op.id].entry_centavos || op.centavos) : null;
-        const centavos = op.centavos || Math.round(op.price * 100);
-        const cobro10 = op.cobro_10 || (10 * (1 + op.roi / 100)).toFixed(2);
-        const ganancia10 = op.ganancia_10 || (cobro10 - 10).toFixed(2);
-        const tiempoBadge = op.tiempo_bc_badge
-          ? op.tiempo_bc_badge
-          : (op.es_btc_5m 
-            ? `⚡ ${op.tiempo_exacto || 'En vivo'}`
-            : (op.en_vivo_ahora ? `🔴 EN VIVO AHORA (~1-2 hrs)` : (op.days_left < 1 ? `⏱️ Cobras en ~${Math.round(op.hours_left)} hrs` : `📅 Cobras en ~${op.days_left} días`)));
-        const catKey = op.categoria || 'esoccer';
-        const estilo = estilosCategoria[catKey] || estilosCategoria.esoccer;
-        const stCat = statsPorJuego[catKey] || { wins: 0, losses: 0 };
-        const totCat = (stCat.wins || 0) + (stCat.losses || 0);
-        const wrCat = totCat > 0 ? Math.round((stCat.wins / totCat) * 100) : null;
-        const badgeEfectividadJuego = wrCat !== null
-          ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded ${wrCat >= 70 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : (wrCat >= 50 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-red-500/20 text-red-300 border border-red-500/40')}">🎯 Juego: ${wrCat}% WIN (${stCat.wins}W-${stCat.losses}L)</span>`
-          : '';
 
-        // Banner especial cuando el switch está activo y el resultado es WIN o está en seguimiento
-        let bannerResultado = '';
-        if (estaFijada) {
-          if (estadoRes === 'WIN' || op.probability >= 98.5) {
-            const detalleWin = op.es_playbc
-              ? `Marcador: <b>${op.ultimo_marcador || 'Final'}</b> · Cuota Ganada: <b>${op.cuota_bc || ''}</b> (Con $10 cobras <b>$${op.cobro_10}</b>)`
-              : `Entraste a <b>${entryCentavos}¢</b> ➔ Pagó <b>100¢ ($1.00)</b>`;
-            bannerResultado = `
-              <div class="mb-3 p-3 rounded-xl bg-gradient-to-r from-emerald-600/40 to-teal-500/40 border-2 border-emerald-400 text-center shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse">
-                <div class="text-base font-black text-emerald-300 tracking-wide">🏆 ¡WIN! — RESULTADO A FAVOR</div>
-                <div class="text-xs text-white mt-0.5">${detalleWin} · Apaga el switch arriba para quitarla</div>
+      container.innerHTML = filtradas.map(o => {
+        const estaFijada = Boolean(tarjetasFijadas[o.id]);
+        const badgeTiempo = o.esVivo
+          ? `🔴 EN VIVO ${o.marcadorVivo ? '(' + o.marcadorVivo + ')' : ''}`
+          : (o.daysLeft <= 1.0 ? `⏱️ Hoy (~${Math.round(o.hoursLeft)}h)` : `📅 En ${o.daysLeft} días`);
+
+        // =====================================================================
+        // TARJETA TIPO 1: ARBITRAJE PURO (0% RIESGO — GANANCIA SÍ O SÍ)
+        // =====================================================================
+        if (o.esArbitraje) {
+          // Matemática exacta de distribución de banca para cobrar exactamente lo mismo gane quien gane:
+          // Cobro Garantizado C = inversionTotal / arbCost
+          const cobroGarantizado = inversionTotal / o.arbCost;
+          const montoPoly = (cobroGarantizado * o.pPoly).toFixed(2);
+          const montoBC = (cobroGarantizado * (1.0 / o.kBcOpp)).toFixed(2);
+          const gananciaSegura = (cobroGarantizado - inversionTotal).toFixed(2);
+          const limitSugeridoCents = Math.max(Math.round(o.centavosPoly - 1), 1);
+
+          return `
+            <div class="glass-card rounded-xl p-5 border-2 border-cyan-400 shadow-[0_0_24px_rgba(34,211,238,0.28)] flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2.5">
+                  <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/60">
+                    💎 ARBITRAJE 0% RIESGO · ${o.deporteLabel}
+                  </span>
+                  <button onclick="toggleFijar('${o.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${estaFijada ? 'bg-amber-400 text-gray-950 border-amber-300' : 'bg-gray-800 text-gray-300 border-gray-700'}">
+                    ${estaFijada ? '📌 Fijada' : '📌 Fijar'}
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <span class="text-xs font-extrabold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    +${o.arbProfitPct}% Ganancia Segura Garantizada
+                  </span>
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">${badgeTiempo}</span>
+                </div>
+
+                <h4 class="text-sm font-black text-white mb-3">${o.partidoTitulo}</h4>
+
+                <!-- PLAN PASO A PASO CUBRIENDO AMBOS LADOS -->
+                <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 space-y-2 text-xs mb-3">
+                  <div class="flex justify-between items-center border-b border-cyan-800/50 pb-1.5">
+                    <div>
+                      <span class="text-cyan-300 font-bold block">1️⃣ En Polymarket compra:</span>
+                      <span class="text-white font-extrabold">${o.polyLabel}</span> <span class="text-gray-400">(${o.centavosPoly}¢)</span>
+                    </div>
+                    <span class="text-sm font-mono font-black text-emerald-300 bg-gray-900 px-2 py-1 rounded">$${montoPoly}</span>
+                  </div>
+
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <span class="text-purple-300 font-bold block">2️⃣ En BC.GAME apuesta al opuesto:</span>
+                      <span class="text-white font-extrabold">${o.bcOppLabel}</span> <span class="text-gray-400">(Cuota ${o.kBcOpp.toFixed(2)})</span>
+                    </div>
+                    <span class="text-sm font-mono font-black text-purple-300 bg-gray-900 px-2 py-1 rounded">$${montoBC}</span>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-xs mb-4 space-y-1">
+                  <div class="flex justify-between text-gray-200">
+                    <span>Inversión total sumada: <b>$${inversionTotal.toFixed(2)}</b></span>
+                    <span>Cobras gane quien gane: <b class="text-emerald-300">$${cobroGarantizado.toFixed(2)}</b></span>
+                  </div>
+                  <div class="text-[11px] text-emerald-400 font-bold">
+                    ✅ Ganancia libre de riesgo: +$${gananciaSegura} (¡Y si compras con Límite a ${limitSugeridoCents}¢ en Polymarket ganas aún más!)
+                  </div>
+                </div>
               </div>
-            `;
-          } else if (estadoRes === 'LOSS') {
-            bannerResultado = `
-              <div class="mb-3 p-2.5 rounded-xl bg-red-950/60 border border-red-500 text-center">
-                <div class="text-sm font-bold text-red-300">❌ Resultado en contra ${op.ultimo_marcador ? '(' + op.ultimo_marcador + ')' : '(Cerrado)'}</div>
-                <div class="text-[11px] text-gray-300">Apaga el switch arriba para quitarla de tu lista</div>
+
+              <div class="grid grid-cols-2 gap-2 pt-3 border-t border-gray-800">
+                <button onclick="abrirLadoPolymarket('${o.id}', '${montoPoly}')" class="py-2 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold flex items-center justify-center gap-1 transition cursor-pointer">
+                  <i class="fa-solid fa-crosshairs"></i> 1. Polymarket ($${montoPoly})
+                </button>
+                <button onclick="abrirLadoBC('${o.id}', true, '${montoBC}', '${(1.0 / (1.0 - o.pPoly)).toFixed(2)}')" class="py-2 px-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-extrabold flex items-center justify-center gap-1 transition cursor-pointer">
+                  <i class="fa-solid fa-bolt"></i> 2. BC.GAME ($${montoBC})
+                </button>
               </div>
-            `;
-          } else {
-            const diffCents = centavos - entryCentavos;
-            const diffTxt = diffCents > 0 ? `<span class="text-emerald-400 font-bold">(+${diffCents}% a tu favor 📈)</span>` : (diffCents < 0 ? `<span class="text-amber-400">(${diffCents}%)</span>` : `<span class="text-gray-400">(En juego)</span>`);
-            bannerResultado = `
-              <div class="mb-3 p-2 rounded-lg bg-amber-500/15 border border-amber-400/50 flex items-center justify-between text-xs">
-                <span class="text-amber-300 font-bold">📌 Fijada ${op.ultimo_marcador ? '[' + op.ultimo_marcador + ']' : ''}</span>
-                <span class="text-gray-200">Inicio: <b>${entryCentavos}%</b> ➔ Ahora: <b>${centavos}%</b> ${diffTxt}</span>
-              </div>
-            `;
-          }
+            </div>
+          `;
         }
+
+        // =====================================================================
+        // TARJETA TIPO 2: CUOTA MAL PUESTA / +EV REAL (EN BC O EN POLYMARKET)
+        // =====================================================================
+        const esEnBC = o.tipoOportunidad === 'ev_bc';
+        const borderClase = esEnBC
+          ? 'border-2 border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.25)]'
+          : 'border-2 border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.25)]';
+        const badgeTop = esEnBC
+          ? 'bg-purple-500/20 text-purple-200 border border-purple-500/50'
+          : 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/50';
+        const tituloTipo = esEnBC
+          ? `🔥 ERROR DE CUOTA EN BC · ${o.deporteLabel}`
+          : `🐋 GANGA EN POLYMARKET · ${o.deporteLabel}`;
+
+        const cobroEst = esEnBC
+          ? (inversionTotal * o.kBcSame).toFixed(2)
+          : (inversionTotal / o.pPoly).toFixed(2);
+        const gananciaEst = (parseFloat(cobroEst) - inversionTotal).toFixed(2);
+        const limitCents = Math.max(Math.round(o.centavosPoly - 1), 1);
 
         return `
-          <div class="glass-card rounded-xl p-5 ${estilo.border} flex flex-col justify-between transition duration-200">
+          <div class="glass-card rounded-xl p-5 ${borderClase} flex flex-col justify-between">
             <div>
-              <!-- ETIQUETA DE COLOR + SWITCH FIJAR -->
               <div class="flex items-center justify-between gap-2 mb-2.5">
-                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${estilo.badge}">
-                  ${op.categoria_label || estilo.label}
+                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${badgeTop}">
+                  ${tituloTipo}
                 </span>
-
-                <!-- SWITCH INTERACTIVO PARA FIJAR / QUITAR DE LA LISTA -->
-                <button onclick="toggleSwitchFijar('${op.id}')" class="flex items-center gap-2 px-2.5 py-1 rounded-full border transition cursor-pointer ${estaFijada ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200' : 'bg-gray-800/90 border-gray-700 text-gray-400 hover:border-gray-500'}" title="Activa el switch para no quitarla de la lista hasta que veas si es WIN">
-                  <span class="text-[11px] font-bold">${estaFijada ? (estadoRes === 'WIN' || op.probability >= 98.5 ? '🏆 WIN (Fijada)' : '📌 Fijada') : 'Fijar'}</span>
-                  <div class="w-8 h-4 rounded-full relative transition ${estaFijada ? 'bg-emerald-500' : 'bg-gray-600'}">
-                    <div class="w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${estaFijada ? 'right-0.5' : 'left-0.5'}"></div>
-                  </div>
+                <button onclick="toggleFijar('${o.id}')" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${estaFijada ? 'bg-amber-400 text-gray-950 border-amber-300' : 'bg-gray-800 text-gray-300 border-gray-700'}">
+                  ${estaFijada ? '📌 Fijada' : '📌 Fijar'}
                 </button>
               </div>
 
-              ${bannerResultado}
-
-              <!-- HEADER PROBABILIDAD Y TIEMPO -->
-              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-bold px-2.5 py-1 rounded-md ${op.probability >= 70 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
-                    ${op.probability}% Probabilidad ${op.probability < 70 ? '(En Vivo)' : ''}
-                  </span>
-                  ${badgeEfectividadJuego}
-                </div>
-                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">
-                  ${tiempoBadge}
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-xs font-extrabold px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  +${o.edgePrincipal}% Ventaja Matemática (+EV)
                 </span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-800 text-gray-300">${badgeTiempo}</span>
               </div>
 
-              <!-- PREGUNTA DEL MERCADO -->
-              <h4 class="text-sm font-bold text-white mb-3 leading-snug">
-                ${op.question}
-              </h4>
+              <h4 class="text-sm font-bold text-white mb-3">${o.partidoTitulo}</h4>
 
-              ${op.es_btc_5m && op.btc_live ? `
-              <!-- PANEL TÉCNICO BITCOIN 15M / 1H EN VIVO -->
-              <div class="p-3 bg-amber-950/30 rounded-lg border border-amber-500/40 mb-3 text-xs space-y-1.5">
-                <div class="flex justify-between items-center text-amber-300 font-bold border-b border-amber-800/40 pb-1">
-                  <span>📊 ${op.etiqueta_vela || 'BTC En Vivo'}</span>
-                  <span>RSI: ${op.btc_live.rsi7}</span>
+              <!-- COMPARATIVA TRANSPARENTE ENTRE LAS DOS CASAS -->
+              <div class="p-3 rounded-xl bg-gray-900/95 border border-gray-800 space-y-2 text-xs mb-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Jugada detectada:</span>
+                  <span class="font-extrabold text-white">${esEnBC ? o.bcSameLabel : o.polyLabel}</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 pt-0.5 text-[11px]">
-                  <div>
-                    <span class="text-gray-400 block">Apertura Periodo:</span>
-                    <span class="text-white font-mono font-bold">$${op.btc_live.open_5m.toLocaleString()}</span>
+                <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-gray-800 text-[11px]">
+                  <div class="p-2 rounded bg-gray-800/70 ${!esEnBC ? 'ring-1 ring-emerald-400' : ''}">
+                    <span class="text-gray-400 block">Precio Polymarket:</span>
+                    <span class="text-emerald-300 font-bold text-xs">${o.centavosPoly}¢ (eq. ${o.cuotaEqPoly}x)</span>
                   </div>
-                  <div class="text-right">
-                    <span class="text-gray-400 block">BTC Actual:</span>
-                    <span class="${op.btc_live.diff_usd >= 0 ? 'text-emerald-400' : 'text-red-400'} font-mono font-bold">
-                      $${op.btc_live.current_btc.toLocaleString()} (${op.btc_live.diff_usd >= 0 ? '+' : ''}$${op.btc_live.diff_usd})
-                    </span>
+                  <div class="p-2 rounded bg-gray-800/70 ${esEnBC ? 'ring-1 ring-purple-400' : ''}">
+                    <span class="text-gray-400 block">Cuota BC.GAME:</span>
+                    <span class="text-purple-300 font-bold text-xs">Cuota ${o.kBcSame.toFixed(2)}x</span>
                   </div>
                 </div>
-                <div class="flex justify-between text-[11px] text-gray-300 pt-1 border-t border-amber-800/30">
-                  <span>Promedio TWAP: <b>$${op.btc_live.twap_btc.toLocaleString()}</b></span>
-                  <span>Impulso: <b class="${op.btc_live.mom_3m >= 0 ? 'text-emerald-400' : 'text-red-400'}">${op.btc_live.mom_3m >= 0 ? '+' : ''}$${op.btc_live.mom_3m}</b></span>
-                </div>
-              </div>
-              ` : ''}
-
-              <!-- EXPLICACIÓN EN ESPAÑOL SENCILLO -->
-              <div class="p-3 bg-emerald-950/30 rounded-lg border border-emerald-700/40 mb-3 space-y-2 text-xs">
-                <div>
-                  <span class="text-emerald-400 font-bold block">🗣️ ¿Cómo ganas esta apuesta?</span>
-                  <p class="text-gray-200 mt-0.5 leading-relaxed">${op.como_ganas || ('Ganas si se cumple: ' + op.outcome)}</p>
-                </div>
-                <div class="pt-1.5 border-t border-emerald-800/40">
-                  <span class="text-teal-300 font-bold block">👆 ¿Qué botón tocar en Polymarket?</span>
-                  <p class="text-gray-200 mt-0.5">${op.instruccion_boton || ('Toca el botón ' + op.outcome + ' de ~' + centavos + '¢')}</p>
+                <div class="text-[11px] text-gray-300 pt-1">
+                  ${esEnBC
+                    ? `💡 <b>Por qué hay ventaja:</b> En Polymarket esta jugada vale <b>${o.probRealPct}%</b> (cuota justa ${o.cuotaMinSeguraBC}), pero BC se quedó atrasado pagando <b>${o.kBcSame.toFixed(2)}</b>.`
+                    : `💡 <b>Por qué hay ventaja:</b> La línea limpia mundial da <b>${o.probRealPct}%</b>, pero en Polymarket la venden barata a <b>${o.centavosPoly}¢</b> (usa Orden Límite a <b>${limitCents}¢</b> si puedes).`
+                  }
                 </div>
               </div>
 
-              <!-- BOTÓN EXACTO Y CENTAVOS / CUOTA -->
-              <div class="p-2.5 bg-gray-900/90 rounded-lg border border-gray-800 mb-3 flex items-center justify-between">
-                <div>
-                  <span class="text-[11px] text-gray-400 uppercase block">Botón a elegir:</span>
-                  <span class="text-sm font-bold text-white">${op.outcome}</span>
-                </div>
-                <div class="text-right">
-                  <span class="text-[11px] text-gray-400 uppercase block">${op.es_playbc ? 'Cuota PlayBC:' : 'Precio del Botón:'}</span>
-                  <span class="text-sm font-mono text-emerald-400 font-bold">${op.es_playbc ? ('Cuota ' + op.cuota_bc) : (centavos + '¢ <span class="text-xs text-gray-400">($' + op.price.toFixed(2) + ')</span>')}</span>
-                </div>
-              </div>
-
-              <!-- EJEMPLO PRÁCTICO CON $10 USD -->
-              <div class="p-3 rounded-lg bg-gray-800/70 border border-gray-700/70 mb-4 text-xs space-y-1">
-                <div class="text-gray-300 font-semibold flex justify-between">
-                  <span>💵 Si metes <b>$10.00 USD</b>:</span>
-                  <span class="text-emerald-400 font-bold">+${op.roi}% ganancia</span>
-                </div>
-                <div class="flex justify-between text-gray-200 pt-1">
-                  <span>Cobras en total: <b>$${cobro10}</b></span>
-                  <span class="text-emerald-300 font-bold">Ganas: +$${ganancia10} limpios</span>
-                </div>
+              <div class="p-2.5 rounded-lg bg-gray-800/60 border border-gray-700/70 text-xs mb-4 flex justify-between items-center">
+                <span>Con <b>$${inversionTotal.toFixed(2)}</b> cobras: <b>$${cobroEst}</b></span>
+                <span class="text-emerald-400 font-bold">Ganas +$${gananciaEst}</span>
               </div>
             </div>
 
-            <!-- BOTONES DE ACCIÓN -->
-            <div class="flex items-center gap-2 pt-3 border-t border-gray-800">
-              <button onclick='analizarConIA(${JSON.stringify(op).replace(/'/g, "&apos;")})' class="py-2 px-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold flex items-center justify-center gap-1 transition" title="Auditoría con IA">
-                <i class="fa-solid fa-robot text-emerald-400"></i> IA
-              </button>
-              ${op.es_playbc ? `
-              <button onclick="toggleSeleccionComboManual('${op.id}')" class="py-2 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition cursor-pointer ${comboManualMap[op.id] ? 'bg-amber-400 text-gray-950 ring-2 ring-amber-200 shadow-md' : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40'}" title="Agregar o quitar esta jugada de tu Combo manual">
-                <i class="fa-solid ${comboManualMap[op.id] ? 'fa-check' : 'fa-plus'} text-[10px]"></i>
-                <span>${comboManualMap[op.id] ? 'En Combo' : 'Combo'}</span>
-              </button>
-              <button onclick="abrirAutoApuestaBC('${op.id}')" class="flex-1 py-2 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-lg shadow-purple-600/20 cursor-pointer">
-                <i class="fa-solid fa-bolt text-amber-300"></i>
-                <span>Individual ($${document.getElementById('bc-stake-amount') ? document.getElementById('bc-stake-amount').value : 1})</span>
-              </button>
+            <div class="pt-3 border-t border-gray-800 flex items-center gap-2">
+              ${esEnBC ? `
+                <button onclick="abrirLadoBC('${o.id}', false, '${inversionTotal}', '${o.cuotaMinSeguraBC}')" class="flex-1 py-2.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                  <i class="fa-solid fa-bolt text-amber-300"></i> Cazar Cuota ${o.kBcSame.toFixed(2)} en BC.GAME ($${inversionTotal})
+                </button>
               ` : `
-              <button onclick="abrirAutoSeleccionPolymarket('${op.id}')" class="flex-1 py-2 px-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-600/20 cursor-pointer">
-                <i class="fa-solid fa-crosshairs text-amber-300"></i>
-                <span>Auto-Seleccionar en Polymarket</span>
-              </button>
+                <button onclick="abrirLadoPolymarket('${o.id}', '${inversionTotal}')" class="flex-1 py-2.5 px-3 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                  <i class="fa-solid fa-crosshairs text-amber-300"></i> Auto-Seleccionar en Polymarket (${o.centavosPoly}¢)
+                </button>
               `}
             </div>
           </div>
@@ -2219,130 +962,11 @@
       }).join('');
     }
 
-    async function analizarConIA(op) {
-      document.getElementById('modal-ia').classList.remove('hidden');
-      document.getElementById('modal-ia-title').innerText = op.question;
-      document.getElementById('modal-ia-content').innerHTML = `
-        <div class="py-12 text-center text-gray-400">
-          <i class="fa-solid fa-brain fa-bounce text-4xl text-emerald-500 mb-3"></i>
-          <p class="text-sm">Analizando asimetría, fuentes de resolución y margen de seguridad...</p>
-        </div>
-      `;
-
-      try {
-        const resp = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(op)
-        });
-        const data = await resp.json();
-        document.getElementById('modal-ia-badge').innerText = data.fuente || 'Analista';
-        
-        // Convertir formato simple a HTML
-        let htmlContent = data.analisis
-          .replace(/\n\n/g, '<br><br>')
-          .replace(/\*\*(.*?)\*\*/g, '<b class="text-white">$1</b>')
-          .replace(/### (.*?)\n/g, '<h4 class="text-base font-bold text-emerald-400 mt-2 mb-1">$1</h4>')
-          .replace(/#### (.*?)\n/g, '<h5 class="text-sm font-semibold text-emerald-300 mt-2 mb-1">$1</h5>');
-
-        document.getElementById('modal-ia-content').innerHTML = `<div class="leading-relaxed">${htmlContent}</div>`;
-      } catch (err) {
-        document.getElementById('modal-ia-content').innerHTML = `<p class="text-red-400">Error al contactar al motor de análisis.</p>`;
-      }
-    }
-
-    function cerrarModalIA() {
-      document.getElementById('modal-ia').classList.add('hidden');
-    }
-
-    async function abrirConfigModal() {
-      document.getElementById('modal-config').classList.remove('hidden');
-      const resp = await fetch('/api/config');
-      const cfg = await resp.json();
-      document.getElementById('cfg-telegram-token').value = cfg.TELEGRAM_BOT_TOKEN || '';
-      document.getElementById('cfg-telegram-chat').value = cfg.TELEGRAM_CHAT_ID || '';
-      document.getElementById('cfg-gemini-key').value = cfg.GEMINI_API_KEY || '';
-    }
-
-    function cerrarConfigModal() {
-      document.getElementById('modal-config').classList.add('hidden');
-      document.getElementById('cfg-status-msg').classList.add('hidden');
-    }
-
-    async function guardarConfig() {
-      const payload = {
-        TELEGRAM_BOT_TOKEN: document.getElementById('cfg-telegram-token').value.trim(),
-        TELEGRAM_CHAT_ID: document.getElementById('cfg-telegram-chat').value.trim(),
-        GEMINI_API_KEY: document.getElementById('cfg-gemini-key').value.trim()
-      };
-      const resp = await fetch('/api/config', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const res = await resp.json();
-      const statusDiv = document.getElementById('cfg-status-msg');
-      statusDiv.classList.remove('hidden', 'bg-red-900/50', 'text-red-300', 'bg-emerald-900/50', 'text-emerald-300');
-      statusDiv.classList.add('bg-emerald-900/50', 'text-emerald-300');
-      statusDiv.innerText = 'Configuración guardada correctamente.';
-      setTimeout(() => cerrarConfigModal(), 1200);
-    }
-
-    async function autodetectarGrupo() {
-      const token = document.getElementById('cfg-telegram-token').value.trim();
-      const statusDiv = document.getElementById('cfg-status-msg');
-      statusDiv.classList.remove('hidden', 'bg-red-900/50', 'text-red-300', 'bg-emerald-900/50', 'text-emerald-300');
-      statusDiv.innerText = 'Buscando tu grupo o chat en Telegram...';
-
-      const resp = await fetch('/api/detect-telegram-chat', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({token})
-      });
-      const res = await resp.json();
-      if (res.ok) {
-        document.getElementById('cfg-telegram-chat').value = res.chat_id;
-        statusDiv.classList.add('bg-emerald-900/50', 'text-emerald-300');
-        statusDiv.innerText = res.message;
-      } else {
-        statusDiv.classList.add('bg-red-900/50', 'text-red-300');
-        statusDiv.innerText = `❌ ${res.message}`;
-      }
-    }
-
-    async function probarTelegram() {
-      const payload = {
-        token: document.getElementById('cfg-telegram-token').value.trim(),
-        chat_id: document.getElementById('cfg-telegram-chat').value.trim()
-      };
-      const statusDiv = document.getElementById('cfg-status-msg');
-      statusDiv.classList.remove('hidden', 'bg-red-900/50', 'text-red-300', 'bg-emerald-900/50', 'text-emerald-300');
-      statusDiv.innerText = 'Enviando mensaje de prueba...';
-      
-      const resp = await fetch('/api/test-telegram', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const res = await resp.json();
-      if (res.ok) {
-        statusDiv.classList.add('bg-emerald-900/50', 'text-emerald-300');
-        statusDiv.innerText = '✅ ¡Mensaje de prueba recibido en Telegram!';
-      } else {
-        statusDiv.classList.add('bg-red-900/50', 'text-red-300');
-        statusDiv.innerText = `❌ Error: ${res.message}`;
-      }
-    }
-
-    // Inicializar al cargar
     document.addEventListener('DOMContentLoaded', () => {
-      cargarEstadisticasAprendizaje();
-      cargarFijadasLocales();
-      cargarCombosLocales();
-      cargarFiltrosLocales();
-      escanearMercados(false);
-      // Auto-refresco cada 12 segundos para capturar marcadores finales reales sin perder el último minuto
-      setInterval(() => escanearMercados(true), 12000);
+      cargarFijadas();
+      cargarFiltros();
+      escanearMercadosCruzados(false);
+      setInterval(() => escanearMercadosCruzados(true), 25000);
     });
   </script>
 </body>
