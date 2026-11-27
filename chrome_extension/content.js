@@ -115,36 +115,20 @@
     inputEl.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, composed: true }));
   }
 
-  // Disparo completo de eventos Pointer + Mouse para que Betby SIEMPRE marque el div[data-editor-id="outcomePlate"]
-  function simularClickCompleto(el) {
-    if (!el) return;
-    const opts = { bubbles: true, cancelable: true, composed: true, view: window };
-    try {
-      el.dispatchEvent(new PointerEvent("pointerdown", opts));
-      el.dispatchEvent(new MouseEvent("mousedown", opts));
-      el.dispatchEvent(new PointerEvent("pointerup", opts));
-      el.dispatchEvent(new MouseEvent("mouseup", opts));
-      el.click();
-    } catch (e) {
-      try { el.click(); } catch (e2) {}
-    }
-  }
-
-  function estaAbiertoElBetslipConJugada() {
-    return Boolean(
-      querySelectorDeep('[data-editor-id="betslipSelection"]') ||
-      querySelectorDeep('[data-editor-id="betslipStakeInput"] input')
-    );
-  }
-
-  function abrirBetslipSiEstaCerrado() {
-    if (estaAbiertoElBetslipConJugada()) return true;
+  function abrirBetslipAbajoDerechaSinScroll() {
+    if (querySelectorDeep('[data-editor-id="betslipStakeInput"] input')) return true;
     const nodos = querySelectorAllDeep("div, span, button");
     for (const el of nodos) {
+      const rect = el.getBoundingClientRect();
+      // Solo mirar en la esquina inferior derecha de la ventana (donde vive la barra flotante verde Betslip)
+      if (rect.bottom < window.innerHeight - 120 || rect.left < window.innerWidth * 0.45) continue;
       const t = (el.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
       if (!t || t.includes("quick") || t.includes("rápida")) continue;
-      if ((t === "betslip" || t === "cupón de apuesta" || /^betslip\s*\d+$/.test(t) || /^\d+\s*betslip$/.test(t)) && el.children.length <= 4) {
-        simularClickCompleto(el);
+      if (
+        (t === "betslip" || t === "cupón de apuesta" || /^betslip\s*\d*$/.test(t) || /^cupón de apuesta\s*\d*$/.test(t)) &&
+        el.children.length <= 4
+      ) {
+        try { el.click(); } catch (e) {}
         if (el.parentElement && !(el.parentElement.textContent || "").toLowerCase().includes("quick")) {
           try { el.parentElement.click(); } catch (e) {}
         }
@@ -154,18 +138,16 @@
     return false;
   }
 
-  // Solo limpiar si realmente había selecciones viejas en el cupón (para NO abrir el Betslip vacío tapando los botones)
   async function limpiarSoloSiHaySeleccionesPrevias() {
     const removeBtns = querySelectorAllDeep('[data-editor-id="betslipSelectionRemoveButton"]');
     const trash = querySelectorDeep('[data-cy="ic-delete"]');
     if (removeBtns.length === 0 && !trash) return;
-
     if (trash) {
-      simularClickCompleto(trash);
+      try { trash.click(); } catch (e) {}
       await new Promise(r => setTimeout(r, 220));
     }
     for (const btn of removeBtns) {
-      simularClickCompleto(btn);
+      try { btn.click(); } catch (e) {}
       await new Promise(r => setTimeout(r, 120));
     }
   }
@@ -176,7 +158,9 @@
       const t = (el.textContent || "").trim().toLowerCase();
       return (t.startsWith("totals") || t.startsWith("totales")) && t.length <= 16 && el.children.length <= 3;
     });
-    if (tabTotals) simularClickCompleto(tabTotals);
+    if (tabTotals) {
+      try { tabTotals.click(); } catch (e) {}
+    }
   }
 
   function leerCuotaDeBoton(plate) {
@@ -214,17 +198,16 @@
     if ((cfg.tipo === "OVER" || cfg.tipo === "UNDER" || cfg.outid === "12" || cfg.outid === "13") && cfg.linea) {
       const esOver = cfg.tipo === "OVER" || cfg.outid === "12";
       for (const card of marketCards) {
-        // Ignorar widgets promocionales de combos / Expert Tips arriba de la lista real de mercados
-        if ((card.textContent || "").toLowerCase().includes("expert tips")) continue;
-
         const header = card.querySelector('div[data-editor-id="marketCardHeader"]');
-        const hText = (header ? header.textContent : "").trim().toLowerCase();
+        if (!header) continue;
+        const hText = (header.textContent || "").trim().toLowerCase();
         const esTotal = (
           hText === "total" ||
           hText === "total (incl. overtime)" ||
           hText === "total (incl. overtime and penalties)" ||
           hText === "total (prórroga incl.)" ||
           hText === "total (incl. prórroga)" ||
+          hText === "total (incl. prórroga y penaltis)" ||
           hText === "over/under" ||
           hText === "más/menos"
         );
@@ -254,16 +237,12 @@
       return { btn: null, motivo: ultimoMotivo };
     }
 
-    // CASO 2: GANADOR 2-WAY INCLUYENDO PRÓRROGA / PENALTIS (NBA 219 / NHL 406)
+    // CASO 2: GANADOR 2-WAY INCLUYENDO PRÓRROGA Y PENALTIS (NBA 219 / NHL 406)
     if (cfg.tipo === "WIN" || cfg.outid === "4" || cfg.outid === "5") {
       const esLocal = cfg.outid === "4" || cfg.outid === "1";
       for (const card of marketCards) {
-        const cardTxt = (card.textContent || "").toLowerCase();
-        if (cardTxt.includes("expert tips") || cardTxt.includes("boston bruins") && !window.location.pathname.includes("boston")) {
-          // Ignorar tarjetas laterales de combos sugeridos que listan varios partidos
-        }
         const header = card.querySelector('div[data-editor-id="marketCardHeader"]');
-        if (!header) continue; // Las tarjetas reales de mercado SIEMPRE tienen marketCardHeader; los widgets de combos no
+        if (!header) continue;
         const hText = (header.textContent || "").trim().toLowerCase();
         const esWinnerOT = (
           hText === "winner (incl. overtime)" ||
@@ -331,38 +310,42 @@
 
       await limpiarSoloSiHaySeleccionesPrevias();
 
-      // 1. Llevar el botón de la cuota exactamente al centro de la pantalla de forma INSTANTÁNEA (no smooth)
+      // 1. Bajar la pantalla hasta dejar la tarjeta (ej. Winner incl. overtime en y=3610) justo en el centro visible
       try {
         boton.scrollIntoView({ behavior: "instant", block: "center" });
       } catch (e) {}
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise(r => setTimeout(r, 320));
 
       const cuotaViva = leerCuotaDeBoton(boton);
       boton.style.outline = "4px solid #10b981";
       boton.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.85)";
 
-      // 2. Hacer clic real y VERIFICAR que data-active cambie a "true" y entre al Betslip
-      let entroAlCupon = boton.getAttribute("data-active") === "true";
-      for (let intentoClick = 0; intentoClick < 4 && !entroAlCupon; intentoClick++) {
-        const targetClick = intentoClick % 2 === 0
-          ? boton
-          : (boton.querySelector('[data-editor-id="marketCardOutcomeName"]') || boton);
-        simularClickCompleto(targetClick);
-        await new Promise(r => setTimeout(r, 450));
-        entroAlCupon =
-          boton.getAttribute("data-active") === "true" ||
-          Boolean(querySelectorDeep('[data-editor-id="betslipSelection"]'));
+      // 2. IMPORTANTE: En Betby el botón es un interruptor (toggle). Hacer UN SOLO .click() limpio (nunca pointerup + click juntos porque lo enciende y lo apaga al instante!)
+      if (boton.getAttribute("data-active") !== "true") {
+        boton.click();
       }
 
-      // 3. Esperar / abrir Betslip y escribir el monto exacto ($3.66, etc.)
+      // Esperar hasta 1.5s verificando data-active="true"
+      for (let w = 0; w < 5; w++) {
+        await new Promise(r => setTimeout(r, 300));
+        if (boton.getAttribute("data-active") === "true" || querySelectorDeep('[data-editor-id="betslipSelection"]')) {
+          break;
+        }
+        if (w === 2 && boton.getAttribute("data-active") !== "true") {
+          const innerName = boton.querySelector('[data-editor-id="marketCardOutcomeName"]');
+          if (innerName) innerName.click();
+        }
+      }
+
+      // 3. Esperar / abrir la barra inferior derecha del Betslip (SIN mover el scroll de la página) y colocar el monto exacto ($3.70, etc.)
       let inputStake = null;
       for (let i = 0; i < 20; i++) {
         inputStake =
           querySelectorDeep('[data-editor-id="betslipStakeInput"] input') ||
           querySelectorDeep('input[inputmode="decimal"]');
         if (inputStake) break;
-        if (i === 2 || i === 6 || i === 12) {
-          abrirBetslipSiEstaCerrado();
+        if (i === 2 || i === 6 || i === 11) {
+          abrirBetslipAbajoDerechaSinScroll();
         }
         await new Promise(r => setTimeout(r, 300));
       }
@@ -376,7 +359,7 @@
         }
       } else {
         mostrarBannerEstado(
-          `⚠️ Toca el botón con borde verde «${cfg.equipo}» (${cuotaViva}) ahí en pantalla y pon $${cfg.stake} en el Betslip.`,
+          `⚠️ La cuota «${cfg.equipo}» (${cuotaViva}) está resaltada en verde ahí mismo en pantalla. Tócala y pon $${cfg.stake}.`,
           "#d97706"
         );
         return;
@@ -393,14 +376,14 @@
         btnApostar.style.outline = "4px solid #fbbf24";
         btnApostar.style.boxShadow = "0 0 20px rgba(251, 191, 36, 0.85)";
         if (cfg.autoconfirm && !btnApostar.disabled) {
-          simularClickCompleto(btnApostar);
+          btnApostar.click();
           mostrarBannerEstado(`✅ ¡Apuesta enviada a cuota ${cuotaViva} con $${cfg.stake}!`, "#059669");
           return;
         }
       }
 
       mostrarBannerEstado(
-        `✅ ¡Listo! «${cfg.equipo}» (Cuota ${cuotaViva}) ya está dentro de tu Betslip con $${cfg.stake}. Revisa y dale a «Place Bet».`,
+        `✅ ¡Listo! «${cfg.equipo}» (Cuota ${cuotaViva}) ya está en tu Betslip con $${cfg.stake}. Revisa y dale a «Place Bet».`,
         "#059669"
       );
     } finally {
