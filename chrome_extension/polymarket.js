@@ -15,9 +15,11 @@
       if (params.get("polyedge_poly") === "1") {
         const cfg = {
           ts: Date.now(),
-          linea: (params.get("linea") || "").trim(),          // ej: "5.5", "4.5", "224.5"
-          side: (params.get("side") || "OVER").toUpperCase(), // "OVER" o "UNDER"
-          outcome: (params.get("outcome") || "").trim(),
+          tipo: (params.get("tipo") || "OU").toUpperCase(),   // "OU" o "ML"
+          linea: (params.get("linea") || "").trim(),          // ej: "5.5", "221.5"
+          side: (params.get("side") || "OVER").toUpperCase(), // "OVER", "UNDER", "ML"
+          outcome: (params.get("outcome") || "").trim(),      // ej: "Over", "Stars", "Celtics"
+          stake: (params.get("stake") || "").trim(),
           cents: (params.get("cents") || "").trim(),
           q: (params.get("q") || "").trim()
         };
@@ -72,7 +74,7 @@
       document.body.appendChild(banner);
     }
     banner.style.background = colorBg;
-    banner.innerHTML = `<span>🎯 <b>PolyEdge Polymarket:</b> ${texto}</span>`;
+    banner.innerHTML = `<span>🎯 <b>PolyEdge Pro:</b> ${texto}</span>`;
   }
 
   function dispararClickSinScroll(el) {
@@ -89,7 +91,38 @@
     }
   }
 
-  // Encontrar el contenedor COMPLETO de "Totales" / "Totals" (incluyendo la barra inferior de números 4.5, 5.5, 6.5, 7.5)
+  function setReactInputValue(inputEl, val) {
+    if (!inputEl) return;
+    const prevVal = inputEl.value;
+    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    if (nativeSetter) nativeSetter.call(inputEl, String(val));
+    else inputEl.value = String(val);
+    const tracker = inputEl._valueTracker;
+    if (tracker) {
+      try { tracker.setValue(prevVal); } catch (e) {}
+    }
+    inputEl.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    inputEl.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+  }
+
+  function encontrarTarjetaMoneyline() {
+    const nodos = Array.from(document.querySelectorAll("h2, h3, h4, span, div, p"));
+    for (const h of nodos) {
+      if (h.children.length > 2) continue;
+      const txt = (h.textContent || "").trim().toLowerCase();
+      if (txt === "moneyline" || txt === "línea de dinero" || txt === "ganador") {
+        let curr = h.parentElement;
+        for (let up = 0; up < 7 && curr; up++) {
+          if (curr.querySelectorAll("button.trading-button").length >= 2) {
+            return curr;
+          }
+          curr = curr.parentElement;
+        }
+      }
+    }
+    return null;
+  }
+
   function encontrarTarjetaTotalsCompleta() {
     const nodos = Array.from(document.querySelectorAll("h2, h3, h4, span, div, p"));
     for (const h of nodos) {
@@ -101,17 +134,15 @@
 
         for (let up = 0; up < 9 && curr; up++) {
           const textoBloque = (curr.textContent || "").toLowerCase();
-          // No subir tan alto que abarque Moneyline o Spreads/Hándicap
           if (textoBloque.includes("moneyline") || textoBloque.includes("línea de dinero")) {
             break;
           }
-
           const cantTradingBtns = curr.querySelectorAll("button.trading-button").length;
           const tieneSwiper = Boolean(curr.querySelector(".swiper, .swiper-wrapper, .swiper-slide"));
           const tieneBotonesLinea = Array.from(curr.querySelectorAll("button")).some(b => /^\d+(\.5)?$/.test((b.textContent || "").trim()));
 
           if (cantTradingBtns >= 2 && (tieneSwiper || tieneBotonesLinea)) {
-            return curr; // ¡Este contenedor tiene TANTO los botones O/U COMO el carrusel inferior de números!
+            return curr;
           }
           if (cantTradingBtns >= 2 && !mejorConBotones) {
             mejorConBotones = curr;
@@ -120,7 +151,6 @@
         }
 
         if (mejorConBotones) {
-          // Revisar si el padre inmediato contiene el carrusel sin incluir Moneyline
           const padre = mejorConBotones.parentElement;
           if (padre && !(padre.textContent || "").toLowerCase().includes("moneyline")) {
             return padre;
@@ -132,11 +162,8 @@
     return null;
   }
 
-  // Seleccionar el número exacto (ej. "5.5" o "4.5") en la barra inferior de Totales
   async function seleccionarLineaEnCarrusel(totalsCard, lineaBuscada) {
     if (!totalsCard || !lineaBuscada) return false;
-
-    // Buscar primero dentro de totalsCard y, por seguridad, también en cualquier carrusel cercano
     let alcanceBotones = Array.from(totalsCard.querySelectorAll("button")).filter(
       b => !b.classList.contains("trading-button")
     );
@@ -149,12 +176,10 @@
     const btnExacto = alcanceBotones.find(b => (b.textContent || "").trim() === lineaBuscada);
     if (!btnExacto) return false;
 
-    // Hacer clic tanto en el botón como en el texto interno (<p>5.5</p>) y en el slide
     const textoHijo = btnExacto.querySelector("p, span");
     if (textoHijo) dispararClickSinScroll(textoHijo);
     dispararClickSinScroll(btnExacto);
 
-    // Esperar a que los botones superiores cambien a "O <linea>" / "U <linea>"
     for (let w = 0; w < 8; w++) {
       await new Promise(r => setTimeout(r, 150));
       const btnsArriba = Array.from(totalsCard.querySelectorAll("button.trading-button"));
@@ -167,7 +192,6 @@
     return false;
   }
 
-  // Hacer clic en "O <linea>" (Over / Más de) o "U <linea>" (Under / Menos de) en la tarjeta Totales
   function clickBotonOverUnderEnTotals(totalsCard, cfg) {
     if (!totalsCard) return null;
     const esOver = cfg.side !== "UNDER";
@@ -197,11 +221,39 @@
     return null;
   }
 
-  // Verificar en el panel derecho (funciona tanto en Español "Comprar / Importe" como en Inglés "Buy / Amount")
+  function clickBotonEquipoEnMoneyline(mlCard, cfg) {
+    if (!mlCard || !cfg.outcome) return null;
+    const targetWords = cfg.outcome.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    const tradingBtns = Array.from(mlCard.querySelectorAll("button.trading-button"));
+
+    // Si en el título del partido sabemos si nuestro equipo es el 1º (izquierda) o 2º (derecha)
+    const partesQ = (cfg.q || "").split(/\s+vs\.?\s+/i);
+    const esPrimero = partesQ.length === 2 && partesQ[0].toLowerCase().includes(cfg.outcome.toLowerCase());
+    const esSegundo = partesQ.length === 2 && partesQ[1].toLowerCase().includes(cfg.outcome.toLowerCase());
+
+    for (const btn of tradingBtns) {
+      const bt = (btn.textContent || "").toLowerCase();
+      if (targetWords.some(w => bt.includes(w))) {
+        const inner = btn.querySelector(".trading-button-text") || btn;
+        dispararClickSinScroll(inner);
+        dispararClickSinScroll(btn);
+        return btn;
+      }
+    }
+
+    if (tradingBtns.length === 2 && (esPrimero || esSegundo)) {
+      const elegido = esPrimero ? tradingBtns[0] : tradingBtns[1];
+      const inner = elegido.querySelector(".trading-button-text") || elegido;
+      dispararClickSinScroll(inner);
+      dispararClickSinScroll(elegido);
+      return elegido;
+    }
+    return null;
+  }
+
   async function verificarYPrepararPanelCompra(cfg) {
     const esOver = cfg.side !== "UNDER";
 
-    // 1. Asegurar que esté seleccionada la pestaña "Comprar" / "Buy" (y NO "Vender" / "Sell")
     const tabBuy =
       document.querySelector('button[role="radio"][value="BUY"]') ||
       Array.from(document.querySelectorAll('button[role="radio"], button')).find(b => {
@@ -214,45 +266,38 @@
       await new Promise(r => setTimeout(r, 250));
     }
 
-    // 2. Verificar que los dos botones del panel derecho ya NO digan los equipos (Moneyline), sino "O 5.5" / "U 5.5"
     const contenedorRadios = document.getElementById("outcome-buttons");
     let verificadoPanelDerecho = false;
 
     if (contenedorRadios) {
       const radios = Array.from(contenedorRadios.querySelectorAll('button[role="radio"], button.trading-button'));
-      const valorEsperado = esOver ? "0" : "1";
-      const radioCorrecto = radios.find(r => r.getAttribute("value") === valorEsperado) || (esOver ? radios[0] : radios[1]);
-
-      if (radioCorrecto) {
-        const txtRadio = (radioCorrecto.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
-        if (cfg.linea && txtRadio.includes(cfg.linea)) {
-          if (radioCorrecto.getAttribute("aria-checked") === "false" || radioCorrecto.getAttribute("data-selected") === "false") {
-            const inner = radioCorrecto.querySelector(".trading-button-text") || radioCorrecto;
-            dispararClickSinScroll(inner);
-            dispararClickSinScroll(radioCorrecto);
-            await new Promise(r => setTimeout(r, 250));
-          }
-          radioCorrecto.style.outline = "3px solid #10b981";
-          radioCorrecto.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.8)";
+      if (cfg.tipo === "ML") {
+        const seleccionado = radios.find(r => r.getAttribute("aria-checked") === "true" || r.getAttribute("data-selected") === "true");
+        if (seleccionado) {
+          seleccionado.style.outline = "3px solid #10b981";
+          seleccionado.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.8)";
           verificadoPanelDerecho = true;
+        }
+      } else {
+        const valorEsperado = esOver ? "0" : "1";
+        const radioCorrecto = radios.find(r => r.getAttribute("value") === valorEsperado) || (esOver ? radios[0] : radios[1]);
+        if (radioCorrecto) {
+          const txtRadio = (radioCorrecto.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+          if (cfg.linea && txtRadio.includes(cfg.linea)) {
+            if (radioCorrecto.getAttribute("aria-checked") === "false" || radioCorrecto.getAttribute("data-selected") === "false") {
+              const inner = radioCorrecto.querySelector(".trading-button-text") || radioCorrecto;
+              dispararClickSinScroll(inner);
+              dispararClickSinScroll(radioCorrecto);
+              await new Promise(r => setTimeout(r, 250));
+            }
+            radioCorrecto.style.outline = "3px solid #10b981";
+            radioCorrecto.style.boxShadow = "0 0 18px rgba(16, 185, 129, 0.8)";
+            verificadoPanelDerecho = true;
+          }
         }
       }
     }
 
-    // Si Polymarket en otro tamaño de pantalla no usa #outcome-buttons pero el encabezado derecho ya dice "Over 5.5" / "Más de 5.5"
-    if (!verificadoPanelDerecho && cfg.linea) {
-      const spansDerecha = Array.from(document.querySelectorAll("span, div"));
-      const yaMuestraJugada = spansDerecha.some(s => {
-        if (s.children.length > 1) return false;
-        const t = (s.textContent || "").trim().toLowerCase();
-        return esOver
-          ? (t === `over ${cfg.linea}` || t === `más de ${cfg.linea}` || t === `o ${cfg.linea}`)
-          : (t === `under ${cfg.linea}` || t === `menos de ${cfg.linea}` || t === `u ${cfg.linea}`);
-      });
-      if (yaMuestraJugada) verificadoPanelDerecho = true;
-    }
-
-    // 3. Enfocar la cajita de Importe ($10 / $0) para que el usuario solo escriba su monto y presione Comprar / Trade
     const inputMonto =
       document.getElementById("market-order-amount-input") ||
       document.querySelector('input[inputmode="decimal"]');
@@ -264,7 +309,11 @@
       cajaInput.style.boxShadow = "0 0 16px rgba(251, 191, 36, 0.6)";
       try {
         inputMonto.focus();
-        inputMonto.select();
+        if (cfg.stake) {
+          setReactInputValue(inputMonto, cfg.stake);
+        } else {
+          inputMonto.select();
+        }
       } catch (e) {}
     }
 
@@ -284,36 +333,51 @@
         await new Promise(r => setTimeout(r, 100));
       }
 
-      const etiquetaMeta = `${cfg.side === "UNDER" ? "UNDER / U" : "OVER / O"} ${cfg.linea}`;
-      mostrarBannerPoly(`Buscando «Totales ${cfg.linea}» y marcando «${etiquetaMeta}»...`, "#047857");
+      const etiquetaMeta = cfg.tipo === "ML"
+        ? `Ganador: ${cfg.outcome}`
+        : `${cfg.side === "UNDER" ? "UNDER / U" : "OVER / O"} ${cfg.linea}`;
+
+      mostrarBannerPoly(`Marcando automáticamente «${etiquetaMeta}»...`, "#047857");
 
       let completado = false;
       let scrolleadoUnaVez = false;
 
       for (let intento = 0; intento < 35; intento++) {
-        const totalsCard = encontrarTarjetaTotalsCompleta();
-        if (totalsCard) {
-          if (!scrolleadoUnaVez) {
-            try { totalsCard.scrollIntoView({ behavior: "instant", block: "center" }); } catch (e) {}
-            scrolleadoUnaVez = true;
-            await new Promise(r => setTimeout(r, 200));
+        if (cfg.tipo === "ML") {
+          const mlCard = encontrarTarjetaMoneyline();
+          if (mlCard) {
+            const btn = clickBotonEquipoEnMoneyline(mlCard, cfg);
+            if (btn) {
+              btn.style.outline = "3px solid #10b981";
+              await new Promise(r => setTimeout(r, 380));
+              if (await verificarYPrepararPanelCompra(cfg)) {
+                completado = true;
+                break;
+              }
+            }
           }
+        } else {
+          const totalsCard = encontrarTarjetaTotalsCompleta();
+          if (totalsCard) {
+            if (!scrolleadoUnaVez) {
+              try { totalsCard.scrollIntoView({ behavior: "instant", block: "center" }); } catch (e) {}
+              scrolleadoUnaVez = true;
+              await new Promise(r => setTimeout(r, 200));
+            }
+            totalsCard.style.outline = "2px solid rgba(16, 185, 129, 0.65)";
+            totalsCard.style.borderRadius = "14px";
 
-          totalsCard.style.outline = "2px solid rgba(16, 185, 129, 0.65)";
-          totalsCard.style.borderRadius = "14px";
-
-          if (cfg.linea) {
-            await seleccionarLineaEnCarrusel(totalsCard, cfg.linea);
-          }
-
-          const btnClicado = clickBotonOverUnderEnTotals(totalsCard, cfg);
-          if (btnClicado) {
-            btnClicado.style.outline = "3px solid #10b981";
-            await new Promise(r => setTimeout(r, 380));
-            const okDerecha = await verificarYPrepararPanelCompra(cfg);
-            if (okDerecha) {
-              completado = true;
-              break;
+            if (cfg.linea) {
+              await seleccionarLineaEnCarrusel(totalsCard, cfg.linea);
+            }
+            const btnClicado = clickBotonOverUnderEnTotals(totalsCard, cfg);
+            if (btnClicado) {
+              btnClicado.style.outline = "3px solid #10b981";
+              await new Promise(r => setTimeout(r, 380));
+              if (await verificarYPrepararPanelCompra(cfg)) {
+                completado = true;
+                break;
+              }
             }
           }
         }
@@ -325,12 +389,12 @@
 
       if (completado) {
         mostrarBannerPoly(
-          `✅ ¡Verificado! Quedó seleccionado «${etiquetaMeta}» en «Comprar» a la derecha. Solo pon tu Importe en $ y dale al botón azul.`,
+          `✅ ¡Verificado! Quedó seleccionado «${etiquetaMeta}»${cfg.stake ? " con $" + cfg.stake : ""}. Revisa el precio y dale al botón azul (o usa Orden Límite para ganar aún más).`,
           "#059669"
         );
       } else {
         mostrarBannerPoly(
-          `⚠️ La línea exacta «${cfg.linea}» no apareció disponible en Totales. Revisa los números debajo de Totales antes de comprar.`,
+          `⚠️ No apareció disponible «${etiquetaMeta}». Revisa manualmente antes de operar.`,
           "#d97706"
         );
       }
