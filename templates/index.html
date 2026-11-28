@@ -109,6 +109,74 @@
       </div>
     </div>
 
+    <!-- PANEL: 🤖 FULL AUTOMATIC MASTER (POLYMARKET) -->
+    <div class="glass-card rounded-xl p-5 border-2 border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.18)] space-y-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-black text-white flex items-center gap-2">
+              <i class="fa-solid fa-robot text-emerald-400"></i> FULL AUTOMATIC MASTER — POLYMARKET
+            </span>
+            <span id="master-status-badge" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
+              ⏸️ EN ESPERA
+            </span>
+          </div>
+          <p class="text-xs text-gray-300" id="master-status-desc">
+            Configura tu monto por jugada (ej. <b>$1</b>) y el límite de jugadas (ej. <b>10</b>). El bot escoge las mejores de hoy (1 por partido), compra solo en Polymarket, vigila resultados/rebotes y <b>se pausa automáticamente al completar las 10</b> para que revises cómo te fue.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-1.5 bg-gray-900 border border-emerald-500/40 px-3 py-1.5 rounded-lg text-xs">
+            <span class="text-gray-300 font-semibold">Apuesta: $</span>
+            <input type="number" id="master-stake" value="1" min="0.5" step="0.5" onchange="guardarEstadoMaster()" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-black text-right focus:outline-none" />
+          </div>
+
+          <div class="flex items-center gap-1.5 bg-gray-900 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs">
+            <span class="text-gray-300 font-semibold">Jugadas Ciclo:</span>
+            <input type="number" id="master-max-bets" value="10" min="1" max="50" step="1" onchange="guardarEstadoMaster()" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-amber-300 font-black text-right focus:outline-none" />
+          </div>
+
+          <button onclick="toggleAutoSellMaster()" id="btn-master-autosell" class="px-2.5 py-2 rounded-lg bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold text-xs transition cursor-pointer" title="Si una jugada sube a su meta de rebote en vivo (+28%+), la vende automáticamente para asegurar ganancia sin esperar al final">
+            ⚡ Auto-Vender Rebote: ON
+          </button>
+
+          <button onclick="toggleFullAutomaticMaster()" id="btn-master-main" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30 transition cursor-pointer">
+            <i class="fa-solid fa-power-off"></i>
+            <span id="txt-btn-master">FULL AUTOMATIC MASTER</span>
+          </button>
+
+          <button onclick="reiniciarCicloMaster()" class="px-2.5 py-2 rounded-lg bg-gray-800 hover:bg-red-900/40 text-gray-400 hover:text-red-300 border border-gray-700 text-xs transition cursor-pointer" title="Limpiar y reiniciar ciclo Master a 0">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- RESUMEN Y BITÁCORA DEL CICLO MASTER -->
+      <div id="panel-master-detalle" class="hidden pt-3 border-t border-gray-800 space-y-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+          <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+            <span class="text-gray-400 block text-[11px]">🎯 Jugadas Enviadas</span>
+            <span class="text-lg font-black text-white" id="master-kpi-sent">0 / 10</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+            <span class="text-gray-400 block text-[11px]">⏳ En Juego / Resueltas</span>
+            <span class="text-lg font-black text-cyan-300" id="master-kpi-open">0 vivas · 0 listas</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+            <span class="text-gray-400 block text-[11px]">🏆 Récord del Ciclo</span>
+            <span class="text-lg font-black text-emerald-400" id="master-kpi-wl">0W - 0L</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+            <span class="text-gray-400 block text-[11px]">💰 Resultado Neto Ciclo</span>
+            <span class="text-lg font-black font-mono text-gray-200" id="master-kpi-pnl">$0.00</span>
+          </div>
+        </div>
+
+        <div id="lista-master-jugadas" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
     <!-- PANEL DE CONTROLES -->
     <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -225,6 +293,354 @@
 
     // Simulador / Auditoría Real en USD ($5/tiro) para estrategia Alpha
     let statsAlpha = { wins: 0, losses: 0, pnl_usd: 0, contados: {}, cola: {} };
+
+    // Estado persistente de FULL AUTOMATIC MASTER (Polymarket)
+    let masterState = {
+      activo: false,
+      fase: 'INACTIVO', // 'INACTIVO', 'BUSCANDO', 'ESPERANDO_RESULTADOS', 'PAUSADO_REVISION'
+      stake: 1.0,
+      maxBets: 10,
+      autoSellRebote: true,
+      ultimoDisparoTs: 0,
+      partidosUsados: {},
+      jugadas: [] // [{ orderId, id, polyMarketId, partidoTitulo, jugadaLabel, stake, askEntrada, metaVenta, bidActual, estado, pnlUsd, hora, linkPoly, tipoMercado, linea, polySide, polyOutcomeExacto, preguntaPoly }]
+    };
+
+    function cargarEstadoMaster() {
+      try {
+        const raw = localStorage.getItem('polyedge_master_auto_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          masterState = Object.assign(masterState, parsed);
+          if (!Array.isArray(masterState.jugadas)) masterState.jugadas = [];
+          if (!masterState.partidosUsados) masterState.partidosUsados = {};
+        }
+      } catch (e) {}
+      const inpS = document.getElementById('master-stake');
+      const inpM = document.getElementById('master-max-bets');
+      if (inpS) inpS.value = masterState.stake || 1;
+      if (inpM) inpM.value = masterState.maxBets || 10;
+      renderizarPanelMaster();
+    }
+
+    function guardarEstadoMaster() {
+      const inpS = document.getElementById('master-stake');
+      const inpM = document.getElementById('master-max-bets');
+      if (inpS) masterState.stake = Math.max(parseFloat(inpS.value) || 1, 0.5);
+      if (inpM) masterState.maxBets = Math.max(parseInt(inpM.value, 10) || 10, 1);
+      try {
+        localStorage.setItem('polyedge_master_auto_v1', JSON.stringify(masterState));
+      } catch (e) {}
+      renderizarPanelMaster();
+    }
+
+    function toggleAutoSellMaster() {
+      masterState.autoSellRebote = !masterState.autoSellRebote;
+      guardarEstadoMaster();
+    }
+
+    function toggleFullAutomaticMaster() {
+      guardarEstadoMaster();
+      if (masterState.activo) {
+        masterState.activo = false;
+        masterState.fase = 'INACTIVO';
+        guardarEstadoMaster();
+        return;
+      }
+
+      // Si el ciclo anterior ya había llenado todas las jugadas, preguntar si desea iniciar un ciclo limpio
+      if (masterState.jugadas.length >= masterState.maxBets) {
+        const resueltas = masterState.jugadas.filter(j => j.estado === 'WIN' || j.estado === 'LOSS' || j.estado === 'SOLD_PROFIT').length;
+        if (resueltas >= masterState.jugadas.length) {
+          if (!confirm(`Ya completaste las ${masterState.maxBets} jugadas del ciclo anterior. ¿Quieres limpiar la lista e iniciar un nuevo ciclo de ${masterState.maxBets} jugadas?`)) {
+            return;
+          }
+          masterState.jugadas = [];
+          masterState.partidosUsados = {};
+        } else {
+          masterState.activo = true;
+          masterState.fase = 'ESPERANDO_RESULTADOS';
+          guardarEstadoMaster();
+          return;
+        }
+      }
+
+      // Abrir (con el clic directo del usuario) la pestaña trabajadora reutilizable de Polymarket para que Chrome no bloquee ventanas emergentes
+      try {
+        window.open('https://polymarket.com/sports', 'PolyEdgeMasterWorker');
+      } catch (e) {}
+
+      masterState.activo = true;
+      masterState.fase = 'BUSCANDO';
+      guardarEstadoMaster();
+      evaluarDisparoMaster();
+    }
+
+    function reiniciarCicloMaster() {
+      if (masterState.jugadas.length > 0 && !confirm('¿Seguro que deseas reiniciar a 0 el contador y bitácora del ciclo Master?')) return;
+      masterState.activo = false;
+      masterState.fase = 'INACTIVO';
+      masterState.jugadas = [];
+      masterState.partidosUsados = {};
+      masterState.ultimoDisparoTs = 0;
+      guardarEstadoMaster();
+    }
+
+    function enviarOrdenMasterAPolymarket(jugadaObj, modoAccion) {
+      const maxCentsSeguro = Math.round((jugadaObj.askEntrada * 100) + 2);
+      const hashParams = new URLSearchParams({
+        polyedge_poly: '1',
+        master: '1',
+        oid: modoAccion === 'SELL' ? `${jugadaObj.orderId}_SELL` : jugadaObj.orderId,
+        ts: String(Date.now()),
+        accion: modoAccion,
+        tipo: jugadaObj.tipoMercado || 'OU',
+        linea: jugadaObj.linea !== null && jugadaObj.linea !== undefined ? String(jugadaObj.linea) : '',
+        side: jugadaObj.polySide || 'OVER',
+        outcome: jugadaObj.polyOutcomeExacto || (jugadaObj.polySide === 'UNDER' ? 'Under' : 'Over'),
+        stake: modoAccion === 'BUY' ? String(jugadaObj.stake) : '',
+        max_c: String(maxCentsSeguro),
+        cents: String(Math.round(jugadaObj.askEntrada * 100)),
+        q: jugadaObj.preguntaPoly || ''
+      });
+      window.open(`${jugadaObj.linkPoly}#${hashParams.toString()}`, 'PolyEdgeMasterWorker');
+    }
+
+    function evaluarDisparoMaster() {
+      if (!masterState.activo) return;
+
+      // 1. Si ya alcanzó el límite de jugadas (ej. 10 de 10), pasar a ESPERANDO_RESULTADOS o PAUSADO_REVISION (NO meter más apuestas!)
+      if (masterState.jugadas.length >= masterState.maxBets) {
+        const terminadas = masterState.jugadas.filter(j => j.estado === 'WIN' || j.estado === 'LOSS' || j.estado === 'SOLD_PROFIT').length;
+        if (terminadas >= masterState.jugadas.length) {
+          masterState.activo = false;
+          masterState.fase = 'PAUSADO_REVISION';
+        } else {
+          masterState.fase = 'ESPERANDO_RESULTADOS';
+        }
+        guardarEstadoMaster();
+        return;
+      }
+
+      masterState.fase = 'BUSCANDO';
+
+      // Respetar al menos 22 segundos entre una compra automática y la siguiente para que Polymarket confirme con calma
+      if (Date.now() - (masterState.ultimoDisparoTs || 0) < 22000) {
+        renderizarPanelMaster();
+        return;
+      }
+
+      // 2. Buscar la MEJOR oportunidad de HOY / EN VIVO en Polymarket que cumpla criterios Élite y que sea de un partido NO usado aún
+      const candidatasMaster = oportunidadesAlpha.filter(o => {
+        if (o.categoriaAlpha !== 'ev_poly' && o.categoriaAlpha !== 'rebote') return false;
+        if (o.daysLeft > 1.15) return false; // Solo partidos de hoy o en vivo para tener resultados rápido
+        if ((o.probRealPct || 0) < 54) return false; // Solo lados con >=54% de probabilidad real
+        if (o.roiOperacionPct < 35) return false; // Mínimo +35% de ganancia neta
+        if (o.edgePct < 2.0) return false; // Mínimo +2.0% de ventaja matemática neta real
+        const keyPartido = (o.partidoTitulo || '').toLowerCase().trim();
+        if (masterState.partidosUsados[keyPartido]) return false; // Máximo 1 apuesta por partido
+        return true;
+      });
+
+      if (candidatasMaster.length === 0) {
+        renderizarPanelMaster();
+        return;
+      }
+
+      const elegida = candidatasMaster[0];
+      const keyP = (elegida.partidoTitulo || '').toLowerCase().trim();
+      const numOrden = masterState.jugadas.length + 1;
+      const orderId = `mst_${Date.now()}_${elegida.polyMarketId}`;
+      const ahoraHora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const nuevaJugada = {
+        num: numOrden,
+        orderId,
+        id: elegida.id,
+        polyMarketId: elegida.polyMarketId,
+        partidoTitulo: elegida.partidoTitulo,
+        jugadaLabel: elegida.jugadaLabel,
+        stake: masterState.stake,
+        askEntrada: elegida.askPoly,
+        metaVenta: elegida.metaVentaPrice || Math.min(elegida.askPoly * 1.30, 0.86),
+        bidActual: elegida.bidPoly || elegida.askPoly,
+        estado: 'EN_JUEGO',
+        ventaEnviada: false,
+        pnlUsd: 0,
+        hora: ahoraHora,
+        linkPoly: elegida.linkPoly,
+        tipoMercado: elegida.tipoMercado,
+        linea: elegida.linea,
+        polySide: elegida.polySide,
+        polyOutcomeExacto: elegida.polyOutcomeExacto,
+        preguntaPoly: elegida.preguntaPoly
+      };
+
+      masterState.partidosUsados[keyP] = true;
+      masterState.ultimoDisparoTs = Date.now();
+      masterState.jugadas.push(nuevaJugada);
+
+      if (masterState.jugadas.length >= masterState.maxBets) {
+        masterState.fase = 'ESPERANDO_RESULTADOS';
+      }
+
+      guardarEstadoMaster();
+      enviarOrdenMasterAPolymarket(nuevaJugada, 'BUY');
+    }
+
+    async function actualizarResultadosCicloMaster() {
+      const abiertas = masterState.jugadas.filter(j => j.estado === 'EN_JUEGO');
+      if (abiertas.length === 0) {
+        if (masterState.activo && masterState.jugadas.length >= masterState.maxBets) {
+          masterState.activo = false;
+          masterState.fase = 'PAUSADO_REVISION';
+          guardarEstadoMaster();
+        }
+        return;
+      }
+
+      const itemsReq = abiertas.map(j => ({
+        id: j.orderId,
+        market_id: j.polyMarketId,
+        outcome: j.polyOutcomeExacto || (j.polySide === 'UNDER' ? 'Under' : 'Over')
+      }));
+
+      try {
+        const resp = await fetch('/api/check-pinned', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: itemsReq })
+        });
+        const data = await resp.json();
+        if (data.success && data.updates) {
+          let huboCambio = false;
+          for (const j of masterState.jugadas) {
+            if (j.estado !== 'EN_JUEGO') continue;
+            const inf = data.updates[j.orderId];
+            if (!inf) continue;
+
+            j.bidActual = inf.sell_bid || inf.current_price || j.askEntrada;
+            huboCambio = true;
+
+            if (inf.estado_resultado === 'WIN') {
+              j.estado = 'WIN';
+              j.pnlUsd = parseFloat((j.stake * ((1.0 / j.askEntrada) - 1.0)).toFixed(2));
+            } else if (inf.estado_resultado === 'LOSS') {
+              j.estado = 'LOSS';
+              j.pnlUsd = parseFloat((-j.stake).toFixed(2));
+            } else if (masterState.autoSellRebote && !j.ventaEnviada && j.bidActual >= j.metaVenta) {
+              // Auto-Vender en Rebote cuando alcanza la meta en vivo!
+              if (Date.now() - (masterState.ultimoDisparoTs || 0) >= 18000) {
+                j.ventaEnviada = true;
+                j.estado = 'SOLD_PROFIT';
+                j.pnlUsd = parseFloat((j.stake * ((j.bidActual / j.askEntrada) - 1.0)).toFixed(2));
+                masterState.ultimoDisparoTs = Date.now();
+                enviarOrdenMasterAPolymarket(j, 'SELL');
+              }
+            }
+          }
+
+          const quedanAbiertas = masterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
+          if (masterState.jugadas.length >= masterState.maxBets && quedanAbiertas === 0) {
+            masterState.activo = false;
+            masterState.fase = 'PAUSADO_REVISION';
+            huboCambio = true;
+          }
+          if (huboCambio) guardarEstadoMaster();
+        }
+      } catch (e) {}
+    }
+
+    function renderizarPanelMaster() {
+      const badge = document.getElementById('master-status-badge');
+      const desc = document.getElementById('master-status-desc');
+      const btnMain = document.getElementById('btn-master-main');
+      const txtBtn = document.getElementById('txt-btn-master');
+      const btnSell = document.getElementById('btn-master-autosell');
+      const panelDet = document.getElementById('panel-master-detalle');
+      const listaEl = document.getElementById('lista-master-jugadas');
+
+      if (!badge || !btnMain) return;
+
+      if (btnSell) {
+        btnSell.className = masterState.autoSellRebote
+          ? 'px-2.5 py-2 rounded-lg bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold text-xs transition cursor-pointer'
+          : 'px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 font-bold text-xs transition cursor-pointer';
+        btnSell.innerText = `⚡ Auto-Vender Rebote: ${masterState.autoSellRebote ? 'ON' : 'OFF'}`;
+      }
+
+      const enviadas = masterState.jugadas.length;
+      const meta = masterState.maxBets || 10;
+      const wins = masterState.jugadas.filter(j => j.estado === 'WIN' || j.estado === 'SOLD_PROFIT').length;
+      const losses = masterState.jugadas.filter(j => j.estado === 'LOSS').length;
+      const vivas = masterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
+      const pnlTotal = masterState.jugadas.reduce((acc, j) => {
+        if (j.estado === 'EN_JUEGO') {
+          return acc + (j.stake * (((j.bidActual || j.askEntrada) / j.askEntrada) - 1.0));
+        }
+        return acc + (j.pnlUsd || 0);
+      }, 0);
+
+      if (masterState.fase === 'PAUSADO_REVISION') {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-400 text-gray-950 animate-pulse';
+        badge.innerText = `🏁 CICLO ${enviadas}/${meta} COMPLETADO — EN PAUSA PARA REVISIÓN`;
+        txtBtn.innerText = 'INICIAR NUEVO CICLO';
+        btnMain.className = 'px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer';
+        desc.innerHTML = `✅ <b>¡Ciclo de ${meta} jugadas finalizado y en pausa!</b> Revisa tus resultados abajo (${wins} ganadas, ${losses} perdidas, neto <b>${pnlTotal >= 0 ? '+' : ''}$${pnlTotal.toFixed(2)}</b>) antes de decidir si corres otro ciclo.`;
+      } else if (masterState.activo && masterState.fase === 'ESPERANDO_RESULTADOS') {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-400';
+        badge.innerText = `⏳ ${enviadas}/${meta} ENVIADAS — ESPERANDO RESULTADOS (${vivas} EN JUEGO)`;
+        txtBtn.innerText = 'PAUSAR MASTER';
+        btnMain.className = 'px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer';
+        desc.innerHTML = `🛑 Ya metió el tope de <b>${meta} jugadas</b> (no meterá más). Ahora está vigilando que terminen las ${vivas} restantes para entregarte el reporte final.`;
+      } else if (masterState.activo) {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-400 animate-pulse';
+        badge.innerText = `🟢 MASTER ACTIVO (${enviadas} DE ${meta} JUGADAS)`;
+        txtBtn.innerText = 'DETENER / PAUSAR MASTER';
+        btnMain.className = 'px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer';
+      } else {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700';
+        badge.innerText = enviadas > 0 ? `⏸️ PAUSADO (${enviadas}/${meta})` : '⏸️ EN ESPERA';
+        txtBtn.innerText = enviadas > 0 && enviadas < meta ? `REANUDAR MASTER (${enviadas}/${meta})` : 'FULL AUTOMATIC MASTER';
+        btnMain.className = 'px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30 transition cursor-pointer';
+      }
+
+      if (enviadas === 0 && !masterState.activo) {
+        panelDet.classList.add('hidden');
+        return;
+      }
+
+      panelDet.classList.remove('hidden');
+      document.getElementById('master-kpi-sent').innerText = `${enviadas} / ${meta}`;
+      document.getElementById('master-kpi-open').innerText = `${vivas} vivas · ${wins + losses} listas`;
+      document.getElementById('master-kpi-wl').innerText = `${wins}W - ${losses}L`;
+      const elPnl = document.getElementById('master-kpi-pnl');
+      elPnl.innerText = `${pnlTotal >= 0 ? '+' : ''}$${pnlTotal.toFixed(2)}`;
+      elPnl.className = `text-lg font-black font-mono ${pnlTotal > 0 ? 'text-emerald-400' : (pnlTotal < 0 ? 'text-red-400' : 'text-gray-200')}`;
+
+      listaEl.innerHTML = masterState.jugadas.map(j => {
+        let tagEst = '';
+        if (j.estado === 'WIN') {
+          tagEst = `<span class="px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-black text-[10px]">🏆 WIN +$${j.pnlUsd.toFixed(2)}</span>`;
+        } else if (j.estado === 'SOLD_PROFIT') {
+          tagEst = `<span class="px-2 py-0.5 rounded bg-amber-500/25 text-amber-200 font-black text-[10px]">💰 REBOTE +$${j.pnlUsd.toFixed(2)}</span>`;
+        } else if (j.estado === 'LOSS') {
+          tagEst = `<span class="px-2 py-0.5 rounded bg-red-500/25 text-red-300 font-black text-[10px]">❌ -$${Math.abs(j.pnlUsd).toFixed(2)}</span>`;
+        } else {
+          const pctVivo = Math.round((((j.bidActual || j.askEntrada) / j.askEntrada) - 1.0) * 100);
+          tagEst = `<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-bold text-[10px]">⏳ En Juego (${Math.round((j.bidActual || j.askEntrada) * 100)}¢ · ${pctVivo >= 0 ? '+' : ''}${pctVivo}%)</span>`;
+        }
+        return `
+          <div class="p-2.5 rounded-lg bg-gray-900/95 border border-gray-800 flex items-center justify-between gap-2 text-xs">
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-white truncate">#${j.num} · ${j.partidoTitulo} <span class="text-gray-500 font-normal">(${j.hora})</span></div>
+              <div class="text-[11px] text-gray-400 truncate">👉 ${j.jugadaLabel} · Entrada: <b>${Math.round(j.askEntrada * 100)}¢</b> · Monto: <b>$${j.stake.toFixed(2)}</b></div>
+            </div>
+            <div class="shrink-0">${tagEst}</div>
+          </div>
+        `;
+      }).join('');
+    }
 
     const STOP_WORDS_EQUIPOS = new Set([
       'fc', 'sc', 'cf', 'afc', 'ac', 'as', 'bc', 'club', 'the', 'de', 'del', 'la', 'el',
@@ -871,6 +1287,8 @@
         guardarStatsAlpha();
 
         await actualizarSeguimientoYVentaTemprana(bcData.mapaRawBC);
+        await actualizarResultadosCicloMaster();
+        evaluarDisparoMaster();
 
         document.getElementById('kpi-rebotes').innerText = hallazgos.filter(o => o.categoriaAlpha === 'rebote').length;
         document.getElementById('kpi-ev-bc').innerText = hallazgos.filter(o => o.categoriaAlpha === 'ev_bc').length;
@@ -1171,6 +1589,7 @@
       cargarStatsAlpha();
       cargarFijadas();
       cargarFiltros();
+      cargarEstadoMaster();
       escanearAlpha(false);
       setInterval(() => escanearAlpha(true), 20000);
     });
