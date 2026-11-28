@@ -122,7 +122,7 @@
             </span>
           </div>
           <p class="text-xs text-gray-300" id="master-status-desc">
-            Configura tu monto por jugada (ej. <b>$1</b>) y el límite de jugadas (ej. <b>10</b>). El bot escoge las mejores de hoy (1 por partido), compra solo en Polymarket, vigila resultados/rebotes y <b>se pausa automáticamente al completar las 10</b> para que revises cómo te fue.
+            Configura tu monto por jugada (ej. <b>$1</b>) y el límite de jugadas (ej. <b>10</b>). El bot escoge las mejores de hoy (1 por partido), compra solo en Polymarket, <b>vigila en vivo las 10 activas cada 20s</b> (cerrando antes si toca ganancia, llega a ≥88¢ o si BC.GAME detecta peligro y conviene rescatar capital) y se pausa al terminar las 10.
           </p>
         </div>
 
@@ -137,8 +137,8 @@
             <input type="number" id="master-max-bets" value="10" min="1" max="50" step="1" onchange="guardarEstadoMaster()" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-amber-300 font-black text-right focus:outline-none" />
           </div>
 
-          <button onclick="toggleAutoSellMaster()" id="btn-master-autosell" class="px-2.5 py-2 rounded-lg bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold text-xs transition cursor-pointer" title="Si una jugada sube a su meta de rebote en vivo (+28%+), la vende automáticamente para asegurar ganancia sin esperar al final">
-            ⚡ Auto-Vender Rebote: ON
+          <button onclick="toggleAutoSellMaster()" id="btn-master-autosell" class="px-2.5 py-2 rounded-lg bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold text-xs transition cursor-pointer" title="Monitorea las 10 activas cada 20s: cobra ganancias en rebote, asegura al llegar a 88¢+ y aplica Salvavidas si BC.GAME detecta desplome real">
+            🛡️ Auto-Cierre Inteligente: ON
           </button>
 
           <button onclick="toggleFullAutomaticMaster()" id="btn-master-main" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30 transition cursor-pointer">
@@ -350,7 +350,7 @@
 
       // Si el ciclo anterior ya había llenado todas las jugadas, preguntar si desea iniciar un ciclo limpio
       if (masterState.jugadas.length >= masterState.maxBets) {
-        const resueltas = masterState.jugadas.filter(j => j.estado === 'WIN' || j.estado === 'LOSS' || j.estado === 'SOLD_PROFIT').length;
+        const resueltas = masterState.jugadas.filter(j => j.estado !== 'EN_JUEGO').length;
         if (resueltas >= masterState.jugadas.length) {
           if (!confirm(`Ya completaste las ${masterState.maxBets} jugadas del ciclo anterior. ¿Quieres limpiar la lista e iniciar un nuevo ciclo de ${masterState.maxBets} jugadas?`)) {
             return;
@@ -406,12 +406,43 @@
       window.open(`${jugadaObj.linkPoly}#${hashParams.toString()}`, 'PolyEdgeMasterWorker');
     }
 
+    function cerrarJugadaManualMaster(orderId) {
+      const j = masterState.jugadas.find(x => x.orderId === orderId);
+      if (!j || j.estado !== 'EN_JUEGO') return;
+      const bidRef = j.bidActual || j.askEntrada;
+      const pnlEst = parseFloat((j.stake * ((bidRef / j.askEntrada) - 1.0)).toFixed(2));
+      j.ventaEnviada = true;
+      j.estado = pnlEst >= 0 ? 'SOLD_PROFIT' : 'SOLD_RESCUE';
+      j.motivoCierre = 'Manual';
+      j.pnlUsd = pnlEst;
+      masterState.ultimoDisparoTs = Date.now();
+      guardarEstadoMaster();
+      enviarOrdenMasterAPolymarket(j, 'SELL');
+    }
+
+    function calcularProbVivaBC(j, mapaRawBC) {
+      if (!mapaRawBC || !j.bcEid || !j.bcMtype || !j.bcOutId) return null;
+      const ev = mapaRawBC[String(j.bcEid)];
+      if (!ev || !ev.markets) return null;
+      const specKey = j.bcSpec !== undefined && j.bcSpec !== null ? String(j.bcSpec) : '';
+      const mObj = (ev.markets[String(j.bcMtype)] || {})[specKey];
+      if (!mObj) return null;
+      const oppId = j.bcOppId || (j.bcOutId === '12' ? '13' : (j.bcOutId === '13' ? '12' : (j.bcOutId === '4' ? '5' : '4')));
+      const oSame = mObj[String(j.bcOutId)];
+      const oOpp = mObj[String(oppId)];
+      if (!oSame || !oOpp || oSame.b || oOpp.b) return null;
+      const kSame = parseFloat(oSame.k || 0);
+      const kOpp = parseFloat(oOpp.k || 0);
+      if (kSame <= 1.01 || kOpp <= 1.01) return null;
+      return (1.0 / kSame) / ((1.0 / kSame) + (1.0 / kOpp));
+    }
+
     function evaluarDisparoMaster() {
       if (!masterState.activo) return;
 
       // 1. Si ya alcanzó el límite de jugadas (ej. 10 de 10), pasar a ESPERANDO_RESULTADOS o PAUSADO_REVISION (NO meter más apuestas!)
       if (masterState.jugadas.length >= masterState.maxBets) {
-        const terminadas = masterState.jugadas.filter(j => j.estado === 'WIN' || j.estado === 'LOSS' || j.estado === 'SOLD_PROFIT').length;
+        const terminadas = masterState.jugadas.filter(j => j.estado !== 'EN_JUEGO').length;
         if (terminadas >= masterState.jugadas.length) {
           masterState.activo = false;
           masterState.fase = 'PAUSADO_REVISION';
@@ -462,9 +493,17 @@
         jugadaLabel: elegida.jugadaLabel,
         stake: masterState.stake,
         askEntrada: elegida.askPoly,
+        probRealEntrada: (elegida.probRealPct || 56) / 100.0,
         metaVenta: elegida.metaVentaPrice || Math.min(elegida.askPoly * 1.30, 0.86),
         bidActual: elegida.bidPoly || elegida.askPoly,
+        probBCViva: (elegida.probRealPct || 56) / 100.0,
+        bcEid: elegida.bcEid || null,
+        bcMtype: elegida.bcMtype || null,
+        bcSpec: elegida.bcSpec !== undefined ? elegida.bcSpec : '',
+        bcOutId: elegida.bcOutId || null,
+        bcOppId: elegida.bcOppId || null,
         estado: 'EN_JUEGO',
+        motivoCierre: '',
         ventaEnviada: false,
         pnlUsd: 0,
         hora: ahoraHora,
@@ -488,7 +527,7 @@
       enviarOrdenMasterAPolymarket(nuevaJugada, 'BUY');
     }
 
-    async function actualizarResultadosCicloMaster() {
+    async function actualizarResultadosCicloMaster(mapaRawBC) {
       const abiertas = masterState.jugadas.filter(j => j.estado === 'EN_JUEGO');
       if (abiertas.length === 0) {
         if (masterState.activo && masterState.jugadas.length >= masterState.maxBets) {
@@ -520,6 +559,8 @@
             if (!inf) continue;
 
             j.bidActual = inf.sell_bid || inf.current_price || j.askEntrada;
+            const pVivaBC = calcularProbVivaBC(j, mapaRawBC);
+            if (pVivaBC !== null) j.probBCViva = pVivaBC;
             huboCambio = true;
 
             if (inf.estado_resultado === 'WIN') {
@@ -528,11 +569,34 @@
             } else if (inf.estado_resultado === 'LOSS') {
               j.estado = 'LOSS';
               j.pnlUsd = parseFloat((-j.stake).toFixed(2));
-            } else if (masterState.autoSellRebote && !j.ventaEnviada && j.bidActual >= j.metaVenta) {
-              // Auto-Vender en Rebote cuando alcanza la meta en vivo!
-              if (Date.now() - (masterState.ultimoDisparoTs || 0) >= 18000) {
+            } else if (masterState.autoSellRebote && !j.ventaEnviada && (Date.now() - (masterState.ultimoDisparoTs || 0) >= 18000)) {
+              const pEntrada = j.probRealEntrada || 0.56;
+              // 1. Cierre en Ganancia: llegó a la meta de rebote, o subió >=88¢ (seguro anti-último-minuto), o Polymarket paga +5¢ por encima de la probabilidad real actual de BC con >=12% ganancia
+              const tocaMetaGanancia = j.bidActual >= j.metaVenta;
+              const tocaSeguro88 = j.bidActual >= 0.88 && j.bidActual >= (j.askEntrada * 1.15);
+              const tocaSobreprecioGanador = pVivaBC !== null && j.bidActual >= (j.askEntrada * 1.12) && j.bidActual >= (pVivaBC + 0.05);
+
+              // 2. Salvavidas Matemático: el partido se complicó en vivo según BC.GAME (probabilidad real cayó a <=36% y perdió >=16% desde la entrada),
+              // pero Polymarket aún nos compra las acciones al menos +6¢ más caras que su valor real (rescatar capital vale más que aguantar!)
+              const tocaSalvavidasEV = (
+                pVivaBC !== null &&
+                pVivaBC <= 0.36 &&
+                (pEntrada - pVivaBC) >= 0.16 &&
+                j.bidActual >= 0.16 &&
+                j.bidActual >= (pVivaBC + 0.06)
+              );
+
+              if (tocaMetaGanancia || tocaSeguro88 || tocaSobreprecioGanador) {
                 j.ventaEnviada = true;
                 j.estado = 'SOLD_PROFIT';
+                j.motivoCierre = tocaSeguro88 ? 'Seguro ≥88¢' : 'Take-Profit';
+                j.pnlUsd = parseFloat((j.stake * ((j.bidActual / j.askEntrada) - 1.0)).toFixed(2));
+                masterState.ultimoDisparoTs = Date.now();
+                enviarOrdenMasterAPolymarket(j, 'SELL');
+              } else if (tocaSalvavidasEV) {
+                j.ventaEnviada = true;
+                j.estado = 'SOLD_RESCUE';
+                j.motivoCierre = `Rescate EV (BC ${Math.round(pVivaBC * 100)}%)`;
                 j.pnlUsd = parseFloat((j.stake * ((j.bidActual / j.askEntrada) - 1.0)).toFixed(2));
                 masterState.ultimoDisparoTs = Date.now();
                 enviarOrdenMasterAPolymarket(j, 'SELL');
@@ -566,12 +630,13 @@
         btnSell.className = masterState.autoSellRebote
           ? 'px-2.5 py-2 rounded-lg bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold text-xs transition cursor-pointer'
           : 'px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 font-bold text-xs transition cursor-pointer';
-        btnSell.innerText = `⚡ Auto-Vender Rebote: ${masterState.autoSellRebote ? 'ON' : 'OFF'}`;
+        btnSell.innerText = `🛡️ Auto-Cierre Inteligente: ${masterState.autoSellRebote ? 'ON' : 'OFF'}`;
       }
 
       const enviadas = masterState.jugadas.length;
       const meta = masterState.maxBets || 10;
-      const wins = masterState.jugadas.filter(j => j.estado === 'WIN' || j.estado === 'SOLD_PROFIT').length;
+      const wins = masterState.jugadas.filter(j => j.estado === 'WIN' || (j.estado === 'SOLD_PROFIT' && (j.pnlUsd || 0) >= 0)).length;
+      const rescues = masterState.jugadas.filter(j => j.estado === 'SOLD_RESCUE' || (j.estado === 'SOLD_PROFIT' && (j.pnlUsd || 0) < 0)).length;
       const losses = masterState.jugadas.filter(j => j.estado === 'LOSS').length;
       const vivas = masterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
       const pnlTotal = masterState.jugadas.reduce((acc, j) => {
@@ -586,16 +651,16 @@
         badge.innerText = `🏁 CICLO ${enviadas}/${meta} COMPLETADO — EN PAUSA PARA REVISIÓN`;
         txtBtn.innerText = 'INICIAR NUEVO CICLO';
         btnMain.className = 'px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer';
-        desc.innerHTML = `✅ <b>¡Ciclo de ${meta} jugadas finalizado y en pausa!</b> Revisa tus resultados abajo (${wins} ganadas, ${losses} perdidas, neto <b>${pnlTotal >= 0 ? '+' : ''}$${pnlTotal.toFixed(2)}</b>) antes de decidir si corres otro ciclo.`;
+        desc.innerHTML = `✅ <b>¡Ciclo de ${meta} jugadas finalizado y en pausa!</b> Revisa tus resultados abajo (${wins} ganadas${rescues > 0 ? `, ${rescues} rescatadas` : ''}, ${losses} perdidas, neto <b>${pnlTotal >= 0 ? '+' : ''}$${pnlTotal.toFixed(2)}</b>) antes de decidir si corres otro ciclo.`;
       } else if (masterState.activo && masterState.fase === 'ESPERANDO_RESULTADOS') {
         badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-400';
-        badge.innerText = `⏳ ${enviadas}/${meta} ENVIADAS — ESPERANDO RESULTADOS (${vivas} EN JUEGO)`;
+        badge.innerText = `⏳ ${enviadas}/${meta} ENVIADAS — MONITOREANDO ${vivas} EN VIVO`;
         txtBtn.innerText = 'PAUSAR MASTER';
         btnMain.className = 'px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer';
-        desc.innerHTML = `🛑 Ya metió el tope de <b>${meta} jugadas</b> (no meterá más). Ahora está vigilando que terminen las ${vivas} restantes para entregarte el reporte final.`;
+        desc.innerHTML = `🛑 Tope de <b>${meta} jugadas</b> alcanzado. Vigilando las <b>${vivas} activas cada 20s</b> (cerrará antes si toca Take-Profit, ≥88¢ o Salvavidas EV).`;
       } else if (masterState.activo) {
         badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-400 animate-pulse';
-        badge.innerText = `🟢 MASTER ACTIVO (${enviadas} DE ${meta} JUGADAS)`;
+        badge.innerText = `🟢 MASTER ACTIVO (${enviadas} DE ${meta} JUGADAS · ${vivas} VIGILADAS)`;
         txtBtn.innerText = 'DETENER / PAUSAR MASTER';
         btnMain.className = 'px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs flex items-center gap-2 shadow-lg cursor-pointer';
       } else {
@@ -612,8 +677,8 @@
 
       panelDet.classList.remove('hidden');
       document.getElementById('master-kpi-sent').innerText = `${enviadas} / ${meta}`;
-      document.getElementById('master-kpi-open').innerText = `${vivas} vivas · ${wins + losses} listas`;
-      document.getElementById('master-kpi-wl').innerText = `${wins}W - ${losses}L`;
+      document.getElementById('master-kpi-open').innerText = `${vivas} vivas · ${enviadas - vivas} cerradas`;
+      document.getElementById('master-kpi-wl').innerText = rescues > 0 ? `${wins}W - ${rescues}R - ${losses}L` : `${wins}W - ${losses}L`;
       const elPnl = document.getElementById('master-kpi-pnl');
       elPnl.innerText = `${pnlTotal >= 0 ? '+' : ''}$${pnlTotal.toFixed(2)}`;
       elPnl.className = `text-lg font-black font-mono ${pnlTotal > 0 ? 'text-emerald-400' : (pnlTotal < 0 ? 'text-red-400' : 'text-gray-200')}`;
@@ -623,18 +688,30 @@
         if (j.estado === 'WIN') {
           tagEst = `<span class="px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-black text-[10px]">🏆 WIN +$${j.pnlUsd.toFixed(2)}</span>`;
         } else if (j.estado === 'SOLD_PROFIT') {
-          tagEst = `<span class="px-2 py-0.5 rounded bg-amber-500/25 text-amber-200 font-black text-[10px]">💰 REBOTE +$${j.pnlUsd.toFixed(2)}</span>`;
+          const lblMotivo = j.motivoCierre ? ` (${j.motivoCierre})` : '';
+          tagEst = `<span class="px-2 py-0.5 rounded bg-amber-500/25 text-amber-200 font-black text-[10px]">💰 CERRADA${lblMotivo} ${j.pnlUsd >= 0 ? '+' : ''}$${j.pnlUsd.toFixed(2)}</span>`;
+        } else if (j.estado === 'SOLD_RESCUE') {
+          const lblMotivo = j.motivoCierre ? ` · ${j.motivoCierre}` : '';
+          tagEst = `<span class="px-2 py-0.5 rounded bg-orange-500/25 text-orange-200 font-black text-[10px]">🆘 RESCATE ${j.pnlUsd >= 0 ? '+' : ''}$${j.pnlUsd.toFixed(2)}${lblMotivo}</span>`;
         } else if (j.estado === 'LOSS') {
           tagEst = `<span class="px-2 py-0.5 rounded bg-red-500/25 text-red-300 font-black text-[10px]">❌ -$${Math.abs(j.pnlUsd).toFixed(2)}</span>`;
         } else {
           const pctVivo = Math.round((((j.bidActual || j.askEntrada) / j.askEntrada) - 1.0) * 100);
-          tagEst = `<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-bold text-[10px]">⏳ En Juego (${Math.round((j.bidActual || j.askEntrada) * 100)}¢ · ${pctVivo >= 0 ? '+' : ''}${pctVivo}%)</span>`;
+          const txtBC = j.probBCViva ? ` · BC ${Math.round(j.probBCViva * 100)}%` : '';
+          tagEst = `
+            <div class="flex items-center gap-1.5">
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-bold text-[10px]">📡 ${Math.round((j.bidActual || j.askEntrada) * 100)}¢ (${pctVivo >= 0 ? '+' : ''}${pctVivo}%${txtBC})</span>
+              <button onclick="cerrarJugadaManualMaster('${j.orderId}')" class="px-2 py-0.5 rounded bg-gray-800 hover:bg-amber-500 hover:text-gray-950 text-amber-300 border border-amber-500/40 font-black text-[10px] transition cursor-pointer" title="Vender/Cerrar ahora mismo en Polymarket">
+                💸 Cerrar
+              </button>
+            </div>
+          `;
         }
         return `
           <div class="p-2.5 rounded-lg bg-gray-900/95 border border-gray-800 flex items-center justify-between gap-2 text-xs">
             <div class="min-w-0 flex-1">
               <div class="font-bold text-white truncate">#${j.num} · ${j.partidoTitulo} <span class="text-gray-500 font-normal">(${j.hora})</span></div>
-              <div class="text-[11px] text-gray-400 truncate">👉 ${j.jugadaLabel} · Entrada: <b>${Math.round(j.askEntrada * 100)}¢</b> · Monto: <b>$${j.stake.toFixed(2)}</b></div>
+              <div class="text-[11px] text-gray-400 truncate">👉 ${j.jugadaLabel} · Entrada: <b>${Math.round(j.askEntrada * 100)}¢</b> · Meta: <b>${Math.round((j.metaVenta || 0.8) * 100)}¢</b> · Monto: <b>$${j.stake.toFixed(2)}</b></div>
             </div>
             <div class="shrink-0">${tagEst}</div>
           </div>
@@ -1046,14 +1123,19 @@
               if (askReal >= 0.46 && askReal <= 0.68 && peorCaida <= -0.06 && peorCaida >= -0.24 && precioPrevio >= 0.56) {
                 // Verificar que en BC.GAME siga teniendo probabilidad real > askReal + 2%
                 let pBcConfirma = 0;
+                let rebMtype = '', rebSpec = '', rebOutId = '', rebOppId = '';
                 if (pm.es_ou && typeof pm.linea_ou === 'number') {
-                  const mt = pm.deporte === 'nba' ? '225' : '18';
+                  const mt = pm.deporte === 'nba' ? '225' : ((pm.deporte === 'nhl' && (mktsCheck['410'] || {})[`total=${pm.linea_ou}`]) ? '410' : '18');
                   const obj = (mktsCheck[mt] || {})[`total=${pm.linea_ou}`];
                   if (obj && obj['12'] && obj['13']) {
                     const ko = parseFloat(obj['12'].k || 0), ku = parseFloat(obj['13'].k || 0);
                     if (ko > 1 && ku > 1) {
                       const kMio = idx === 0 ? ko : ku;
                       pBcConfirma = (1.0 / kMio) / ((1.0 / ko) + (1.0 / ku));
+                      rebMtype = mt;
+                      rebSpec = `total=${pm.linea_ou}`;
+                      rebOutId = idx === 0 ? '12' : '13';
+                      rebOppId = idx === 0 ? '13' : '12';
                     }
                   }
                 } else if (!pm.es_ou && ['nba', 'nhl', 'tenis'].includes(pm.deporte)) {
@@ -1066,6 +1148,10 @@
                       const k1 = ordenInvertido ? kh : ka;
                       const kMio = idx === 0 ? k0 : k1;
                       pBcConfirma = (1.0 / kMio) / ((1.0 / k0) + (1.0 / k1));
+                      rebMtype = mt;
+                      rebSpec = '';
+                      rebOutId = idx === 0 ? (ordenInvertido ? '5' : '4') : (ordenInvertido ? '4' : '5');
+                      rebOppId = rebOutId === '4' ? '5' : '4';
                     }
                   }
                 }
@@ -1098,6 +1184,11 @@
                   jugadaLabel: labelJugada,
                   askPoly: askReal,
                   bidPoly: bidReal,
+                  bcEid: matchBC.eid,
+                  bcMtype: rebMtype,
+                  bcSpec: rebSpec,
+                  bcOutId: rebOutId,
+                  bcOppId: rebOppId,
                   centavosAsk: parseFloat((askReal * 100).toFixed(1)),
                   precioPrevioCents: Math.round(precioPrevio * 100),
                   caidaCents: Math.round(Math.abs(peorCaida) * 100),
@@ -1231,6 +1322,7 @@
             const roiPolyNeto = ((1.0 / askReal) - 1.0) * 100;
             if (evPolyNeto >= 1.2 && roiPolyNeto >= 32) {
               const metaSalidaTemprana = Math.min(parseFloat((pFairBC + 0.06).toFixed(2)), 0.88);
+              const oppOut = p.bcOutId === '12' ? '13' : (p.bcOutId === '13' ? '12' : (p.bcOutId === '4' ? '5' : '4'));
               hallazgos.push({
                 id: `evpoly_${pm.market_id}_${p.subId}`,
                 polyMarketId: pm.market_id,
@@ -1250,6 +1342,11 @@
                 jugadaLabel: p.label,
                 askPoly: askReal,
                 bidPoly: bidReal,
+                bcEid: matchBC.eid,
+                bcMtype: p.bcMtype,
+                bcSpec: p.bcSpec,
+                bcOutId: p.bcOutId,
+                bcOppId: oppOut,
                 centavosAsk: parseFloat((askReal * 100).toFixed(1)),
                 kBcSame: p.kSame,
                 probRealPct: parseFloat((pFairBC * 100).toFixed(1)),
@@ -1287,7 +1384,7 @@
         guardarStatsAlpha();
 
         await actualizarSeguimientoYVentaTemprana(bcData.mapaRawBC);
-        await actualizarResultadosCicloMaster();
+        await actualizarResultadosCicloMaster(bcData.mapaRawBC);
         evaluarDisparoMaster();
 
         document.getElementById('kpi-rebotes').innerText = hallazgos.filter(o => o.categoriaAlpha === 'rebote').length;
