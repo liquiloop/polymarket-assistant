@@ -34,12 +34,25 @@
         </div>
       </div>
 
+      <!-- SELECTOR DE 2 AMBIENTES: POLYMARKET vs BC (eBasket Even/Odd) -->
+      <div class="flex flex-wrap items-center gap-2 bg-gray-900/95 p-1.5 rounded-2xl border border-gray-700 shadow-inner">
+        <button onclick="cambiarAmbiente('polymarket')" id="btn-amb-poly" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition cursor-pointer">
+          <i class="fa-solid fa-whale"></i>
+          <span>🐋 POLYMARKET</span>
+        </button>
+        <button onclick="cambiarAmbiente('bc')" id="btn-amb-bc" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-black text-xs flex items-center gap-2 border border-gray-700 transition cursor-pointer">
+          <i class="fa-solid fa-basketball text-orange-400"></i>
+          <span>BC · eBasket Even/Odd</span>
+          <span id="badge-count-bceb" class="px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[10px] font-extrabold">LIVE</span>
+        </button>
+      </div>
+
       <div class="flex items-center gap-2.5">
         <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-xs text-gray-300">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span id="status-cruce">Analizando libros reales...</span>
         </div>
-        <button onclick="escanearAlpha(false)" id="btn-scan" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer">
+        <button onclick="escanearAmbienteActual()" id="btn-scan" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer">
           <i class="fa-solid fa-arrows-rotate" id="scan-icon"></i>
           <span>Escanear Ahora</span>
         </button>
@@ -49,6 +62,11 @@
 
   <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- ========================================================= -->
+    <!-- AMBIENTE 1: POLYMARKET (INTACTO TAL CUAL LO CONFIGURAMOS) -->
+    <!-- ========================================================= -->
+    <div id="ambiente-polymarket" class="space-y-6">
 
     <!-- SIMULADOR DE RENDIMIENTO EN DÓLARES REALES ($5/TIRO) -->
     <div class="glass-card rounded-xl p-5 border border-gray-800 space-y-4">
@@ -282,6 +300,185 @@
       <h3 class="text-base font-bold text-gray-200">No hay señales con este nivel de exigencia en este minuto</h3>
       <p class="text-xs text-gray-400 mt-1">Prueba subiendo <b>Días a Mostrar</b> a 2 o 3 días, o bajando <b>Ventaja Matemática Neta (+EV)</b> a 1.0%.</p>
     </div>
+
+    </div> <!-- FIN #ambiente-polymarket -->
+
+    <!-- ========================================================= -->
+    <!-- AMBIENTE 2: BC.GAME — SOLO eBASKETBALL EVEN / ODD (PAR/IMPAR) -->
+    <!-- ========================================================= -->
+    <div id="ambiente-bc" class="hidden space-y-6">
+
+      <!-- CABECERA Y KPIs eBASKET EVEN/ODD -->
+      <div class="glass-card rounded-xl p-5 border-2 border-orange-500/50 shadow-[0_0_24px_rgba(249,115,22,0.16)] space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl bg-orange-500/20 text-orange-400 text-xl border border-orange-500/40">
+              <i class="fa-solid fa-basketball"></i>
+            </div>
+            <div>
+              <h2 class="text-sm font-black text-white flex flex-wrap items-center gap-2">
+                🏀 BC.GAME — Cazador Exclusivo eBasketball EVEN / ODD (Par / Impar)
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40 font-extrabold">+150 Juegos/Día · Liquidación en Minutos</span>
+              </h2>
+              <p class="text-xs text-gray-300 mt-0.5">
+                Detecta dónde BC paga <b>1.90x a 2.10x+ (+90% a +110% ganancia)</b> cuando la paridad real es <b>50/50</b> (especialmente en partidos abiertos por +10 pts donde ya <b>no hay prórroga ni faltas finales</b>, eliminando la ventaja de la casa).
+              </p>
+            </div>
+          </div>
+          <button onclick="reiniciarStatsBcEo()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs border border-gray-700 transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto">
+            <i class="fa-solid fa-rotate-left"></i> Reiniciar Auditoría BC
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div onclick="seleccionarFiltroBc('todos')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-orange-500/40 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] text-orange-300 font-bold">🏀 Juegos eBasket c/ Cuota</div>
+              <div class="text-2xl font-black text-orange-300 mt-0.5" id="bc-kpi-total">0</div>
+              <div class="text-[10px] text-gray-400">En vivo + próximos minutos</div>
+            </div>
+            <i class="fa-solid fa-basketball text-2xl text-orange-400/40"></i>
+          </div>
+
+          <div onclick="seleccionarFiltroBc('oro')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-amber-400/50 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] text-amber-300 font-bold">💎 Oro: Sin Prórroga / ≥1.92x</div>
+              <div class="text-2xl font-black text-amber-300 mt-0.5" id="bc-kpi-oro">0</div>
+              <div class="text-[10px] text-gray-400">Ventaja ≥10 pts o cuota pico ≥1.95x</div>
+            </div>
+            <i class="fa-solid fa-crown text-2xl text-amber-400/40"></i>
+          </div>
+
+          <div onclick="seleccionarFiltroBc('vivo')" class="bg-gray-900/90 hover:bg-gray-800/80 cursor-pointer transition rounded-lg p-3.5 border border-emerald-500/40 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] text-emerald-300 font-bold">🔴 En Vivo Ahora (Rápidas)</div>
+              <div class="text-2xl font-black text-emerald-400 mt-0.5" id="bc-kpi-vivo">0</div>
+              <div class="text-[10px] text-gray-400">Cierran en 3 a 12 minutos</div>
+            </div>
+            <i class="fa-solid fa-bolt text-2xl text-emerald-400/40"></i>
+          </div>
+
+          <div class="bg-gray-900/90 rounded-lg p-3.5 border border-gray-800 flex items-center justify-between">
+            <div>
+              <div class="text-[11px] text-gray-400 font-semibold">💰 Balance Verificado BC</div>
+              <div class="text-2xl font-black font-mono text-gray-200 mt-0.5" id="bc-kpi-pnl">$0.00</div>
+              <div class="text-[10px] text-gray-400" id="bc-kpi-wl">0W - 0L · 0 en juego</div>
+            </div>
+            <i class="fa-solid fa-trophy text-2xl text-amber-400/40"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: 🤖 FULL AUTOMATIC MASTER — BC eBASKET EVEN/ODD -->
+      <div class="glass-card rounded-xl p-5 border-2 border-purple-500/60 shadow-[0_0_25px_rgba(168,85,247,0.18)] space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-robot text-purple-400"></i> FULL AUTOMATIC MASTER — BC eBASKET (EVEN / ODD)
+              </span>
+              <span id="bcmaster-badge" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
+                ⏸️ EN ESPERA
+              </span>
+            </div>
+            <p class="text-xs text-gray-300" id="bcmaster-desc">
+              Escoge automáticamente las mejores jugadas <b>Even / Odd (≥1.90x)</b> en eBasketball (priorizando partidos en vivo con diferencia ≥10 pts donde no hay prórroga), envía hasta tu límite del ciclo (ej. <b>10 jugadas de $1</b>, máx. 1 por partido) y <b>se pausa al completar las 10</b> tras verificar el marcador final real.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="flex items-center gap-1.5 bg-gray-900 border border-purple-500/40 px-3 py-1.5 rounded-lg text-xs">
+              <span class="text-gray-300 font-semibold">Apuesta BC: $</span>
+              <input type="number" id="bcmaster-stake" value="1" min="0.5" step="0.5" onchange="guardarEstadoBcMaster()" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-purple-300 font-black text-right focus:outline-none" />
+            </div>
+
+            <div class="flex items-center gap-1.5 bg-gray-900 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs">
+              <span class="text-gray-300 font-semibold">Jugadas Ciclo:</span>
+              <input type="number" id="bcmaster-max" value="10" min="1" max="50" step="1" onchange="guardarEstadoBcMaster()" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-amber-300 font-black text-right focus:outline-none" />
+            </div>
+
+            <button onclick="toggleOneClickBcEo()" id="btn-bceo-oneclick" class="px-2.5 py-2 rounded-lg bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 font-bold text-xs transition cursor-pointer" title="ON = Hace clic también en Place Bet automáticamente · OFF = Solo deja marcado Even/Odd y el monto en tu Betslip">
+              ⚡ 1-Clic Place Bet: ON
+            </button>
+
+            <button onclick="toggleBcMasterAuto()" id="btn-bcmaster-main" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-orange-500 hover:from-purple-400 hover:to-orange-400 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-purple-500/30 transition cursor-pointer">
+              <i class="fa-solid fa-power-off"></i>
+              <span id="txt-btn-bcmaster">MASTER BC eBASKET</span>
+            </button>
+
+            <button onclick="reiniciarCicloBcMaster()" class="px-2.5 py-2 rounded-lg bg-gray-800 hover:bg-red-900/40 text-gray-400 hover:text-red-300 border border-gray-700 text-xs transition cursor-pointer" title="Limpiar y reiniciar ciclo BC a 0">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="panel-bcmaster-detalle" class="hidden pt-3 border-t border-gray-800 space-y-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+            <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+              <span class="text-gray-400 block text-[11px]">🎯 Enviadas Ciclo</span>
+              <span class="text-lg font-black text-white" id="bcmaster-kpi-sent">0 / 10</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+              <span class="text-gray-400 block text-[11px]">⏳ En Juego / Resueltas</span>
+              <span class="text-lg font-black text-cyan-300" id="bcmaster-kpi-open">0 vivas</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+              <span class="text-gray-400 block text-[11px]">🏆 Ganadas vs Perdidas</span>
+              <span class="text-lg font-black text-emerald-300" id="bcmaster-kpi-wl">0W - 0L</span>
+            </div>
+            <div class="p-2.5 rounded-lg bg-gray-900/90 border border-gray-800">
+              <span class="text-gray-400 block text-[11px]">💰 Neto Ciclo BC ($)</span>
+              <span class="text-lg font-black font-mono text-gray-200" id="bcmaster-kpi-pnl">$0.00</span>
+            </div>
+          </div>
+          <div id="lista-bcmaster-jugadas" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <!-- CONTROLES Y FILTROS BC eBASKET EVEN/ODD -->
+      <div class="glass-card rounded-xl p-4 border border-gray-800 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <button onclick="seleccionarFiltroBc('todos')" id="bctab-todos" class="px-3 py-1.5 rounded-lg border border-orange-400/60 bg-orange-500/15 text-orange-200 font-extrabold transition cursor-pointer ring-2 ring-white">🔥 Mejores Cuotas (≥1.85x)</button>
+            <button onclick="seleccionarFiltroBc('oro')" id="bctab-oro" class="px-3 py-1.5 rounded-lg border border-amber-400/60 bg-amber-500/15 text-amber-200 font-extrabold transition cursor-pointer">💎 Solo Oro (Paliza ≥10pts o ≥1.92x)</button>
+            <button onclick="seleccionarFiltroBc('vivo')" id="bctab-vivo" class="px-3 py-1.5 rounded-lg border border-emerald-400/60 bg-emerald-500/15 text-emerald-200 font-extrabold transition cursor-pointer">🔴 Solo En Vivo</button>
+            <button onclick="seleccionarFiltroBc('altas')" id="bctab-altas" class="px-3 py-1.5 rounded-lg border border-purple-400/60 bg-purple-500/15 text-purple-200 font-extrabold transition cursor-pointer">🚀 Cuota ≥1.90x (+90%)</button>
+            <button onclick="seleccionarFiltroBc('blitz')" id="bctab-blitz" class="px-3 py-1.5 rounded-lg border border-cyan-400/60 bg-cyan-500/15 text-cyan-200 font-extrabold transition cursor-pointer">⚡ Blitz 1-Minuto</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5 text-xs">
+            <div class="flex items-center gap-1.5 bg-gray-900 border border-gray-700 px-3 py-1.5 rounded-lg">
+              <span class="text-gray-400">Cuota Mínima:</span>
+              <select id="bc-min-odds" onchange="renderizarTarjetasBcEo()" class="bg-gray-800 text-amber-300 font-black rounded px-1.5 py-0.5 border border-gray-700 focus:outline-none">
+                <option value="1.85">1.85x (+85%)</option>
+                <option value="1.88">1.88x (+88%)</option>
+                <option value="1.90" selected>1.90x (+90% Recomendado)</option>
+                <option value="1.93">1.93x (+93%)</option>
+                <option value="1.95">1.95x (+95%)</option>
+              </select>
+            </div>
+            <input type="text" id="bc-search-input" oninput="renderizarTarjetasBcEo()" placeholder="Buscar equipo o liga (NBA, ACB, Euroleague...)" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white w-60 focus:outline-none focus:border-orange-500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- SPINNER BC -->
+      <div id="bc-loading-spinner" class="py-14 text-center text-gray-400 hidden">
+        <i class="fa-solid fa-basketball fa-bounce text-4xl text-orange-400 mb-3"></i>
+        <p class="text-sm font-semibold text-gray-200">Escaneando todos los juegos de eBasketball (Even / Odd) en BC.GAME...</p>
+      </div>
+
+      <!-- CONTENEDOR TARJETAS BC eBASKET EVEN/ODD -->
+      <div id="contenedor-tarjetas-bc" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+      <!-- SIN RESULTADOS BC -->
+      <div id="bc-no-results" class="hidden py-12 text-center text-gray-400 glass-card rounded-xl border border-gray-800 p-6">
+        <i class="fa-solid fa-basketball text-4xl text-gray-600 mb-3"></i>
+        <h3 class="text-base font-bold text-gray-200">No hay juegos con esa cuota mínima en este segundo</h3>
+        <p class="text-xs text-gray-400 mt-1">Baja <b>Cuota Mínima</b> a <b>1.85x</b> o espera unos segundos a que arranquen los siguientes cuartos.</p>
+      </div>
+
+    </div> <!-- FIN #ambiente-bc -->
 
   </main>
 
@@ -1682,13 +1879,804 @@
       }).join('');
     }
 
+    // =========================================================================
+    // AMBIENTE 2: MOTOR EXCLUSIVO BC.GAME — eBASKETBALL EVEN / ODD (PAR / IMPAR)
+    // =========================================================================
+    let ambienteActual = 'polymarket'; // 'polymarket' (por defecto) o 'bc'
+    let oportunidadesBcEo = [];
+    let filtroBcActivo = 'todos';
+    let statsBcEo = { wins: 0, losses: 0, pnl_usd: 0, enSeguimiento: {}, resueltas: {} };
+    let bcMasterState = {
+      activo: false,
+      fase: 'INACTIVO',
+      stake: 1.0,
+      maxBets: 10,
+      oneClickPlaceBet: true,
+      ultimoDisparoTs: 0,
+      partidosUsados: {},
+      jugadas: []
+    };
+
+    function cambiarAmbiente(amb) {
+      ambienteActual = amb === 'bc' ? 'bc' : 'polymarket';
+      const divPoly = document.getElementById('ambiente-polymarket');
+      const divBc = document.getElementById('ambiente-bc');
+      const btnPoly = document.getElementById('btn-amb-poly');
+      const btnBc = document.getElementById('btn-amb-bc');
+
+      if (ambienteActual === 'bc') {
+        divPoly.classList.add('hidden');
+        divBc.classList.remove('hidden');
+        btnBc.className = 'px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-orange-500/30 transition cursor-pointer';
+        btnPoly.className = 'px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-black text-xs flex items-center gap-2 border border-gray-700 transition cursor-pointer';
+        if (oportunidadesBcEo.length === 0) {
+          escanearBcEbasketOddEven(false);
+        } else {
+          renderizarTarjetasBcEo();
+        }
+      } else {
+        divBc.classList.add('hidden');
+        divPoly.classList.remove('hidden');
+        btnPoly.className = 'px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25 transition cursor-pointer';
+        btnBc.className = 'px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-black text-xs flex items-center gap-2 border border-gray-700 transition cursor-pointer';
+      }
+    }
+
+    function escanearAmbienteActual() {
+      if (ambienteActual === 'bc') {
+        escanearBcEbasketOddEven(false);
+      } else {
+        escanearAlpha(false);
+      }
+    }
+
+    function cargarEstadoBcEo() {
+      try {
+        const rs = localStorage.getItem('polyedge_bceo_stats_v1');
+        if (rs) statsBcEo = Object.assign(statsBcEo, JSON.parse(rs));
+        if (!statsBcEo.enSeguimiento) statsBcEo.enSeguimiento = {};
+        if (!statsBcEo.resueltas) statsBcEo.resueltas = {};
+      } catch (e) {}
+      try {
+        const rm = localStorage.getItem('polyedge_bceo_master_v1');
+        if (rm) bcMasterState = Object.assign(bcMasterState, JSON.parse(rm));
+        if (!Array.isArray(bcMasterState.jugadas)) bcMasterState.jugadas = [];
+        if (!bcMasterState.partidosUsados) bcMasterState.partidosUsados = {};
+      } catch (e) {}
+      const inpS = document.getElementById('bcmaster-stake');
+      const inpM = document.getElementById('bcmaster-max');
+      if (inpS) inpS.value = bcMasterState.stake || 1;
+      if (inpM) inpM.value = bcMasterState.maxBets || 10;
+      renderizarKPIsBcEo();
+      renderizarPanelBcMaster();
+    }
+
+    function guardarStatsBcEo() {
+      try { localStorage.setItem('polyedge_bceo_stats_v1', JSON.stringify(statsBcEo)); } catch (e) {}
+      renderizarKPIsBcEo();
+    }
+
+    function reiniciarStatsBcEo() {
+      statsBcEo = { wins: 0, losses: 0, pnl_usd: 0, enSeguimiento: {}, resueltas: {} };
+      guardarStatsBcEo();
+    }
+
+    function guardarEstadoBcMaster() {
+      const inpS = document.getElementById('bcmaster-stake');
+      const inpM = document.getElementById('bcmaster-max');
+      if (inpS) bcMasterState.stake = Math.max(parseFloat(inpS.value) || 1, 0.5);
+      if (inpM) bcMasterState.maxBets = Math.max(parseInt(inpM.value, 10) || 10, 1);
+      try { localStorage.setItem('polyedge_bceo_master_v1', JSON.stringify(bcMasterState)); } catch (e) {}
+      renderizarPanelBcMaster();
+    }
+
+    function toggleOneClickBcEo() {
+      bcMasterState.oneClickPlaceBet = !bcMasterState.oneClickPlaceBet;
+      guardarEstadoBcMaster();
+    }
+
+    function seleccionarFiltroBc(f) {
+      filtroBcActivo = f;
+      ['todos', 'oro', 'vivo', 'altas', 'blitz'].forEach(t => {
+        const el = document.getElementById('bctab-' + t);
+        if (!el) return;
+        if (t === filtroBcActivo) el.classList.add('ring-2', 'ring-white', 'scale-105');
+        else el.classList.remove('ring-2', 'ring-white', 'scale-105');
+      });
+      renderizarTarjetasBcEo();
+    }
+
+    function renderizarKPIsBcEo() {
+      const elPnl = document.getElementById('bc-kpi-pnl');
+      const elWl = document.getElementById('bc-kpi-wl');
+      const pnl = statsBcEo.pnl_usd || 0;
+      if (elPnl) {
+        elPnl.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+        elPnl.className = `text-2xl font-black font-mono mt-0.5 ${pnl > 0 ? 'text-emerald-400' : (pnl < 0 ? 'text-red-400' : 'text-gray-200')}`;
+      }
+      if (elWl) {
+        const vivas = Object.keys(statsBcEo.enSeguimiento || {}).length;
+        elWl.innerText = `${statsBcEo.wins || 0}W - ${statsBcEo.losses || 0}L · ${vivas} en juego`;
+      }
+    }
+
+    async function escanearBcEbasketOddEven(silencioso = false) {
+      const icon = document.getElementById('scan-icon');
+      const spinner = document.getElementById('bc-loading-spinner');
+      if (ambienteActual === 'bc') icon.classList.add('fa-spin');
+      if (!silencioso && ambienteActual === 'bc' && oportunidadesBcEo.length === 0) {
+        spinner.classList.remove('hidden');
+      }
+
+      try {
+        const BRAND = '2103509236163162112';
+        const BASE_URL = 'https://api-k-c7818b61-623.sptpub.com/api/v4';
+        const candidatos = [];
+        const vistosEid = new Set();
+
+        for (const mode of ['live', 'prematch']) {
+          try {
+            const init = await fetch(`${BASE_URL}/${mode}/brand/${BRAND}/en/0`).then(r => r.json());
+            const versions = [...(init.top_events_versions || []), ...(init.rest_events_versions || [])].slice(0, 6);
+            const chunks = await Promise.all(versions.map(v => fetch(`${BASE_URL}/${mode}/brand/${BRAND}/en/${v}`).then(r => r.json()).catch(() => ({}))));
+
+            const sports = {}, cats = {}, tourns = {};
+            for (const ch of chunks) {
+              Object.assign(sports, ch.sports || {});
+              Object.assign(cats, ch.categories || {});
+              Object.assign(tourns, ch.tournaments || {});
+              for (const [eid, ev] of Object.entries(ch.events || {})) {
+                if (vistosEid.has(eid)) continue;
+                const desc = ev.desc || {};
+                if (String(desc.sport || '') !== '302') continue;
+                vistosEid.add(eid);
+                const comps = (desc.competitors || []).map(c => c.name || '');
+                if (comps.length !== 2) continue;
+
+                const spSlug = (sports['302'] || {}).slug || 'ebasketball';
+                const cObj = cats[String(desc.category)] || {};
+                const tObj = tourns[String(desc.tournament)] || {};
+                const urlBc = `https://playbc.fun/sports/${spSlug}/${cObj.slug || 'all'}/${tObj.slug || 'all'}/${desc.slug || 'match'}-${eid}`;
+
+                candidatos.push({
+                  eid,
+                  mode,
+                  esVivo: mode === 'live',
+                  scheduled: Number(desc.scheduled || 0),
+                  liga: tObj.name || 'eBasketball',
+                  categoriaNombre: cObj.name || '',
+                  home: comps[0],
+                  away: comps[1],
+                  partidoTitulo: `${comps[0]} vs. ${comps[1]}`,
+                  scoreSnap: ev.score || {},
+                  urlBc
+                });
+              }
+            }
+          } catch (e) {}
+        }
+
+        // Consultar el endpoint individual /event/en/{eid} en paralelo para extraer mType 229 (4 cuartos) y mType 26 (Blitz)
+        const lotes = candidatos.slice(0, 36);
+        const detalles = await Promise.all(lotes.map(async (item) => {
+          try {
+            const det = await fetch(`${BASE_URL}/${item.mode}/brand/${BRAND}/event/en/${item.eid}`).then(r => r.ok ? r.json() : null);
+            return { item, evFull: det && det.events ? det.events[item.eid] : null };
+          } catch (e) {
+            return { item, evFull: null };
+          }
+        }));
+
+        const listaFinal = [];
+        const mapaVivos = {};
+
+        for (const { item, evFull } of detalles) {
+          if (!evFull) continue;
+          const sc = evFull.score || item.scoreSnap || {};
+          const hPts = sc.home_score !== undefined && sc.home_score !== null ? parseInt(sc.home_score, 10) : null;
+          const aPts = sc.away_score !== undefined && sc.away_score !== null ? parseInt(sc.away_score, 10) : null;
+          const pScores = Array.isArray(sc.period_scores) ? sc.period_scores : [];
+          mapaVivos[item.eid] = { hPts, aPts, pScores, state: evFull.state || {}, markets: evFull.markets || {} };
+
+          const mkts = evFull.markets || {};
+          const m229 = (mkts['229'] || {})[''];
+          const m26 = (mkts['26'] || {})[''];
+          const esBlitz = Boolean(!m229 && m26);
+          const mTarget = m229 || m26;
+          if (!mTarget || !mTarget['70'] || !mTarget['72']) continue;
+          if (mTarget['70'].b || mTarget['72'].b) continue;
+
+          const kOdd = parseFloat(mTarget['70'].k || 0);
+          const kEven = parseFloat(mTarget['72'].k || 0);
+          if (kOdd <= 1.05 || kEven <= 1.05) continue;
+
+          const diffPts = (hPts !== null && aPts !== null) ? Math.abs(hPts - aPts) : 0;
+          const totalPts = (hPts !== null && aPts !== null) ? (hPts + aPts) : 0;
+          const cuartoActual = pScores.length;
+
+          // Determinar el MEJOR lado matemático de este partido:
+          // - En 4 cuartos (mType 229): si hay paliza >= 10 pts en Q2/Q3/Q4, ya NO hay prórroga ni faltas intencionales -> paridad real = 50.0% / 50.0%!
+          // - En pre-partido o juego cerrado (0-9 pts), Odd tiene ~52.2% real y Even ~47.8% real (por empates que van a OT).
+          let pRealEven = 0.480;
+          let pRealOdd = 0.520;
+          let esPalizaSinOT = false;
+
+          if (esBlitz) {
+            const sumImp = (1.0 / kOdd) + (1.0 / kEven);
+            pRealOdd = (1.0 / kOdd) / sumImp;
+            pRealEven = (1.0 / kEven) / sumImp;
+          } else if (item.esVivo && cuartoActual >= 2 && diffPts >= 10) {
+            pRealEven = 0.500;
+            pRealOdd = 0.500;
+            esPalizaSinOT = true;
+          } else if (item.esVivo && cuartoActual >= 3 && diffPts >= 7) {
+            pRealEven = 0.495;
+            pRealOdd = 0.505;
+          }
+
+          const evEvenPct = ((pRealEven * kEven) - 1.0) * 100;
+          const evOddPct = ((pRealOdd * kOdd) - 1.0) * 100;
+
+          // Elegir el lado con mejor retorno/expectativa (priorizando cuotas jugosas >= 1.85x)
+          let ladoElegido = 'EVEN';
+          let outIdElegido = '72';
+          let kElegida = kEven;
+          let kOtra = kOdd;
+          let pRealElegida = pRealEven;
+          let evElegido = evEvenPct;
+
+          if (!esBlitz) {
+            if (evOddPct > evEvenPct + 0.4 && kOdd >= 1.85) {
+              ladoElegido = 'ODD';
+              outIdElegido = '70';
+              kElegida = kOdd;
+              kOtra = kEven;
+              pRealElegida = pRealOdd;
+              evElegido = evOddPct;
+            } else if (kEven < 1.82 && kOdd >= 1.88) {
+              ladoElegido = 'ODD';
+              outIdElegido = '70';
+              kElegida = kOdd;
+              kOtra = kEven;
+              pRealElegida = pRealOdd;
+              evElegido = evOddPct;
+            }
+          } else {
+            // En Blitz mostrar el lado de mayor cuota si el usuario filtra Blitz, o el más eficiente
+            ladoElegido = kOdd >= 2.5 ? 'ODD' : 'EVEN';
+            outIdElegido = ladoElegido === 'ODD' ? '70' : '72';
+            kElegida = ladoElegido === 'ODD' ? kOdd : kEven;
+            kOtra = ladoElegido === 'ODD' ? kEven : kOdd;
+            pRealElegida = ladoElegido === 'ODD' ? pRealOdd : pRealEven;
+            evElegido = ladoElegido === 'ODD' ? evOddPct : evEvenPct;
+          }
+
+          // Resumen de paridad por cuarto
+          const resumenCuartos = pScores.map(q => {
+            const s = Number(q.home_score || 0) + Number(q.away_score || 0);
+            return `Q${q.number}: ${s} (${s % 2 === 0 ? 'PAR' : 'IMPAR'})`;
+          });
+
+          const esOro = !esBlitz && (esPalizaSinOT && kElegida >= 1.88 || kElegida >= 1.93);
+          let razonJugada = '';
+          if (esPalizaSinOT && kElegida >= 1.88) {
+            razonJugada = `💎 <b>Ventaja de +${diffPts} pts en Q${cuartoActual}:</b> Ya es casi imposible ir a prórroga ni habrá faltas tácticas al final. La probabilidad real es <b>50% / 50%</b> pura y BC te paga <b>${kElegida.toFixed(2)}x (+${Math.round((kElegida - 1) * 100)}%)</b>.`;
+          } else if (!esBlitz && kElegida >= 1.93) {
+            razonJugada = `🔥 <b>Cuota Inflada En Vivo (${kElegida.toFixed(2)}x):</b> Una sola canasta de 2 vs 3 pts cambia toda la paridad a 50/50, pagándote casi el doble (+${Math.round((kElegida - 1) * 100)}%).`;
+          } else if (esBlitz) {
+            razonJugada = `⚡ <b>Blitz Relámpago (1 minuto):</b> En 1 minuto los empates (PAR) son frecuentes (${kEven.toFixed(2)}x), mientras IMPAR paga cuota alta (${kOdd.toFixed(2)}x).`;
+          } else {
+            razonJugada = `📊 <b>Mejor Lado del Libro (${kElegida.toFixed(2)}x vs ${kOtra.toFixed(2)}x):</b> Evita el lado castigado (${kOtra.toFixed(2)}x) y toma el lado que paga <b>+${Math.round((kElegida - 1) * 100)}%</b> limpio.`;
+          }
+
+          const scoreOrden = (esOro ? 25 : 0) + (item.esVivo ? 10 : 0) + (esBlitz ? -8 : 0) + (kElegida * 10) + evElegido;
+
+          listaFinal.push({
+            id: `bceo_${item.eid}_${ladoElegido}`,
+            eid: item.eid,
+            esVivo: item.esVivo,
+            esBlitz,
+            esOro,
+            esPalizaSinOT,
+            scheduled: item.scheduled,
+            liga: item.liga,
+            categoriaNombre: item.categoriaNombre,
+            partidoTitulo: item.partidoTitulo,
+            marcadorStr: (hPts !== null && aPts !== null) ? `${hPts} - ${aPts}` : 'Por iniciar',
+            sumaActual: totalPts,
+            paridadActual: totalPts % 2 === 0 ? 'PAR (Even)' : 'IMPAR (Odd)',
+            cuartoActual,
+            diffPts,
+            resumenCuartos,
+            lado: ladoElegido,
+            ladoTexto: ladoElegido === 'EVEN' ? 'EVEN (PAR)' : 'ODD (IMPAR)',
+            outId: outIdElegido,
+            kElegida,
+            kEven,
+            kOdd,
+            roiPct: parseFloat(((kElegida - 1.0) * 100).toFixed(1)),
+            probRealPct: parseFloat((pRealElegida * 100).toFixed(1)),
+            evPct: parseFloat(evElegido.toFixed(2)),
+            razonJugada,
+            scoreOrden,
+            urlBc: item.urlBc
+          });
+        }
+
+        listaFinal.sort((a, b) => b.scoreOrden - a.scoreOrden);
+        oportunidadesBcEo = listaFinal;
+
+        const badgeCount = document.getElementById('badge-count-bceb');
+        if (badgeCount) badgeCount.innerText = `${listaFinal.length}`;
+
+        const elTot = document.getElementById('bc-kpi-total');
+        const elOro = document.getElementById('bc-kpi-oro');
+        const elViv = document.getElementById('bc-kpi-vivo');
+        if (elTot) elTot.innerText = listaFinal.length;
+        if (elOro) elOro.innerText = listaFinal.filter(x => x.esOro).length;
+        if (elViv) elViv.innerText = listaFinal.filter(x => x.esVivo).length;
+
+        if (ambienteActual === 'bc') {
+          document.getElementById('status-cruce').innerText = `${listaFinal.length} juegos eBasket Even/Odd activos`;
+        }
+
+        await verificarResultadosBcEo(mapaVivos);
+        evaluarDisparoBcMaster();
+
+        if (ambienteActual === 'bc') {
+          renderizarTarjetasBcEo();
+        }
+      } catch (err) {
+        console.error('Error escaneando BC eBasket Odd/Even:', err);
+      } finally {
+        if (ambienteActual === 'bc') icon.classList.remove('fa-spin');
+        if (spinner) spinner.classList.add('hidden');
+      }
+    }
+
+    async function verificarResultadosBcEo(mapaVivos) {
+      const BRAND = '2103509236163162112';
+      const BASE_URL = 'https://api-k-c7818b61-623.sptpub.com/api/v4';
+      const eidsRevisar = new Set([
+        ...Object.keys(statsBcEo.enSeguimiento || {}),
+        ...bcMasterState.jugadas.filter(j => j.estado === 'EN_JUEGO').map(j => j.eid)
+      ]);
+      if (eidsRevisar.size === 0) return;
+
+      for (const eid of eidsRevisar) {
+        let info = mapaVivos ? mapaVivos[eid] : null;
+        if (!info) {
+          try {
+            const det = await fetch(`${BASE_URL}/live/brand/${BRAND}/event/en/${eid}`).then(r => r.ok ? r.json() : null);
+            const ev = det && det.events ? det.events[eid] : null;
+            if (ev && ev.score) {
+              info = {
+                hPts: parseInt(ev.score.home_score || 0, 10),
+                aPts: parseInt(ev.score.away_score || 0, 10),
+                pScores: ev.score.period_scores || [],
+                markets: ev.markets || {},
+                 desaparecio: false
+              };
+            } else {
+              info = { desaparecio: true };
+            }
+          } catch (e) {
+            info = { desaparecio: true };
+          }
+        }
+
+        // Actualizar último marcador conocido en seguimiento y en Master BC
+        const seg = statsBcEo.enSeguimiento[eid];
+        const mj = bcMasterState.jugadas.find(x => x.eid === eid && x.estado === 'EN_JUEGO');
+
+        if (info && !info.desaparecio && info.hPts !== null && info.aPts !== null) {
+          if (seg) {
+            seg.ultimoH = info.hPts;
+            seg.ultimoA = info.aPts;
+            seg.cuartos = (info.pScores || []).length;
+            seg.sinMercados = Object.keys(info.markets || {}).length === 0;
+          }
+          if (mj) {
+            mj.ultimoH = info.hPts;
+            mj.ultimoA = info.aPts;
+            mj.cuartos = (info.pScores || []).length;
+            mj.sinMercados = Object.keys(info.markets || {}).length === 0;
+          }
+        }
+
+        // Si el partido ya cerró mercados tras el 4to cuarto (y no está empatado) o desapareció del feed live tras estar en Q4: liquidar resultado real!
+        const refObj = mj || seg;
+        if (!refObj || refObj.ultimoH === undefined) continue;
+        const sumaFinal = refObj.ultimoH + refObj.ultimoA;
+        const noEmpate = refObj.ultimoH !== refObj.ultimoA || refObj.esBlitz;
+        const yaTermino = (
+          (info && info.desaparecio && (refObj.cuartos >= 4 || refObj.esBlitz)) ||
+          (refObj.sinMercados && (refObj.cuartos >= 4 || refObj.esBlitz) && noEmpate)
+        );
+
+        if (yaTermino && sumaFinal > 0) {
+          const paridadGanadora = (sumaFinal % 2 === 0) ? 'EVEN' : 'ODD';
+          if (seg && !statsBcEo.resueltas[eid]) {
+            const gano = seg.lado === paridadGanadora;
+            statsBcEo.resueltas[eid] = gano ? 'WIN' : 'LOSS';
+            if (gano) {
+              statsBcEo.wins += 1;
+              statsBcEo.pnl_usd = parseFloat((statsBcEo.pnl_usd + seg.stake * (seg.k - 1.0)).toFixed(2));
+            } else {
+              statsBcEo.losses += 1;
+              statsBcEo.pnl_usd = parseFloat((statsBcEo.pnl_usd - seg.stake).toFixed(2));
+            }
+            delete statsBcEo.enSeguimiento[eid];
+            guardarStatsBcEo();
+          }
+
+          if (mj && mj.estado === 'EN_JUEGO') {
+            const ganoM = mj.lado === paridadGanadora;
+            mj.estado = ganoM ? 'WIN' : 'LOSS';
+            mj.marcadorFinal = `${refObj.ultimoH}-${refObj.ultimoA} (${sumaFinal} ${paridadGanadora})`;
+            mj.pnlUsd = ganoM
+              ? parseFloat((mj.stake * (mj.k - 1.0)).toFixed(2))
+              : parseFloat((-mj.stake).toFixed(2));
+          }
+        }
+      }
+
+      const abiertasRest = bcMasterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
+      if (bcMasterState.jugadas.length >= bcMasterState.maxBets && abiertasRest === 0 && bcMasterState.activo) {
+        bcMasterState.activo = false;
+        bcMasterState.fase = 'PAUSADO_REVISION';
+      }
+      guardarEstadoBcMaster();
+    }
+
+    function abrirJugadaBcEo(opId, forzarLado = null) {
+      const op = oportunidadesBcEo.find(x => x.id === opId);
+      if (!op) return;
+
+      const ladoUsar = forzarLado || op.lado;
+      const outIdUsar = ladoUsar === 'EVEN' ? '72' : '70';
+      const kUsar = ladoUsar === 'EVEN' ? op.kEven : op.kOdd;
+      const stake = Math.max(parseFloat(document.getElementById('bcmaster-stake').value) || 1, 0.5);
+
+      // Registrar en auditoría en vivo de BC para verificar si ganó al terminar el 4to cuarto
+      if (!statsBcEo.enSeguimiento[op.eid] && !statsBcEo.resueltas[op.eid]) {
+        statsBcEo.enSeguimiento[op.eid] = {
+          eid: op.eid,
+          partido: op.partidoTitulo,
+          lado: ladoUsar,
+          k: kUsar,
+          stake,
+          esBlitz: op.esBlitz,
+          cuartos: op.cuartoActual || 1
+        };
+        guardarStatsBcEo();
+      }
+
+      const hashParams = new URLSearchParams({
+        polyedge_auto: '1',
+        tipo: ladoUsar,
+        outid: outIdUsar,
+        cuota: String(kUsar.toFixed(2)),
+        min_k: String(Math.max(kUsar - 0.05, 1.75).toFixed(2)),
+        equipo: `${ladoUsar === 'EVEN' ? 'EVEN / PAR' : 'ODD / IMPAR'} (${op.partidoTitulo})`,
+        stake: String(stake),
+        autoconfirm: bcMasterState.oneClickPlaceBet ? '1' : '0'
+      });
+      window.open(`${op.urlBc}#${hashParams.toString()}`, '_blank');
+    }
+
+    function toggleBcMasterAuto() {
+      guardarEstadoBcMaster();
+      if (bcMasterState.activo) {
+        bcMasterState.activo = false;
+        bcMasterState.fase = 'INACTIVO';
+        guardarEstadoBcMaster();
+        return;
+      }
+
+      if (bcMasterState.jugadas.length >= bcMasterState.maxBets) {
+        const vivas = bcMasterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
+        if (vivas === 0) {
+          if (!confirm(`Ya completaste las ${bcMasterState.maxBets} jugadas del ciclo BC. ¿Quieres limpiar e iniciar un nuevo ciclo?`)) return;
+          bcMasterState.jugadas = [];
+          bcMasterState.partidosUsados = {};
+        } else {
+          bcMasterState.activo = true;
+          bcMasterState.fase = 'ESPERANDO_RESULTADOS';
+          guardarEstadoBcMaster();
+          return;
+        }
+      }
+
+      try {
+        window.open('https://playbc.fun/sports/ebasketball', 'BCMasterWorker');
+      } catch (e) {}
+
+      bcMasterState.activo = true;
+      bcMasterState.fase = 'BUSCANDO';
+      guardarEstadoBcMaster();
+      evaluarDisparoBcMaster();
+    }
+
+    function reiniciarCicloBcMaster() {
+      if (bcMasterState.jugadas.length > 0 && !confirm('¿Reiniciar a 0 el ciclo Master BC eBasket?')) return;
+      bcMasterState.activo = false;
+      bcMasterState.fase = 'INACTIVO';
+      bcMasterState.jugadas = [];
+      bcMasterState.partidosUsados = {};
+      bcMasterState.ultimoDisparoTs = 0;
+      guardarEstadoBcMaster();
+    }
+
+    function evaluarDisparoBcMaster() {
+      if (!bcMasterState.activo) return;
+
+      if (bcMasterState.jugadas.length >= bcMasterState.maxBets) {
+        const vivas = bcMasterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
+        bcMasterState.fase = vivas === 0 ? 'PAUSADO_REVISION' : 'ESPERANDO_RESULTADOS';
+        if (vivas === 0) bcMasterState.activo = false;
+        guardarEstadoBcMaster();
+        return;
+      }
+
+      if (Date.now() - (bcMasterState.ultimoDisparoTs || 0) < 22000) {
+        renderizarPanelBcMaster();
+        return;
+      }
+
+      // Escoger la mejor jugada 4-cuartos (no Blitz) con cuota >= 1.90x (priorizando En Vivo y Palizas sin prórroga)
+      const cands = oportunidadesBcEo.filter(o => {
+        if (o.esBlitz) return false;
+        if (o.kElegida < 1.90) return false;
+        if (bcMasterState.partidosUsados[o.eid]) return false;
+        return true;
+      });
+
+      if (cands.length === 0) {
+        renderizarPanelBcMaster();
+        return;
+      }
+
+      const top = cands[0];
+      const num = bcMasterState.jugadas.length + 1;
+      const oid = `bcmst_${Date.now()}_${top.eid}`;
+      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const jObj = {
+        num,
+        oid,
+        eid: top.eid,
+        partidoTitulo: top.partidoTitulo,
+        liga: top.liga,
+        lado: top.lado,
+        ladoTexto: top.ladoTexto,
+        k: top.kElegida,
+        stake: bcMasterState.stake,
+        esBlitz: top.esBlitz,
+        cuartos: top.cuartoActual || 1,
+        estado: 'EN_JUEGO',
+        pnlUsd: 0,
+        hora
+      };
+
+      bcMasterState.partidosUsados[top.eid] = true;
+      bcMasterState.ultimoDisparoTs = Date.now();
+      bcMasterState.jugadas.push(jObj);
+      if (bcMasterState.jugadas.length >= bcMasterState.maxBets) {
+        bcMasterState.fase = 'ESPERANDO_RESULTADOS';
+      }
+      guardarEstadoBcMaster();
+
+      const hashParams = new URLSearchParams({
+        polyedge_auto: '1',
+        oid,
+        tipo: top.lado,
+        outid: top.outId,
+        cuota: String(top.kElegida.toFixed(2)),
+        min_k: '1.87',
+        equipo: `${top.ladoTexto} · ${top.partidoTitulo}`,
+        stake: String(bcMasterState.stake),
+        autoconfirm: bcMasterState.oneClickPlaceBet ? '1' : '0'
+      });
+      window.open(`${top.urlBc}#${hashParams.toString()}`, 'BCMasterWorker');
+    }
+
+    function renderizarPanelBcMaster() {
+      const badge = document.getElementById('bcmaster-badge');
+      const desc = document.getElementById('bcmaster-desc');
+      const btnMain = document.getElementById('btn-bcmaster-main');
+      const txtBtn = document.getElementById('txt-btn-bcmaster');
+      const btnOne = document.getElementById('btn-bceo-oneclick');
+      const panel = document.getElementById('panel-bcmaster-detalle');
+      const lista = document.getElementById('lista-bcmaster-jugadas');
+      if (!badge || !btnMain) return;
+
+      if (btnOne) {
+        btnOne.className = bcMasterState.oneClickPlaceBet
+          ? 'px-2.5 py-2 rounded-lg bg-emerald-500/20 border border-emerald-400/50 text-emerald-200 font-bold text-xs transition cursor-pointer'
+          : 'px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 font-bold text-xs transition cursor-pointer';
+        btnOne.innerText = `⚡ 1-Clic Place Bet: ${bcMasterState.oneClickPlaceBet ? 'ON' : 'OFF'}`;
+      }
+
+      const env = bcMasterState.jugadas.length;
+      const meta = bcMasterState.maxBets || 10;
+      const wins = bcMasterState.jugadas.filter(j => j.estado === 'WIN').length;
+      const losses = bcMasterState.jugadas.filter(j => j.estado === 'LOSS').length;
+      const vivas = bcMasterState.jugadas.filter(j => j.estado === 'EN_JUEGO').length;
+      const pnl = bcMasterState.jugadas.reduce((a, j) => a + (j.pnlUsd || 0), 0);
+
+      if (bcMasterState.fase === 'PAUSADO_REVISION') {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-400 text-gray-950 animate-pulse';
+        badge.innerText = `🏁 CICLO BC ${env}/${meta} COMPLETADO — EN PAUSA`;
+        txtBtn.innerText = 'INICIAR NUEVO CICLO BC';
+        desc.innerHTML = `✅ <b>¡Ciclo de ${meta} jugadas eBasket finalizado!</b> Resultado verificado: <b>${wins}W - ${losses}L</b>, neto <b>${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</b>.`;
+      } else if (bcMasterState.activo && bcMasterState.fase === 'ESPERANDO_RESULTADOS') {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-400';
+        badge.innerText = `⏳ ${env}/${meta} ENVIADAS — ESPERANDO CIERRE (${vivas} VIVAS)`;
+        txtBtn.innerText = 'PAUSAR MASTER BC';
+      } else if (bcMasterState.activo) {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400 animate-pulse';
+        badge.innerText = `🟢 MASTER BC ACTIVO (${env} DE ${meta})`;
+        txtBtn.innerText = 'PAUSAR MASTER BC';
+      } else {
+        badge.className = 'text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700';
+        badge.innerText = env > 0 ? `⏸️ PAUSADO (${env}/${meta})` : '⏸️ EN ESPERA';
+        txtBtn.innerText = env > 0 && env < meta ? `REANUDAR BC (${env}/${meta})` : 'MASTER BC eBASKET';
+      }
+
+      if (env === 0 && !bcMasterState.activo) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      document.getElementById('bcmaster-kpi-sent').innerText = `${env} / ${meta}`;
+      document.getElementById('bcmaster-kpi-open').innerText = `${vivas} vivas · ${wins + losses} listas`;
+      document.getElementById('bcmaster-kpi-wl').innerText = `${wins}W - ${losses}L`;
+      const elP = document.getElementById('bcmaster-kpi-pnl');
+      elP.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+      elP.className = `text-lg font-black font-mono ${pnl > 0 ? 'text-emerald-400' : (pnl < 0 ? 'text-red-400' : 'text-gray-200')}`;
+
+      lista.innerHTML = bcMasterState.jugadas.map(j => {
+        let tag = '';
+        if (j.estado === 'WIN') {
+          tag = `<span class="px-2 py-0.5 rounded bg-emerald-500/25 text-emerald-300 font-black text-[10px]">🏆 WIN +$${j.pnlUsd.toFixed(2)} (${j.marcadorFinal || ''})</span>`;
+        } else if (j.estado === 'LOSS') {
+          tag = `<span class="px-2 py-0.5 rounded bg-red-500/25 text-red-300 font-black text-[10px]">❌ -$${Math.abs(j.pnlUsd).toFixed(2)} (${j.marcadorFinal || ''})</span>`;
+        } else {
+          const mVivo = j.ultimoH !== undefined ? ` · ${j.ultimoH}-${j.ultimoA} (Q${j.cuartos || 1})` : '';
+          tag = `<span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200 font-bold text-[10px]">⏳ En Juego${mVivo}</span>`;
+        }
+        return `
+          <div class="p-2.5 rounded-lg bg-gray-900/95 border border-gray-800 flex items-center justify-between gap-2 text-xs">
+            <div class="min-w-0 flex-1">
+              <div class="font-bold text-white truncate">#${j.num} · ${j.partidoTitulo} <span class="text-gray-500 font-normal">(${j.hora})</span></div>
+              <div class="text-[11px] text-gray-400 truncate">👉 <b>${j.ladoTexto}</b> · Cuota: <b class="text-amber-300">${j.k.toFixed(2)}x</b> · Monto: <b>$${j.stake.toFixed(2)}</b></div>
+            </div>
+            <div class="shrink-0">${tag}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderizarTarjetasBcEo() {
+      const cont = document.getElementById('contenedor-tarjetas-bc');
+      const noRes = document.getElementById('bc-no-results');
+      if (!cont || !noRes) return;
+
+      const minK = parseFloat((document.getElementById('bc-min-odds') || {}).value) || 1.90;
+      const q = ((document.getElementById('bc-search-input') || {}).value || '').toLowerCase().trim();
+      const stake = Math.max(parseFloat((document.getElementById('bcmaster-stake') || {}).value) || 1, 0.5);
+
+      const filtradas = oportunidadesBcEo.filter(o => {
+        if (filtroBcActivo === 'blitz') {
+          if (!o.esBlitz) return false;
+        } else {
+          if (o.esBlitz) return false;
+          if (o.kElegida < minK - 0.001) return false;
+        }
+        if (filtroBcActivo === 'oro' && !o.esOro) return false;
+        if (filtroBcActivo === 'vivo' && !o.esVivo) return false;
+        if (filtroBcActivo === 'altas' && o.kElegida < 1.90) return false;
+
+        if (!q) return true;
+        return o.partidoTitulo.toLowerCase().includes(q) || o.liga.toLowerCase().includes(q);
+      });
+
+      if (filtradas.length === 0) {
+        cont.innerHTML = '';
+        noRes.classList.remove('hidden');
+        return;
+      }
+      noRes.classList.add('hidden');
+
+      cont.innerHTML = filtradas.map(o => {
+        const cobro = (stake * o.kElegida).toFixed(2);
+        const ganLimpia = (parseFloat(cobro) - stake).toFixed(2);
+        const borderCls = o.esOro
+          ? 'border-2 border-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.22)]'
+          : 'border border-orange-500/50 shadow-[0_0_16px_rgba(249,115,22,0.12)]';
+
+        const badgeEstado = o.esVivo
+          ? `<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 font-black text-[11px]">🔴 VIVO Q${o.cuartoActual || 1} · ${o.marcadorStr}</span>`
+          : `<span class="px-2 py-0.5 rounded bg-gray-800 text-gray-300 font-semibold text-[11px]">⏱️ Próximo</span>`;
+
+        const pillsCuartos = o.resumenCuartos.length > 0
+          ? `<div class="flex flex-wrap gap-1 mt-2">${o.resumenCuartos.map(rq => `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-[10px] text-gray-300 border border-gray-700">${rq}</span>`).join('')}</div>`
+          : '';
+
+        const otroLado = o.lado === 'EVEN' ? 'ODD' : 'EVEN';
+        const otraK = o.lado === 'EVEN' ? o.kOdd : o.kEven;
+
+        return `
+          <div class="glass-card rounded-xl p-5 ${borderCls} flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2.5">
+                <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full ${o.esOro ? 'bg-amber-400/20 text-amber-200 border border-amber-400/50' : 'bg-orange-500/20 text-orange-200 border border-orange-500/40'}">
+                  ${o.esOro ? '💎 ORO SIN PRÓRROGA' : (o.esBlitz ? '⚡ BLITZ 1-MIN' : '🏀 eBASKET EVEN/ODD')} · ${o.liga}
+                </span>
+                ${badgeEstado}
+              </div>
+
+              <h4 class="text-sm font-black text-white mb-1">${o.partidoTitulo}</h4>
+              ${o.esVivo ? `<div class="text-[11px] text-cyan-300 font-semibold mb-2">Suma actual: <b>${o.sumaActual} pts (${o.paridadActual})</b> · Dif: <b>${o.diffPts} pts</b></div>` : '<div class="mb-2"></div>'}
+
+              <div class="p-3 rounded-xl bg-gray-900/95 border border-gray-800 space-y-2 text-xs mb-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400">Mejor Jugada:</span>
+                  <span class="font-black text-sm ${o.lado === 'EVEN' ? 'text-amber-300' : 'text-purple-300'}">👉 ${o.ladoTexto} @ ${o.kElegida.toFixed(2)}x</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-gray-800 text-[11px]">
+                  <button onclick="abrirJugadaBcEo('${o.id}', 'EVEN')" class="p-2 rounded text-left transition cursor-pointer ${o.lado === 'EVEN' ? 'bg-amber-500/20 ring-2 ring-amber-400' : 'bg-gray-800/70 hover:bg-gray-800'}">
+                    <span class="text-gray-400 block">EVEN (PAR):</span>
+                    <span class="text-amber-300 font-black text-sm">${o.kEven.toFixed(2)}x</span>
+                  </button>
+                  <button onclick="abrirJugadaBcEo('${o.id}', 'ODD')" class="p-2 rounded text-left transition cursor-pointer ${o.lado === 'ODD' ? 'bg-purple-500/20 ring-2 ring-purple-400' : 'bg-gray-800/70 hover:bg-gray-800'}">
+                    <span class="text-gray-400 block">ODD (IMPAR):</span>
+                    <span class="text-purple-300 font-black text-sm">${o.kOdd.toFixed(2)}x</span>
+                  </button>
+                </div>
+
+                ${pillsCuartos}
+
+                <div class="pt-1.5 border-t border-gray-800 text-[11px] text-gray-300 leading-relaxed">
+                  ${o.razonJugada}
+                </div>
+              </div>
+
+              <div class="p-2.5 rounded-lg bg-emerald-950/35 border border-emerald-500/35 text-xs mb-4 flex justify-between items-center">
+                <span>Con <b>$${stake.toFixed(2)}</b> cobras: <b>$${cobro}</b></span>
+                <span class="text-emerald-300 font-black text-sm">+$${ganLimpia} (+${o.roiPct}%)</span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <button onclick="abrirJugadaBcEo('${o.id}')" class="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 hover:from-orange-400 hover:to-yellow-400 text-gray-950 text-xs font-black flex items-center justify-center gap-2 shadow-lg transition cursor-pointer">
+                <i class="fa-solid fa-bolt"></i> Apostar ${o.ladoTexto} (${o.kElegida.toFixed(2)}x) en BC ($${stake.toFixed(2)})
+              </button>
+              <button onclick="abrirJugadaBcEo('${o.id}', '${otroLado}')" class="w-full py-1.5 px-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] font-semibold border border-gray-700 transition cursor-pointer">
+                O marcar el otro lado: ${otroLado} (${otraK.toFixed(2)}x)
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       cargarStatsAlpha();
       cargarFijadas();
       cargarFiltros();
       cargarEstadoMaster();
+      cargarEstadoBcEo();
       escanearAlpha(false);
+      setTimeout(() => escanearBcEbasketOddEven(true), 1500);
       setInterval(() => escanearAlpha(true), 20000);
+      setInterval(() => {
+        if (ambienteActual === 'bc' || bcMasterState.activo || Object.keys(statsBcEo.enSeguimiento || {}).length > 0) {
+          escanearBcEbasketOddEven(true);
+        }
+      }, 18000);
     });
   </script>
 </body>
