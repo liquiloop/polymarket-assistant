@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge ALPHA — Alto Rendimiento (+EV & Rebotes Polymarket + BC)",
-  "version": "1.7.0",
-  "description": "Auto-selecciona compras y ventas rápidas (Take-Profit en Rebotes) en Polymarket y cuotas infladas (+EV) en BC.GAME.",
+  "name": "PolyEdge ALPHA — FULL AUTOMATIC MASTER (Polymarket & BC)",
+  "version": "1.8.0",
+  "description": "Modo Full Automatic Master en Polymarket (ciclo de N jugadas con auto-compra, auto-rebote y pausa automática para revisión) + Auto-Selector.",
   "permissions": [],
   "content_scripts": [
     {
