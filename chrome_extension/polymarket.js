@@ -27,6 +27,14 @@
     } catch (e) {}
   }
 
+  function reportarResultadoMaster(payload) {
+    try {
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage(Object.assign({ type: "POLYEDGE_MASTER_ACK" }, payload));
+      }
+    } catch (e) {}
+  }
+
   function capturarConfigPolymarket() {
     const hash = window.location.hash || "";
     const search = window.location.search || "";
@@ -42,8 +50,8 @@
           master: params.get("master") === "1",
           oid: (params.get("oid") || "").trim(),
           max_c: parseFloat(params.get("max_c") || "0") || 0,
-          accion: (params.get("accion") || "BUY").toUpperCase(), // "BUY" o "SELL"
-          tipo: (params.get("tipo") || "OU").toUpperCase(),      // "OU" o "ML"
+          accion: (params.get("accion") || "BUY").toUpperCase(),
+          tipo: (params.get("tipo") || "OU").toUpperCase(),
           linea: (params.get("linea") || "").trim(),
           side: (params.get("side") || "OVER").toUpperCase(),
           outcome: (params.get("outcome") || "").trim(),
@@ -102,10 +110,10 @@
       document.body.appendChild(banner);
     }
     banner.style.background = colorBg;
-    banner.innerHTML = `<span>🤖 <b>PolyEdge Master:</b> ${texto}</span>`;
+    banner.innerHTML = `<span>🤖 <b>PolyEdge v2.0:</b> ${texto}</span>`;
   }
 
-  function dispararClickSinScroll(el) {
+  function dispararClickLimpioUnico(el) {
     if (!el) return;
     const opts = { bubbles: true, cancelable: true, composed: true, view: window };
     try {
@@ -129,8 +137,18 @@
     if (tracker) {
       try { tracker.setValue(prevVal); } catch (e) {}
     }
-    inputEl.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    inputEl.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, data: String(val), inputType: "insertText" }));
     inputEl.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+  }
+
+  function leerEfectivoVisible() {
+    try {
+      const textoHeader = (document.querySelector("header")?.innerText || document.body.innerText.slice(0, 800)).replace(/\s+/g, " ");
+      const m = textoHeader.match(/(?:Efectivo|Cash)\s*\$?\s*([\d.,]+)/i);
+      return m ? m[1] : "";
+    } catch (e) {
+      return "";
+    }
   }
 
   function encontrarTarjetaMoneyline() {
@@ -204,17 +222,16 @@
     const btnExacto = alcanceBotones.find(b => (b.textContent || "").trim() === lineaBuscada);
     if (!btnExacto) return false;
 
-    const textoHijo = btnExacto.querySelector("p, span");
-    if (textoHijo) dispararClickSinScroll(textoHijo);
-    dispararClickSinScroll(btnExacto);
+    dispararClickLimpioUnico(btnExacto);
 
     for (let w = 0; w < 8; w++) {
-      await new Promise(r => setTimeout(r, 150));
+      await new Promise(r => setTimeout(r, 160));
       const btnsArriba = Array.from(totalsCard.querySelectorAll("button.trading-button"));
-      const yaCambio = btnsArriba.some(tb => (tb.textContent || "").replace(/\s+/g, " ").includes(lineaBuscada));
+      const yaCambio = btnsArriba.some(tb => (tb.innerText || tb.textContent || "").replace(/\s+/g, " ").includes(lineaBuscada));
       if (yaCambio) return true;
       if (w === 3) {
-        try { btnExacto.click(); } catch (e) {}
+        const textoHijo = btnExacto.querySelector("p, span");
+        if (textoHijo) textoHijo.click();
       }
     }
     return false;
@@ -229,7 +246,7 @@
 
     const tradingBtns = Array.from(totalsCard.querySelectorAll("button.trading-button"));
     for (const btn of tradingBtns) {
-      const tNorm = (btn.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const tNorm = (btn.innerText || btn.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
       if (cfg.linea) {
         const coincideLinea = tNorm.includes(cfg.linea);
         const coincideLado = (
@@ -239,9 +256,7 @@
           tNorm.includes(palabraEsp)
         );
         if (coincideLinea && coincideLado) {
-          const innerSpan = btn.querySelector(".trading-button-text") || btn;
-          dispararClickSinScroll(innerSpan);
-          dispararClickSinScroll(btn);
+          dispararClickLimpioUnico(btn);
           return btn;
         }
       }
@@ -259,20 +274,16 @@
     const esSegundo = partesQ.length === 2 && partesQ[1].toLowerCase().includes(cfg.outcome.toLowerCase());
 
     for (const btn of tradingBtns) {
-      const bt = (btn.textContent || "").toLowerCase();
+      const bt = (btn.innerText || btn.textContent || "").toLowerCase();
       if (targetWords.some(w => bt.includes(w))) {
-        const inner = btn.querySelector(".trading-button-text") || btn;
-        dispararClickSinScroll(inner);
-        dispararClickSinScroll(btn);
+        dispararClickLimpioUnico(btn);
         return btn;
       }
     }
 
     if (tradingBtns.length === 2 && (esPrimero || esSegundo)) {
       const elegido = esPrimero ? tradingBtns[0] : tradingBtns[1];
-      const inner = elegido.querySelector(".trading-button-text") || elegido;
-      dispararClickSinScroll(inner);
-      dispararClickSinScroll(elegido);
+      dispararClickLimpioUnico(elegido);
       return elegido;
     }
     return null;
@@ -280,8 +291,26 @@
 
   function extraerCentavosDeRadio(radioEl) {
     if (!radioEl) return 0;
-    const m = (radioEl.textContent || "").match(/(\d+(?:\.\d+)?)\s*¢/);
+    const m = (radioEl.innerText || radioEl.textContent || "").match(/(\d+(?:\.\d+)?)\s*¢/);
     return m ? parseFloat(m[1]) : 0;
+  }
+
+  function encontrarWidgetDerecho() {
+    const ancla =
+      document.getElementById("market-order-amount-input") ||
+      document.getElementById("outcome-buttons");
+    if (!ancla) return null;
+    let curr = ancla.parentElement;
+    let mejor = null;
+    for (let i = 0; i < 9 && curr; i++) {
+      const btns = curr.querySelectorAll('button.trading-button:not([role="radio"])');
+      if (btns.length >= 1) {
+        mejor = curr;
+        break;
+      }
+      curr = curr.parentElement;
+    }
+    return mejor;
   }
 
   async function verificarYPrepararPanelDerecho(cfg) {
@@ -292,13 +321,13 @@
     const tabObjetivo =
       document.querySelector(`button[role="radio"][value="${valorRadioTab}"]`) ||
       Array.from(document.querySelectorAll('button[role="radio"], button')).find(b => {
-        const t = (b.textContent || "").trim().toLowerCase();
+        const t = (b.innerText || b.textContent || "").trim().toLowerCase();
         return esModoVenta ? (t === "vender" || t === "sell") : (t === "comprar" || t === "buy");
       });
 
     if (tabObjetivo && tabObjetivo.getAttribute("aria-checked") === "false") {
-      dispararClickSinScroll(tabObjetivo);
-      await new Promise(r => setTimeout(r, 300));
+      dispararClickLimpioUnico(tabObjetivo);
+      await new Promise(r => setTimeout(r, 320));
     }
 
     const contenedorRadios = document.getElementById("outcome-buttons");
@@ -318,12 +347,10 @@
         const valorEsperado = esOver ? "0" : "1";
         const radioCorrecto = radios.find(r => r.getAttribute("value") === valorEsperado) || (esOver ? radios[0] : radios[1]);
         if (radioCorrecto) {
-          const txtRadio = (radioCorrecto.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+          const txtRadio = (radioCorrecto.innerText || radioCorrecto.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
           if (cfg.linea && txtRadio.includes(cfg.linea)) {
             if (radioCorrecto.getAttribute("aria-checked") === "false" || radioCorrecto.getAttribute("data-selected") === "false") {
-              const inner = radioCorrecto.querySelector(".trading-button-text") || radioCorrecto;
-              dispararClickSinScroll(inner);
-              dispararClickSinScroll(radioCorrecto);
+              dispararClickLimpioUnico(radioCorrecto);
               await new Promise(r => setTimeout(r, 250));
             }
             radioCorrecto.style.outline = "3px solid #10b981";
@@ -336,122 +363,288 @@
 
     if (!verificadoPanelDerecho) return { ok: false, motivo: "no_verificado" };
 
-    // Escudo de precio en modo Master: si el contrato subió más de +2.5¢ por encima del precio seguro, abortar!
-    if (cfg.master && !esModoVenta && cfg.max_c > 0 && centavosVivos > cfg.max_c + 1.5) {
-      return { ok: false, motivo: `precio subió a ${centavosVivos}¢ (tope seguro ${cfg.max_c}¢)` };
+    if (cfg.master && !esModoVenta && cfg.max_c > 0 && centavosVivos > cfg.max_c + 2.0) {
+      return { ok: false, motivo: `precio subió a ${centavosVivos}¢ (tope seguro ${cfg.max_c}¢)`, fatal: false };
     }
 
     if (esModoVenta) {
-      const btnMax = Array.from(document.querySelectorAll("button")).find(b => {
-        const t = (b.textContent || "").trim().toLowerCase();
+      const widget = encontrarWidgetDerecho() || document;
+      const btnMax = Array.from(widget.querySelectorAll("button")).find(b => {
+        const t = (b.innerText || b.textContent || "").trim().toLowerCase();
         return t === "max" || t === "máx" || t === "100%";
       });
       if (btnMax) {
-        dispararClickSinScroll(btnMax);
-        await new Promise(r => setTimeout(r, 350));
+        dispararClickLimpioUnico(btnMax);
+        await new Promise(r => setTimeout(r, 400));
       }
-      return { ok: true };
+      return { ok: true, centavosVivos };
     }
 
     const inputMonto =
       document.getElementById("market-order-amount-input") ||
       document.querySelector('input[inputmode="decimal"]');
 
-    if (inputMonto) {
+    if (inputMonto && cfg.stake) {
       const cajaInput = inputMonto.parentElement || inputMonto;
       cajaInput.style.outline = "3px solid #fbbf24";
       cajaInput.style.borderRadius = "10px";
-      try {
-        inputMonto.focus();
-        if (cfg.stake) {
-          setReactInputValue(inputMonto, cfg.stake);
-          await new Promise(r => setTimeout(r, 450));
-        } else {
-          inputMonto.select();
+
+      inputMonto.focus();
+      setReactInputValue(inputMonto, "");
+      await new Promise(r => setTimeout(r, 120));
+      setReactInputValue(inputMonto, cfg.stake);
+      await new Promise(r => setTimeout(r, 450));
+
+      // Verificar que el monto realmente quedó puesto; si sigue vacío y el monto es entero (ej. $1 o $5), usar botón rápido +$1 / +$5
+      const limpioActual = (inputMonto.value || "").replace(/[^0-9.]/g, "");
+      if (!limpioActual || parseFloat(limpioActual) <= 0) {
+        const widget = encontrarWidgetDerecho() || document;
+        const btnRapido = Array.from(widget.querySelectorAll("button")).find(
+          b => (b.innerText || "").trim() === `+$${cfg.stake}`
+        );
+        if (btnRapido) {
+          dispararClickLimpioUnico(btnRapido);
+          await new Promise(r => setTimeout(r, 400));
         }
-      } catch (e) {}
+      }
     }
 
-    return { ok: true };
+    return { ok: true, centavosVivos };
   }
 
-  // En modo FULL AUTOMATIC MASTER: hacer clic seguro en el botón azul de Comprar / Vender una sola vez
-  async function confirmarOrdenAutomaticaMaster(cfg, etiquetaMeta) {
+  // En modo FULL AUTOMATIC MASTER: hacer clic limpio y VERIFICAR que Polymarket ejecutó realmente la orden!
+  async function confirmarOrdenAutomaticaMaster(cfg, etiquetaMeta, centavosVivos) {
     if (cfg.oid && yaFueEjecutadaOrden(cfg.oid)) {
-      mostrarBannerPoly(`🛡️ Orden ya ejecutada anteriormente (protección anti-duplicado activa).`, "#0284c7");
+      mostrarBannerPoly(`🛡️ Orden ya ejecutada anteriormente.`, "#0284c7");
+      reportarResultadoMaster({ ok: true, orderId: cfg.oid, accion: cfg.accion, duplicate: true });
       return;
     }
 
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 450));
 
-    // Buscar el botón principal de envío en el widget derecho (azul en Buy, rojo/azul en Sell)
-    const botonesSubmit = Array.from(document.querySelectorAll('button.trading-button[data-color="blue"], button.trading-button[data-color="red"], button.trading-button'));
-    const btnAccion = botonesSubmit.find(b => {
-      // Excluir los botones de selección O/U o equipos
-      if (b.getAttribute("role") === "radio") return false;
-      const t = (b.textContent || "").trim().toLowerCase();
-      return (
-        t === "comprar" ||
-        t === "buy" ||
-        t === "operar" ||
-        t === "trade" ||
-        t === "vender" ||
-        t === "sell" ||
-        t === "depósito" ||
-        t === "deposit" ||
-        t.includes("comprar") ||
-        t.includes("vender")
-      );
-    });
+    // Buscar el botón de envío directamente dentro del widget derecho (funciona en Español e Inglés: Comprar, Operar, Intercambiar, Trade, Buy, Vender, Sell)
+    const widget = encontrarWidgetDerecho();
+    const candidatosSubmit = widget
+      ? Array.from(widget.querySelectorAll('button.trading-button:not([role="radio"])'))
+      : Array.from(document.querySelectorAll('button.trading-button[data-color="blue"]:not([role="radio"]), button.trading-button[data-color="red"]:not([role="radio"]), button.trading-button[data-color="green"]:not([role="radio"])'));
+
+    const btnAccion = candidatosSubmit[candidatosSubmit.length - 1] || null;
 
     if (!btnAccion) {
-      mostrarBannerPoly(`⚠️ No se encontró el botón final de envío en Polymarket.`, "#d97706");
+      const msg = "No se encontró el botón azul de envío en el panel derecho de Polymarket.";
+      mostrarBannerPoly(`⚠️ ${msg}`, "#d97706");
+      reportarResultadoMaster({ ok: false, fatal: true, orderId: cfg.oid, accion: cfg.accion, error: msg });
       return;
     }
 
-    const txtBoton = (btnAccion.textContent || "").trim().toLowerCase();
-    if (txtBoton.includes("depósito") || txtBoton.includes("deposit")) {
-      mostrarBannerPoly(`⚠️ Saldo efectivo insuficiente en Polymarket para cubrir $${cfg.stake}. Recarga o baja el monto Master.`, "#dc2626");
+    // IMPORTANTE: Usar innerText (NO textContent) para ignorar spans ocultos de animación!
+    const txtVisible = (btnAccion.innerText || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+    if (txtVisible.includes("depósito") || txtVisible.includes("deposit")) {
+      const msg = `Saldo Efectivo insuficiente en Polymarket para cubrir $${cfg.stake} (si ganaste apuestas anteriores, entra a Cartera y dale a «Reclamar» para pasarlo a Efectivo).`;
+      mostrarBannerPoly(`⚠️ ${msg}`, "#dc2626");
+      reportarResultadoMaster({ ok: false, fatal: true, orderId: cfg.oid, accion: cfg.accion, error: msg });
       return;
     }
-    if (txtBoton.includes("iniciar") || txtBoton.includes("log in") || txtBoton.includes("sign in")) {
-      mostrarBannerPoly(`⚠️ Inicia sesión primero en Polymarket para que FULL AUTOMATIC MASTER pueda operar.`, "#dc2626");
+
+    if (txtVisible.includes("iniciar") || txtVisible.includes("log in") || txtVisible.includes("sign in") || txtVisible.includes("conectar") || txtVisible.includes("connect")) {
+      const msg = "No has iniciado sesión en Polymarket en este navegador.";
+      mostrarBannerPoly(`⚠️ ${msg}`, "#dc2626");
+      reportarResultadoMaster({ ok: false, fatal: true, orderId: cfg.oid, accion: cfg.accion, error: msg });
       return;
     }
 
     if (btnAccion.disabled) {
-      mostrarBannerPoly(`⚠️ Botón de operación deshabilitado temporalmente en Polymarket.`, "#d97706");
+      const msg = `El botón «${btnAccion.innerText.trim() || "Operar"}» está deshabilitado (monto mínimo en Polymarket suele ser $1.00 o sin liquidez).`;
+      mostrarBannerPoly(`⚠️ ${msg}`, "#d97706");
+      reportarResultadoMaster({ ok: false, fatal: false, orderId: cfg.oid, accion: cfg.accion, error: msg });
       return;
     }
 
-    // Registrar ANTES del clic en la bóveda anti-duplicados
-    marcarOrdenEjecutada(cfg.oid);
-
+    const efectivoAntes = leerEfectivoVisible();
     btnAccion.style.outline = "4px solid #34d399";
-    const innerTxt = btnAccion.querySelector(".trading-button-text") || btnAccion;
-    dispararClickSinScroll(innerTxt);
-    dispararClickSinScroll(btnAccion);
 
-    // Esperar 1.2s por si Polymarket muestra un botón modal adicional de "Confirmar / Confirm"
-    await new Promise(r => setTimeout(r, 1200));
-    const btnConfirmModal = Array.from(document.querySelectorAll("button")).find(b => {
-      const t = (b.textContent || "").trim().toLowerCase();
-      return t === "confirm" || t === "confirmar" || t === "approve" || t === "aprobar";
-    });
-    if (btnConfirmModal && !btnConfirmModal.disabled) {
-      dispararClickSinScroll(btnConfirmModal);
+    // UN SOLO clic limpio sobre el botón de acción (sin doble disparo que pueda cancelar estados)
+    try {
+      btnAccion.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, view: window }));
+      await new Promise(r => setTimeout(r, 60));
+      btnAccion.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, view: window }));
+      btnAccion.click();
+    } catch (e) {
+      btnAccion.click();
     }
 
+    // Vigilar hasta 6.5 segundos confirmaciones modales y prueba real de ejecución
+    let confirmadaReal = false;
+    let errorDetectado = "";
+
+    for (let step = 0; step < 11; step++) {
+      await new Promise(r => setTimeout(r, 600));
+
+      // Si aparece un modal de Confirmar / Aprobar de Polymarket, darle clic una vez
+      if (step === 1 || step === 3) {
+        const btnModal = Array.from(document.querySelectorAll('[role="dialog"] button, button')).find(b => {
+          if (b === btnAccion) return false;
+          const t = (b.innerText || "").trim().toLowerCase();
+          return t === "confirm" || t === "confirmar" || t === "approve" || t === "aprobar" || t === "buy now" || t === "comprar ahora";
+        });
+        if (btnModal && !btnModal.disabled) {
+          btnModal.click();
+        }
+      }
+
+      // Revisar toasts / notificaciones visibles
+      const toastsTxt = Array.from(document.querySelectorAll('[data-sonner-toast], [role="status"], [role="alert"]'))
+        .map(el => (el.innerText || "").toLowerCase())
+        .join(" | ");
+
+      if (
+        toastsTxt.includes("insufficient") ||
+        toastsTxt.includes("insuficiente") ||
+        toastsTxt.includes("rejected") ||
+        toastsTxt.includes("rechazad") ||
+        toastsTxt.includes("failed") ||
+        toastsTxt.includes("falló") ||
+        toastsTxt.includes("minimum") ||
+        toastsTxt.includes("mínimo")
+      ) {
+        errorDetectado = `Polymarket rechazó la orden (${toastsTxt.slice(0, 90)})`;
+        break;
+      }
+
+      if (
+        toastsTxt.includes("bought") ||
+        toastsTxt.includes("comprad") ||
+        toastsTxt.includes("sold") ||
+        toastsTxt.includes("vendid") ||
+        toastsTxt.includes("placed") ||
+        toastsTxt.includes("filled") ||
+        toastsTxt.includes("matched") ||
+        toastsTxt.includes("ejecutad") ||
+        toastsTxt.includes("éxito") ||
+        toastsTxt.includes("success")
+      ) {
+        confirmadaReal = true;
+        break;
+      }
+
+      // Verificar si el campo #market-order-amount-input se limpió tras enviarse o si cambió el saldo Efectivo
+      const inpNow = document.getElementById("market-order-amount-input");
+      const valNow = inpNow ? (inpNow.value || "").replace(/[^0-9.]/g, "") : "";
+      const efectivoAhora = leerEfectivoVisible();
+
+      if (step >= 2 && cfg.accion === "BUY" && (!valNow || parseFloat(valNow) === 0)) {
+        confirmadaReal = true;
+        break;
+      }
+      if (efectivoAntes && efectivoAhora && efectivoAntes !== efectivoAhora) {
+        confirmadaReal = true;
+        break;
+      }
+    }
+
+    if (errorDetectado) {
+      mostrarBannerPoly(`❌ ${errorDetectado}`, "#dc2626");
+      reportarResultadoMaster({ ok: false, fatal: true, orderId: cfg.oid, accion: cfg.accion, error: errorDetectado });
+      return;
+    }
+
+    if (!confirmadaReal) {
+      const msg = "La orden quedó pendiente de firma o confirmación en Polymarket (revisa la pestaña de Polymarket; si usas billetera externa como MetaMask debes aprobar la firma).";
+      mostrarBannerPoly(`⚠️ ${msg}`, "#d97706");
+      reportarResultadoMaster({ ok: false, fatal: true, orderId: cfg.oid, accion: cfg.accion, error: msg });
+      return;
+    }
+
+    marcarOrdenEjecutada(cfg.oid);
+
     if (cfg.accion === "SELL") {
-      mostrarBannerPoly(`💰 ¡MASTER AUTO-VENTA ENVIADA en «${etiquetaMeta}» asegurando tu rebote!`, "#d97706");
+      mostrarBannerPoly(`💰 ¡VENTA CONFIRMADA EN POLYMARKET («${etiquetaMeta}»)!`, "#d97706");
     } else {
-      mostrarBannerPoly(`✅ ¡MASTER AUTO-COMPRA ENVIADA ($${cfg.stake}) en «${etiquetaMeta}»! Vigila el progreso en tu pestaña PolyEdge.`, "#059669");
+      mostrarBannerPoly(`✅ ¡COMPRA REAL CONFIRMADA ($${cfg.stake}) EN «${etiquetaMeta}»!`, "#059669");
+    }
+
+    reportarResultadoMaster({
+      ok: true,
+      orderId: cfg.oid,
+      accion: cfg.accion,
+      fillCents: centavosVivos || parseFloat(cfg.cents) || 0,
+      cashAfter: leerEfectivoVisible()
+    });
+  }
+
+  // Escáner real de https://polymarket.com/portfolio cuando el usuario pide auditar sus apuestas reales
+  async function escanearCarteraRealSiSolicitado() {
+    if (!window.location.pathname.includes("/portfolio")) return;
+    if (!window.location.search.includes("polyedge_scan_portfolio=1")) return;
+
+    while (!document.body) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    mostrarBannerPoly("🔎 Leyendo tus posiciones y resultados reales en Polymarket...", "#0284c7");
+
+    await new Promise(r => setTimeout(r, 3800));
+
+    try {
+      const bodyTxt = (document.body.innerText || "").replace(/\r/g, "");
+      const mCartera = bodyTxt.match(/(?:Cartera|Portfolio)\s*\n?\s*(\$[\d.,]+)/i);
+      const mEfectivo = bodyTxt.match(/(?:Efectivo|Cash)\s*\n?\s*(\$[\d.,]+)/i);
+
+      // Buscar filas o enlaces a /event/ o /sports/ dentro del portafolio
+      const links = Array.from(document.querySelectorAll('a[href*="/event/"], a[href*="/sports/"]'));
+      const posiciones = [];
+      const vistos = new Set();
+
+      for (const a of links) {
+        let fila = a.parentElement;
+        for (let up = 0; up < 5 && fila; up++) {
+          const t = (fila.innerText || "").replace(/\s+/g, " ").trim();
+          if (t.length > 18 && (t.includes("$") || t.includes("¢"))) break;
+          fila = fila.parentElement;
+        }
+        if (!fila || vistos.has(fila)) continue;
+        vistos.add(fila);
+
+        const rowText = (fila.innerText || "").replace(/\s+/g, " ").trim();
+        if (rowText.length < 10 || rowText.length > 360) continue;
+
+        const tieneClaim = /\b(claim|reclamar|redeem|canjear)\b/i.test(rowText);
+        posiciones.push({
+          titulo: (a.innerText || "").trim() || rowText.slice(0, 70),
+          resumen: rowText,
+          href: a.href,
+          ganadaParaReclamar: tieneClaim
+        });
+      }
+
+      const hayBotonClaimGlobal = Array.from(document.querySelectorAll("button")).some(b =>
+        /\b(claim|reclamar|redeem)\b/i.test((b.innerText || "").trim())
+      );
+
+      chrome.runtime.sendMessage({
+        type: "POLYEDGE_PORTFOLIO_DATA",
+        ok: true,
+        cartera: mCartera ? mCartera[1] : "",
+        efectivo: mEfectivo ? mEfectivo[1] : "",
+        hayPremiosPorReclamar: hayBotonClaimGlobal,
+        posiciones: posiciones.slice(0, 20)
+      });
+
+      mostrarBannerPoly(`✅ Cartera sincronizada con PolyEdge (${posiciones.length} posiciones detectadas).`, "#059669");
+    } catch (e) {
+      chrome.runtime.sendMessage({
+        type: "POLYEDGE_PORTFOLIO_DATA",
+        ok: false,
+        error: String(e)
+      });
     }
   }
 
   let ejecutandoPoly = false;
 
   async function ejecutarAutoSeleccionPolymarket() {
+    escanearCarteraRealSiSolicitado();
+
     if (ejecutandoPoly) return;
     const cfg = capturarConfigPolymarket();
     if (!cfg) return;
@@ -464,7 +657,8 @@
 
       if (cfg.master && cfg.oid && yaFueEjecutadaOrden(cfg.oid)) {
         try { sessionStorage.removeItem(POLY_STORAGE_KEY); } catch (e) {}
-        mostrarBannerPoly(`🛡️ Jugada Master ya ejecutada. Esperando siguiente señal desde PolyEdge...`, "#047857");
+        mostrarBannerPoly(`🛡️ Jugada Master ya ejecutada.`, "#047857");
+        reportarResultadoMaster({ ok: true, orderId: cfg.oid, accion: cfg.accion, duplicate: true });
         return;
       }
 
@@ -473,25 +667,27 @@
         : `${cfg.side === "UNDER" ? "UNDER / U" : "OVER / O"} ${cfg.linea}`;
 
       mostrarBannerPoly(
-        `${cfg.master ? "🚀 [MASTER AUTO] Ejecutando" : "Marcando"} «${etiquetaMeta}»...`,
+        `${cfg.master ? "🚀 [MASTER v2.0] Ejecutando" : "Marcando"} «${etiquetaMeta}»...`,
         "#047857"
       );
 
       let completado = false;
       let motivoAborto = "";
+      let centavosFinales = 0;
       let scrolleadoUnaVez = false;
 
-      for (let intento = 0; intento < 35; intento++) {
+      for (let intento = 0; intento < 32; intento++) {
         if (cfg.tipo === "ML") {
           const mlCard = encontrarTarjetaMoneyline();
           if (mlCard) {
             const btn = clickBotonEquipoEnMoneyline(mlCard, cfg);
             if (btn) {
               btn.style.outline = "3px solid #10b981";
-              await new Promise(r => setTimeout(r, 380));
+              await new Promise(r => setTimeout(r, 400));
               const resVerif = await verificarYPrepararPanelDerecho(cfg);
               if (resVerif.ok) {
                 completado = true;
+                centavosFinales = resVerif.centavosVivos || 0;
                 break;
               } else if (resVerif.motivo && resVerif.motivo !== "no_verificado") {
                 motivoAborto = resVerif.motivo;
@@ -516,10 +712,11 @@
             const btnClicado = clickBotonOverUnderEnTotals(totalsCard, cfg);
             if (btnClicado) {
               btnClicado.style.outline = "3px solid #10b981";
-              await new Promise(r => setTimeout(r, 380));
+              await new Promise(r => setTimeout(r, 400));
               const resVerif = await verificarYPrepararPanelDerecho(cfg);
               if (resVerif.ok) {
                 completado = true;
+                centavosFinales = resVerif.centavosVivos || 0;
                 break;
               } else if (resVerif.motivo && resVerif.motivo !== "no_verificado") {
                 motivoAborto = resVerif.motivo;
@@ -535,18 +732,24 @@
       try { sessionStorage.removeItem(POLY_STORAGE_KEY); } catch (e) {}
 
       if (motivoAborto) {
-        mostrarBannerPoly(`🛡️ Escudo Master canceló esta compra (${motivoAborto}).`, "#d97706");
+        mostrarBannerPoly(`🛡️ Escudo Master saltó esta compra (${motivoAborto}).`, "#d97706");
+        if (cfg.master) {
+          reportarResultadoMaster({ ok: false, fatal: false, orderId: cfg.oid, accion: cfg.accion, error: motivoAborto });
+        }
         return;
       }
 
       if (!completado) {
-        mostrarBannerPoly(`⚠️ No apareció disponible «${etiquetaMeta}».`, "#d97706");
+        const msgNo = `No apareció abierta la línea «${etiquetaMeta}» en Polymarket.`;
+        mostrarBannerPoly(`⚠️ ${msgNo}`, "#d97706");
+        if (cfg.master) {
+          reportarResultadoMaster({ ok: false, fatal: false, orderId: cfg.oid, accion: cfg.accion, error: msgNo });
+        }
         return;
       }
 
-      // Si viene desde el botón FULL AUTOMATIC MASTER, ejecutar el clic de compra/venta automáticamente!
       if (cfg.master) {
-        await confirmarOrdenAutomaticaMaster(cfg, etiquetaMeta);
+        await confirmarOrdenAutomaticaMaster(cfg, etiquetaMeta, centavosFinales);
       } else if (cfg.accion === "SELL") {
         mostrarBannerPoly(`💰 ¡Modo VENDER listo en «${etiquetaMeta}»! Confirma la venta a la derecha.`, "#d97706");
       } else {
