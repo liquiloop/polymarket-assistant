@@ -138,13 +138,16 @@
             <span id="master-status-badge" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
               ⏸️ EN ESPERA
             </span>
+            <span id="ext-v2-badge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              ⚠️ Recarga Extensión a v2.0 (chrome://extensions ↻)
+            </span>
           </div>
           <p class="text-xs text-gray-300" id="master-status-desc">
-            Configura tu monto por jugada (ej. <b>$1</b>) y el límite de jugadas (ej. <b>10</b>). El bot escoge las mejores de hoy (1 por partido), compra solo en Polymarket, <b>vigila en vivo las 10 activas cada 20s</b> (cerrando antes si toca ganancia, llega a ≥88¢ o si BC.GAME detecta peligro y conviene rescatar capital) y se pausa al terminar las 10.
+            Configura tu monto por jugada (ej. <b>$1</b>) y el límite de jugadas (ej. <b>10</b>). Con <b>Extensión v2.0</b> solo suma al contador (1/10) cuando Polymarket <b>confirma la compra real</b> (cero falsos envíos ni bloqueo de popups), vigila las activas cada 20s y se pausa en 10/10.
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2">
           <div class="flex items-center gap-1.5 bg-gray-900 border border-emerald-500/40 px-3 py-1.5 rounded-lg text-xs">
             <span class="text-gray-300 font-semibold">Apuesta: $</span>
             <input type="number" id="master-stake" value="1" min="0.5" step="0.5" onchange="guardarEstadoMaster()" class="w-14 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 text-emerald-400 font-black text-right focus:outline-none" />
@@ -159,6 +162,10 @@
             🛡️ Auto-Cierre Inteligente: ON
           </button>
 
+          <button onclick="auditarCarteraRealPolymarket()" class="px-3 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/50 text-sky-200 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer" title="Lee directamente tu Cartera real de Polymarket para ver cuáles apuestas tienes abiertas y cuáles ganaron para Reclamar">
+            <i class="fa-solid fa-magnifying-glass-dollar"></i> Ver Mis Apuestas en Polymarket
+          </button>
+
           <button onclick="toggleFullAutomaticMaster()" id="btn-master-main" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-gray-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/30 transition cursor-pointer">
             <i class="fa-solid fa-power-off"></i>
             <span id="txt-btn-master">FULL AUTOMATIC MASTER</span>
@@ -169,6 +176,12 @@
           </button>
         </div>
       </div>
+
+      <!-- ALERTA EN VIVO DE EJECUCIÓN / ERRORES REALES DE POLYMARKET -->
+      <div id="master-live-alert" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+      <!-- LECTOR DE CARTERA REAL EN POLYMARKET -->
+      <div id="master-real-portfolio-box" class="hidden p-3.5 rounded-xl bg-sky-950/40 border border-sky-500/40 space-y-2 text-xs"></div>
 
       <!-- RESUMEN Y BITÁCORA DEL CICLO MASTER -->
       <div id="panel-master-detalle" class="hidden pt-3 border-t border-gray-800 space-y-3">
@@ -536,12 +549,170 @@
       guardarEstadoMaster();
     }
 
+    let extV2Activa = false;
+    let ordenPendienteMaster = null; // Guarda la jugada mientras Polymarket confirma la compra real (nunca suma en falso!)
+    let partidosSaltadosTemp = {};   // Evita reintentar inmediatamente una línea que saltó por precio
+
+    function actualizarBadgeExtV2() {
+      const attrVer = document.documentElement.getAttribute('data-polyedge-ext');
+      if (attrVer && attrVer.startsWith('2.')) {
+        extV2Activa = true;
+      }
+      const b = document.getElementById('ext-v2-badge');
+      if (!b) return;
+      if (extV2Activa) {
+        b.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50';
+        b.innerText = '🔌 Extensión v2.0 Conectada (Confirmación Real)';
+      } else {
+        b.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse';
+        b.innerText = '⚠️ Recarga Extensión a v2.0 en chrome://extensions (↻)';
+      }
+    }
+
+    function mostrarAlertaMaster(htmlMsg, tipo = 'info') {
+      const box = document.getElementById('master-live-alert');
+      if (!box) return;
+      if (!htmlMsg) {
+        box.classList.add('hidden');
+        return;
+      }
+      box.classList.remove('hidden');
+      if (tipo === 'error') {
+        box.className = 'p-3 rounded-xl text-xs font-semibold bg-red-950/70 border border-red-500 text-red-200';
+      } else if (tipo === 'warn') {
+        box.className = 'p-3 rounded-xl text-xs font-semibold bg-amber-950/60 border border-amber-400/60 text-amber-200';
+      } else if (tipo === 'ok') {
+        box.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-950/60 border border-emerald-400/60 text-emerald-200';
+      } else {
+        box.className = 'p-3 rounded-xl text-xs font-semibold bg-sky-950/60 border border-sky-400/60 text-sky-200';
+      }
+      box.innerHTML = htmlMsg;
+    }
+
+    function auditarCarteraRealPolymarket() {
+      actualizarBadgeExtV2();
+      if (!extV2Activa) {
+        window.open('https://polymarket.com/portfolio', '_blank');
+        mostrarAlertaMaster('💼 Te abrí tu <b>Cartera de Polymarket</b> en otra pestaña. Ahí verás tus apuestas abiertas en <b>Posiciones</b>, y si alguna ganó verás el botón azul <b>«Reclamar / Claim»</b> para cobrar tu dinero. (Si recargas la Extensión a v2.0 en <code>chrome://extensions</code> también te las leerá aquí mismo).', 'info');
+        return;
+      }
+      mostrarAlertaMaster('🔎 Leyendo tus apuestas reales directamente desde tu Cartera de Polymarket... espera 4 segundos.', 'info');
+      window.postMessage({ source: 'POLYEDGE_WEB', type: 'POLYEDGE_SCAN_PORTFOLIO', focusTab: false }, '*');
+    }
+
+    window.addEventListener('message', (ev) => {
+      if (ev.source !== window || !ev.data || ev.data.source !== 'POLYEDGE_EXT') return;
+      const msg = ev.data;
+
+      if (msg.type === 'POLYEDGE_EXT_READY') {
+        extV2Activa = true;
+        actualizarBadgeExtV2();
+        return;
+      }
+
+      if (msg.type === 'POLYEDGE_PORTFOLIO_DATA') {
+        const pBox = document.getElementById('master-real-portfolio-box');
+        if (!pBox) return;
+        pBox.classList.remove('hidden');
+        if (!msg.ok) {
+          pBox.innerHTML = `<div class="text-red-300">⚠️ No se pudo leer la cartera (${msg.error || 'error'}). <a href="https://polymarket.com/portfolio" target="_blank" class="underline font-bold">Abrir Polymarket Portfolio</a></div>`;
+          return;
+        }
+        mostrarAlertaMaster('', 'info');
+        const listaPos = msg.posiciones || [];
+        const btnReclamarAviso = msg.hayPremiosPorReclamar
+          ? `<a href="https://polymarket.com/portfolio" target="_blank" class="px-3 py-1 rounded-lg bg-emerald-500 text-gray-950 font-black text-xs animate-pulse">🏆 ¡TIENES GANADAS POR RECLAMAR! Ir a Cobrar</a>`
+          : `<a href="https://polymarket.com/portfolio" target="_blank" class="px-2.5 py-1 rounded-lg bg-sky-500/25 border border-sky-400/40 text-sky-200 font-bold text-[11px]">💼 Abrir Polymarket Portfolio</a>`;
+
+        pBox.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-500/30 pb-2">
+            <div class="font-black text-sky-200">
+              💼 Tu Cuenta Real Polymarket · Cartera: <span class="text-white">${msg.cartera || '—'}</span> · Efectivo Libre: <span class="text-emerald-300">${msg.efectivo || '—'}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              ${btnReclamarAviso}
+              <button onclick="document.getElementById('master-real-portfolio-box').classList.add('hidden')" class="text-gray-400 hover:text-white px-1.5 cursor-pointer">✕</button>
+            </div>
+          </div>
+          ${listaPos.length === 0
+            ? `<div class="text-gray-300 py-1">No aparecen posiciones deportivas abiertas en este momento (si ya terminaron y se perdieron pasan a la pestaña <b>Historial / Cerradas</b> dentro de <a href="https://polymarket.com/portfolio" target="_blank" class="underline text-sky-300">tu Cartera</a>; si ganaron dale a <b>Reclamar</b>).</div>`
+            : `<div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                ${listaPos.map(p => `
+                  <a href="${p.href}" target="_blank" class="p-2 rounded-lg bg-gray-900/90 border ${p.ganadaParaReclamar ? 'border-emerald-400 bg-emerald-950/30' : 'border-gray-800'} hover:border-sky-400 block transition">
+                    <div class="font-bold text-white truncate">${p.ganadaParaReclamar ? '🏆 ¡GANADA PARA RECLAMAR! · ' : '📌 '}${p.titulo}</div>
+                    <div class="text-[11px] text-gray-300 truncate mt-0.5">${p.resumen}</div>
+                  </a>
+                `).join('')}
+              </div>`
+          }
+        `;
+        return;
+      }
+
+      if (msg.type === 'POLYEDGE_MASTER_ACK') {
+        if (msg.accion === 'SELL') {
+          const jVend = masterState.jugadas.find(x => `${x.orderId}_SELL` === msg.orderId || x.orderId === msg.orderId);
+          if (jVend) {
+            if (msg.ok) {
+              mostrarAlertaMaster(`💰 <b>¡Venta automática confirmada en Polymarket!</b> Se cerró «${jVend.jugadaLabel}» asegurando tu dinero.`, 'ok');
+            } else {
+              jVend.ventaEnviada = false;
+              jVend.estado = 'EN_JUEGO';
+              guardarEstadoMaster();
+              mostrarAlertaMaster(`⚠️ No se pudo completar la auto-venta de «${jVend.jugadaLabel}»: ${msg.error || 'revisa Polymarket'}`, 'warn');
+            }
+          }
+          return;
+        }
+
+        if (!ordenPendienteMaster || ordenPendienteMaster.orderId !== msg.orderId) return;
+        const pend = ordenPendienteMaster;
+        ordenPendienteMaster = null;
+
+        if (msg.ok) {
+          if (msg.fillCents && msg.fillCents > 0) {
+            pend.askEntrada = msg.fillCents / 100.0;
+          }
+          pend.num = masterState.jugadas.length + 1;
+          const keyP = (pend.partidoTitulo || '').toLowerCase().trim();
+          masterState.partidosUsados[keyP] = true;
+          masterState.ultimoDisparoTs = Date.now();
+          masterState.jugadas.push(pend);
+
+          if (masterState.jugadas.length >= masterState.maxBets) {
+            masterState.fase = 'ESPERANDO_RESULTADOS';
+          }
+          guardarEstadoMaster();
+          mostrarAlertaMaster(`✅ <b>¡Compra #${pend.num} CONFIRMADA en Polymarket!</b> «${pend.jugadaLabel}» en ${pend.partidoTitulo} ($${pend.stake.toFixed(2)})${msg.cashAfter ? ` · Efectivo restante: $${msg.cashAfter}` : ''}.`, 'ok');
+        } else {
+          partidosSaltadosTemp[pend.id] = Date.now();
+          if (msg.fatal) {
+            masterState.activo = false;
+            masterState.fase = 'INACTIVO';
+            guardarEstadoMaster();
+            mostrarAlertaMaster(`🛑 <b>MASTER EN PAUSA POR SEGURIDAD:</b> ${msg.error || 'Polymarket no confirmó la compra.'}`, 'error');
+          } else {
+            masterState.ultimoDisparoTs = Date.now() - 14000;
+            renderizarPanelMaster();
+            mostrarAlertaMaster(`🛡️ Se descartó «${pend.partidoTitulo}» (${msg.error || 'cambió precio'}). Buscando la siguiente mejor oportunidad...`, 'warn');
+          }
+        }
+      }
+    });
+
     function toggleFullAutomaticMaster() {
+      actualizarBadgeExtV2();
       guardarEstadoMaster();
       if (masterState.activo) {
         masterState.activo = false;
         masterState.fase = 'INACTIVO';
+        ordenPendienteMaster = null;
         guardarEstadoMaster();
+        return;
+      }
+
+      if (!extV2Activa) {
+        alert('⚠️ Primero recarga tu extensión PolyEdge a la versión 2.0 en chrome://extensions/ (botón ↻) y refresca esta página (F5).\n\nLa versión 2.0 evita que Chrome bloquee las compras en segundo plano y verifica que cada apuesta realmente se haya comprado en Polymarket.');
         return;
       }
 
@@ -562,11 +733,7 @@
         }
       }
 
-      // Abrir (con el clic directo del usuario) la pestaña trabajadora reutilizable de Polymarket para que Chrome no bloquee ventanas emergentes
-      try {
-        window.open('https://polymarket.com/sports', 'PolyEdgeMasterWorker');
-      } catch (e) {}
-
+      mostrarAlertaMaster('🚀 <b>FULL AUTOMATIC MASTER v2.0 Activado:</b> Solo sumará jugadas cuando Polymarket confirme que la orden fue comprada realmente.', 'info');
       masterState.activo = true;
       masterState.fase = 'BUSCANDO';
       guardarEstadoMaster();
@@ -580,15 +747,18 @@
       masterState.jugadas = [];
       masterState.partidosUsados = {};
       masterState.ultimoDisparoTs = 0;
+      ordenPendienteMaster = null;
+      mostrarAlertaMaster('', 'info');
       guardarEstadoMaster();
     }
 
     function enviarOrdenMasterAPolymarket(jugadaObj, modoAccion) {
       const maxCentsSeguro = Math.round((jugadaObj.askEntrada * 100) + 2);
+      const oidEnviar = modoAccion === 'SELL' ? `${jugadaObj.orderId}_SELL` : jugadaObj.orderId;
       const hashParams = new URLSearchParams({
         polyedge_poly: '1',
         master: '1',
-        oid: modoAccion === 'SELL' ? `${jugadaObj.orderId}_SELL` : jugadaObj.orderId,
+        oid: oidEnviar,
         ts: String(Date.now()),
         accion: modoAccion,
         tipo: jugadaObj.tipoMercado || 'OU',
@@ -600,7 +770,19 @@
         cents: String(Math.round(jugadaObj.askEntrada * 100)),
         q: jugadaObj.preguntaPoly || ''
       });
-      window.open(`${jugadaObj.linkPoly}#${hashParams.toString()}`, 'PolyEdgeMasterWorker');
+      const targetUrl = `${jugadaObj.linkPoly}#${hashParams.toString()}`;
+
+      if (extV2Activa) {
+        window.postMessage({
+          source: 'POLYEDGE_WEB',
+          type: 'POLYEDGE_DISPATCH_POLY_MASTER',
+          orderId: oidEnviar,
+          url: targetUrl,
+          focusTab: false
+        }, '*');
+      } else {
+        window.open(targetUrl, 'PolyEdgeMasterWorker');
+      }
     }
 
     function cerrarJugadaManualMaster(orderId) {
@@ -637,6 +819,18 @@
     function evaluarDisparoMaster() {
       if (!masterState.activo) return;
 
+      // Si hay una orden ejecutándose en este instante en Polymarket (< 32s), esperar su confirmación real antes de mandar otra!
+      if (ordenPendienteMaster) {
+        if (Date.now() - (ordenPendienteMaster.enviadoTs || 0) < 32000) {
+          renderizarPanelMaster();
+          return;
+        } else {
+          mostrarAlertaMaster(`⚠️ Tiempo de espera agotado verificando «${ordenPendienteMaster.partidoTitulo}». Revisa tu pestaña de Polymarket.`, 'warn');
+          partidosSaltadosTemp[ordenPendienteMaster.id] = Date.now();
+          ordenPendienteMaster = null;
+        }
+      }
+
       // 1. Si ya alcanzó el límite de jugadas (ej. 10 de 10), pasar a ESPERANDO_RESULTADOS o PAUSADO_REVISION (NO meter más apuestas!)
       if (masterState.jugadas.length >= masterState.maxBets) {
         const terminadas = masterState.jugadas.filter(j => j.estado !== 'EN_JUEGO').length;
@@ -661,12 +855,13 @@
       // 2. Buscar la MEJOR oportunidad de HOY / EN VIVO en Polymarket que cumpla criterios Élite y que sea de un partido NO usado aún
       const candidatasMaster = oportunidadesAlpha.filter(o => {
         if (o.categoriaAlpha !== 'ev_poly' && o.categoriaAlpha !== 'rebote') return false;
-        if (o.daysLeft > 1.15) return false; // Solo partidos de hoy o en vivo para tener resultados rápido
-        if ((o.probRealPct || 0) < 54) return false; // Solo lados con >=54% de probabilidad real
-        if (o.roiOperacionPct < 35) return false; // Mínimo +35% de ganancia neta
-        if (o.edgePct < 2.0) return false; // Mínimo +2.0% de ventaja matemática neta real
+        if (o.daysLeft > 1.15) return false;
+        if ((o.probRealPct || 0) < 54) return false;
+        if (o.roiOperacionPct < 35) return false;
+        if (o.edgePct < 2.0) return false;
+        if (partidosSaltadosTemp[o.id] && (Date.now() - partidosSaltadosTemp[o.id] < 180000)) return false;
         const keyPartido = (o.partidoTitulo || '').toLowerCase().trim();
-        if (masterState.partidosUsados[keyPartido]) return false; // Máximo 1 apuesta por partido
+        if (masterState.partidosUsados[keyPartido]) return false;
         return true;
       });
 
@@ -676,7 +871,6 @@
       }
 
       const elegida = candidatasMaster[0];
-      const keyP = (elegida.partidoTitulo || '').toLowerCase().trim();
       const numOrden = masterState.jugadas.length + 1;
       const orderId = `mst_${Date.now()}_${elegida.polyMarketId}`;
       const ahoraHora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -684,6 +878,7 @@
       const nuevaJugada = {
         num: numOrden,
         orderId,
+        enviadoTs: Date.now(),
         id: elegida.id,
         polyMarketId: elegida.polyMarketId,
         partidoTitulo: elegida.partidoTitulo,
@@ -712,15 +907,11 @@
         preguntaPoly: elegida.preguntaPoly
       };
 
-      masterState.partidosUsados[keyP] = true;
+      // IMPORTANTE: Queda en ordenPendienteMaster hasta que Polymarket confirme que la compra se ejecutó de verdad!
+      ordenPendienteMaster = nuevaJugada;
       masterState.ultimoDisparoTs = Date.now();
-      masterState.jugadas.push(nuevaJugada);
-
-      if (masterState.jugadas.length >= masterState.maxBets) {
-        masterState.fase = 'ESPERANDO_RESULTADOS';
-      }
-
-      guardarEstadoMaster();
+      mostrarAlertaMaster(`🔄 <b>Ejecutando compra #${numOrden} en Polymarket:</b> «${nuevaJugada.jugadaLabel}» en <b>${nuevaJugada.partidoTitulo}</b> ($${nuevaJugada.stake.toFixed(2)})... esperando confirmación real.`, 'info');
+      renderizarPanelMaster();
       enviarOrdenMasterAPolymarket(nuevaJugada, 'BUY');
     }
 
@@ -2478,7 +2669,18 @@
         stake: String(bcMasterState.stake),
         autoconfirm: bcMasterState.oneClickPlaceBet ? '1' : '0'
       });
-      window.open(`${top.urlBc}#${hashParams.toString()}`, 'BCMasterWorker');
+      const targetBcUrl = `${top.urlBc}#${hashParams.toString()}`;
+      if (extV2Activa) {
+        window.postMessage({
+          source: 'POLYEDGE_WEB',
+          type: 'POLYEDGE_DISPATCH_BC_MASTER',
+          orderId: oid,
+          url: targetBcUrl,
+          focusTab: false
+        }, '*');
+      } else {
+        window.open(targetBcUrl, 'BCMasterWorker');
+      }
     }
 
     function renderizarPanelBcMaster() {
@@ -2664,6 +2866,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      actualizarBadgeExtV2();
+      setTimeout(actualizarBadgeExtV2, 1200);
+      window.postMessage({ source: 'POLYEDGE_WEB', type: 'POLYEDGE_CHECK_EXT' }, '*');
       cargarStatsAlpha();
       cargarFijadas();
       cargarFiltros();
