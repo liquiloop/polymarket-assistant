@@ -1,10 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "PolyEdge ALPHA — FULL AUTOMATIC MASTER (Polymarket & BC)",
-  "version": "1.9.0",
-  "description": "2 Ambientes: Full Automatic Master Polymarket + Cazador BC eBasketball Even/Odd (Par/Impar) con escudo de cuotas.",
-  "permissions": [],
+  "name": "PolyEdge ALPHA v2.0 — FULL AUTOMATIC MASTER (Confirmación Real)",
+  "version": "2.0.0",
+  "description": "Puente directo sin bloqueo de popups + Confirmación Real de compra/venta en Polymarket + Lector de Cartera + BC eBasket Even/Odd.",
+  "permissions": ["tabs", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
+    {
+      "matches": [
+        "https://polyedge-ai.onrender.com/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    },
     {
       "matches": [
         "https://playbc.fun/*",
@@ -12,9 +24,7 @@
         "https://bc.game/*",
         "https://*.bc.game/*"
       ],
-      "js": [
-        "content.js"
-      ],
+      "js": ["content.js"],
       "run_at": "document_start"
     },
     {
@@ -22,9 +32,7 @@
         "https://polymarket.com/*",
         "https://*.polymarket.com/*"
       ],
-      "js": [
-        "polymarket.js"
-      ],
+      "js": ["polymarket.js"],
       "run_at": "document_start"
     }
   ]
