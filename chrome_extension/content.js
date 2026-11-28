@@ -2,6 +2,32 @@
   "use strict";
 
   const SINGLE_STORAGE_KEY = "polyedge_autobet_active_cfg";
+  const EXECUTED_BC_VAULT_KEY = "polyedge_bc_executed_orders_v1";
+
+  function yaFueEjecutadaOrdenBC(oid) {
+    if (!oid) return false;
+    try {
+      const raw = localStorage.getItem(EXECUTED_BC_VAULT_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      return Boolean(map[oid]);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function marcarOrdenEjecutadaBC(oid) {
+    if (!oid) return;
+    try {
+      const raw = localStorage.getItem(EXECUTED_BC_VAULT_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      map[oid] = Date.now();
+      const keys = Object.keys(map);
+      if (keys.length > 200) {
+        keys.sort((a, b) => map[a] - map[b]).slice(0, 80).forEach(k => delete map[k]);
+      }
+      localStorage.setItem(EXECUTED_BC_VAULT_KEY, JSON.stringify(map));
+    } catch (e) {}
+  }
 
   function capturarEstadoBC() {
     const hash = window.location.hash || "";
@@ -15,6 +41,7 @@
       if (params.get("polyedge_auto") === "1") {
         const cfg = {
           ts: Date.now(),
+          oid: (params.get("oid") || "").trim(),
           tipo: (params.get("tipo") || "").toUpperCase(),
           linea: (params.get("linea") || "").trim(),
           outid: (params.get("outid") || "").trim(),
@@ -153,10 +180,10 @@
   }
 
   function abrirTabTotalsSiExiste() {
-    const pills = querySelectorAllDeep('[data-editor-id="tableMarketPill"], button, div');
+    const pills = querySelectorAllDeep('[data-editor-id="eventMarketTab"], [data-editor-id="tableMarketPill"], button, div');
     const tabTotals = pills.find(el => {
       const t = (el.textContent || "").trim().toLowerCase();
-      return (t.startsWith("totals") || t.startsWith("totales")) && t.length <= 16 && el.children.length <= 3;
+      return (t.startsWith("totals") || t.startsWith("totales") || t.startsWith("todos") || t.startsWith("all")) && t.length <= 16 && el.children.length <= 3;
     });
     if (tabTotals) {
       try { tabTotals.click(); } catch (e) {}
@@ -265,6 +292,45 @@
       }
     }
 
+    // CASO 3: EVEN / ODD (PAR / IMPAR) — eBASKETBALL (mType 229 incl. prórroga & mType 26 Blitz)
+    if (cfg.tipo === "EVEN" || cfg.tipo === "ODD" || cfg.outid === "72" || cfg.outid === "70") {
+      const buscaEven = cfg.tipo === "EVEN" || cfg.outid === "72";
+      for (const card of marketCards) {
+        const header = card.querySelector('div[data-editor-id="marketCardHeader"]');
+        if (!header) continue;
+        const hText = (header.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+        const tieneOddEven = (
+          hText.includes("odd/even") ||
+          hText.includes("even/odd") ||
+          hText.includes("impar/par") ||
+          hText.includes("par/impar")
+        );
+        const esParcial = (
+          hText.includes("quarter") ||
+          hText.includes("cuarto") ||
+          hText.includes("half") ||
+          hText.includes("mitad") ||
+          hText.includes("period") ||
+          hText.includes("período")
+        );
+        if (!tieneOddEven || esParcial) continue;
+
+        const cardPlates = Array.from(card.querySelectorAll('div[data-editor-id="outcomePlate"]'));
+        const cand = cardPlates.find(p => {
+          const nameEl = p.querySelector('[data-editor-id="marketCardOutcomeName"]');
+          const nameTxt = (nameEl ? nameEl.textContent : "").trim().toLowerCase();
+          if (buscaEven) return nameTxt === "even" || nameTxt === "par";
+          return nameTxt === "odd" || nameTxt === "impar";
+        });
+
+        if (cand) {
+          const ev = verificarVentajaViva(cand, cfg);
+          if (ev.ok) return { btn: cand, motivo: "" };
+          ultimoMotivo = ev.motivo;
+        }
+      }
+    }
+
     return { btn: null, motivo: ultimoMotivo };
   }
 
@@ -281,6 +347,12 @@
         await new Promise(r => setTimeout(r, 100));
       }
 
+      if (cfg.oid && yaFueEjecutadaOrdenBC(cfg.oid)) {
+        try { sessionStorage.removeItem(SINGLE_STORAGE_KEY); } catch (e) {}
+        mostrarBannerEstado(`🛡️ Orden Master BC ya ejecutada anteriormente (anti-duplicado activo).`, "#0284c7");
+        return;
+      }
+
       mostrarBannerEstado(`Buscando y marcando «${cfg.equipo}» con $${cfg.stake}...`, "#047857");
 
       let boton = null;
@@ -293,7 +365,7 @@
         }
         if (res.motivo) motivoFallo = res.motivo;
         if (i === 6 || i === 14) {
-          if (cfg.linea) abrirTabTotalsSiExiste();
+          if (cfg.linea || cfg.tipo === "EVEN" || cfg.tipo === "ODD") abrirTabTotalsSiExiste();
         }
         await new Promise(r => setTimeout(r, 400));
       }
@@ -376,6 +448,7 @@
         btnApostar.style.outline = "4px solid #fbbf24";
         btnApostar.style.boxShadow = "0 0 20px rgba(251, 191, 36, 0.85)";
         if (cfg.autoconfirm && !btnApostar.disabled) {
+          if (cfg.oid) marcarOrdenEjecutadaBC(cfg.oid);
           btnApostar.click();
           mostrarBannerEstado(`✅ ¡Apuesta enviada a cuota ${cuotaViva} con $${cfg.stake}!`, "#059669");
           return;
