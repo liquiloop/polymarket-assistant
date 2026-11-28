@@ -131,30 +131,42 @@
               OFF (Seguro)
             </button>
           </div>
+
+          <button onclick="aplicarPresetEliteGanador()" class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-gray-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition cursor-pointer" title="Configura automáticamente la Zona de Oro: pocas jugadas, buen pago (+45%+) y alta probabilidad real (>=56%)">
+            <i class="fa-solid fa-crown"></i> Modo Élite (Pocas y Ganadoras)
+          </button>
         </div>
       </div>
 
-      <!-- SLIDERS ENFOCADOS EN RENTABILIDAD REAL -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-800 text-xs">
+      <!-- SLIDERS ENFOCADOS EN RENTABILIDAD REAL + PROBABILIDAD GANADORA -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-gray-800 text-xs">
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Ganancia Mínima por Tiro (ROI %):</span>
-            <span class="font-bold text-amber-300" id="val-roi">35% (+$1.75 por cada $5)</span>
+            <span>Ganancia Mínima (ROI %):</span>
+            <span class="font-bold text-amber-300" id="val-roi">45% (+$2.25)</span>
           </div>
-          <input type="range" id="slider-roi" min="25" max="120" step="5" value="35" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-amber-400 cursor-pointer" />
+          <input type="range" id="slider-roi" min="25" max="120" step="5" value="45" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-amber-400 cursor-pointer" />
         </div>
 
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Ventaja Matemática Neta Mínima (+EV):</span>
-            <span class="font-bold text-emerald-400" id="val-ev">2.0%</span>
+            <span>Probabilidad Real Mínima:</span>
+            <span class="font-bold text-lime-300" id="val-prob-min">56% (Favoritas)</span>
           </div>
-          <input type="range" id="slider-ev" min="0.5" max="12" step="0.5" value="2.0" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-emerald-500 cursor-pointer" />
+          <input type="range" id="slider-prob-min" min="35" max="75" step="1" value="56" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-lime-400 cursor-pointer" />
         </div>
 
         <div>
           <div class="flex justify-between text-gray-400 mb-1">
-            <span>Días a Mostrar (1 = Hoy/En Vivo, 2 = 1-2 días):</span>
+            <span>Ventaja Neta Mínima (+EV):</span>
+            <span class="font-bold text-emerald-400" id="val-ev">3.5%</span>
+          </div>
+          <input type="range" id="slider-ev" min="0.5" max="12" step="0.5" value="3.5" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros();" class="w-full accent-emerald-500 cursor-pointer" />
+        </div>
+
+        <div>
+          <div class="flex justify-between text-gray-400 mb-1">
+            <span>Días a Mostrar (1 = Hoy/Vivo):</span>
             <span class="font-bold text-cyan-300" id="val-dias">2 días</span>
           </div>
           <input type="range" id="slider-dias" min="1" max="7" step="1" value="2" oninput="actualizarSlidersUI(); renderizarTarjetas();" onchange="guardarFiltros(); escanearAlpha(false);" class="w-full accent-cyan-400 cursor-pointer" />
@@ -260,13 +272,26 @@
     }
 
     function actualizarSlidersUI() {
-      const roi = parseInt(document.getElementById('slider-roi').value, 10) || 35;
+      const roi = parseInt(document.getElementById('slider-roi').value, 10) || 45;
+      const probMin = parseInt(document.getElementById('slider-prob-min').value, 10) || 56;
       const inv = parseFloat(document.getElementById('input-inversion').value) || 5;
       const ganMin = ((inv * roi) / 100).toFixed(2);
       document.getElementById('val-roi').innerText = `${roi}% (+$${ganMin} limpios)`;
+      document.getElementById('val-prob-min').innerText = `${probMin}% ${probMin >= 55 ? '(Favoritas)' : ''}`;
       document.getElementById('val-ev').innerText = parseFloat(document.getElementById('slider-ev').value).toFixed(1) + '%';
       const d = parseInt(document.getElementById('slider-dias').value, 10) || 2;
       document.getElementById('val-dias').innerText = d === 1 ? '1 día (Hoy / En Vivo)' : `${d} días`;
+    }
+
+    function aplicarPresetEliteGanador() {
+      document.getElementById('slider-roi').value = '45';
+      document.getElementById('slider-prob-min').value = '56';
+      document.getElementById('slider-ev').value = '3.5';
+      document.getElementById('slider-dias').value = '2';
+      seleccionarFiltro('todos');
+      actualizarSlidersUI();
+      guardarFiltros();
+      escanearAlpha(false);
     }
 
     function toggleAutoConfirmBC() {
@@ -296,8 +321,9 @@
 
     function guardarFiltros() {
       try {
-        localStorage.setItem('polyedge_alpha_filtros_v1', JSON.stringify({
+        localStorage.setItem('polyedge_alpha_filtros_v2', JSON.stringify({
           roi: document.getElementById('slider-roi').value,
+          probMin: document.getElementById('slider-prob-min').value,
           ev: document.getElementById('slider-ev').value,
           dias: document.getElementById('slider-dias').value,
           inv: document.getElementById('input-inversion').value,
@@ -310,10 +336,11 @@
 
     function cargarFiltros() {
       try {
-        const raw = localStorage.getItem('polyedge_alpha_filtros_v1');
+        const raw = localStorage.getItem('polyedge_alpha_filtros_v2');
         if (raw) {
           const s = JSON.parse(raw);
           if (s.roi !== undefined) document.getElementById('slider-roi').value = s.roi;
+          if (s.probMin !== undefined) document.getElementById('slider-prob-min').value = s.probMin;
           if (s.ev !== undefined) document.getElementById('slider-ev').value = s.ev;
           if (s.dias !== undefined) document.getElementById('slider-dias').value = s.dias;
           if (s.inv !== undefined) document.getElementById('input-inversion').value = s.inv;
@@ -582,22 +609,56 @@
           const marcadorVivo = esVivo && sc.home_score !== undefined ? `${sc.home_score} - ${sc.away_score}` : '';
 
           // ===================================================================
-          // DETECTOR A: ⚡ REBOTE RÁPIDO EN POLYMARKET (CAÍDA BRUSCA DE FAVORITO / LÍNEA SÓLIDA)
+          // DETECTOR A: ⚡ REBOTE SEGURO (PROHIBIDO EN FINAL DE PARTIDO — SOLO CAÍDAS CON VALOR REAL CONFIRMADO EN BC)
           // ===================================================================
-          for (let idx = 0; idx < 2; idx++) {
-            const askReal = asks[idx];
-            const bidReal = bids[idx];
-            const drop1h = chg1h[idx] || 0;
-            const drop1d = chg1d[idx] || 0;
-            const peorCaida = Math.min(drop1h, drop1d);
+          const minsTranscurridosVivo = esVivo && pm.event_ts > 0 ? ((Date.now() / 1000) - pm.event_ts) / 60.0 : 0;
+          // Prohibir "cuchillos cayendo" al final del juego: si está en vivo solo permitir en los primeros 40 min reales desde el arranque!
+          const enVentanaTempranaSegura = !esVivo || (minsTranscurridosVivo >= 0 && minsTranscurridosVivo <= 42);
 
-            // Precio antes de la caída era sólido (>=52¢) y cayó al menos -7¢ (ej. de 65¢ cayó a 48¢ por pánico)
-            const precioPrevio = askReal - peorCaida;
-            if (askReal >= 0.28 && askReal <= 0.68 && peorCaida <= -0.07 && precioPrevio >= 0.52) {
-              const metaVenta = Math.min(parseFloat((askReal + Math.max(Math.abs(peorCaida) * 0.68, 0.12)).toFixed(2)), 0.85);
-              const roiRebotePct = ((metaVenta / askReal) - 1.0) * 100;
-              const roiFinalPct = ((1.0 / askReal) - 1.0) * 100;
-              if (roiRebotePct >= 24) {
+          if (matchBC && enVentanaTempranaSegura) {
+            // Confirmar con BC.GAME que la probabilidad limpia real SIGA SIENDO ALTA (no una apuesta ya perdida!)
+            const mktsCheck = matchBC.markets || {};
+            for (let idx = 0; idx < 2; idx++) {
+              const askReal = asks[idx];
+              const bidReal = bids[idx];
+              const drop1h = chg1h[idx] || 0;
+              const drop1d = chg1d[idx] || 0;
+              const peorCaida = Math.min(drop1h, drop1d);
+              const precioPrevio = askReal - peorCaida;
+
+              // Exigir caída moderada (-6¢ a -22¢, nunca desplomes de -50¢ de partidos perdidos) y precio actual >= 46¢
+              if (askReal >= 0.46 && askReal <= 0.68 && peorCaida <= -0.06 && peorCaida >= -0.24 && precioPrevio >= 0.56) {
+                // Verificar que en BC.GAME siga teniendo probabilidad real > askReal + 2%
+                let pBcConfirma = 0;
+                if (pm.es_ou && typeof pm.linea_ou === 'number') {
+                  const mt = pm.deporte === 'nba' ? '225' : '18';
+                  const obj = (mktsCheck[mt] || {})[`total=${pm.linea_ou}`];
+                  if (obj && obj['12'] && obj['13']) {
+                    const ko = parseFloat(obj['12'].k || 0), ku = parseFloat(obj['13'].k || 0);
+                    if (ko > 1 && ku > 1) {
+                      const kMio = idx === 0 ? ko : ku;
+                      pBcConfirma = (1.0 / kMio) / ((1.0 / ko) + (1.0 / ku));
+                    }
+                  }
+                } else if (!pm.es_ou && ['nba', 'nhl', 'tenis'].includes(pm.deporte)) {
+                  const mt = pm.deporte === 'nba' ? '219' : (pm.deporte === 'nhl' ? '406' : '186');
+                  const obj = (mktsCheck[mt] || {})[''];
+                  if (obj && obj['4'] && obj['5']) {
+                    const kh = parseFloat(obj['4'].k || 0), ka = parseFloat(obj['5'].k || 0);
+                    if (kh > 1 && ka > 1) {
+                      const k0 = ordenInvertido ? ka : kh;
+                      const k1 = ordenInvertido ? kh : ka;
+                      const kMio = idx === 0 ? k0 : k1;
+                      pBcConfirma = (1.0 / kMio) / ((1.0 / k0) + (1.0 / k1));
+                    }
+                  }
+                }
+
+                if (pBcConfirma < askReal + 0.02 || pBcConfirma < 0.52) continue;
+
+                const metaVenta = Math.min(parseFloat((Math.max(pBcConfirma + 0.05, askReal * 1.26)).toFixed(2)), 0.85);
+                const roiRebotePct = ((metaVenta / askReal) - 1.0) * 100;
+                const roiFinalPct = ((1.0 / askReal) - 1.0) * 100;
                 const esOU = pm.es_ou;
                 const sideStr = esOU ? (idx === 0 ? 'OVER' : 'UNDER') : 'ML';
                 const labelJugada = esOU ? `${nombresPoly[idx]} ${pm.linea_ou}` : `Gana ${nombresPoly[idx]}`;
@@ -624,11 +685,12 @@
                   centavosAsk: parseFloat((askReal * 100).toFixed(1)),
                   precioPrevioCents: Math.round(precioPrevio * 100),
                   caidaCents: Math.round(Math.abs(peorCaida) * 100),
+                  probRealPct: parseFloat((pBcConfirma * 100).toFixed(1)),
                   metaVentaPrice: metaVenta,
                   metaVentaCents: Math.round(metaVenta * 100),
                   roiOperacionPct: parseFloat(roiRebotePct.toFixed(1)),
                   roiFinalPct: parseFloat(roiFinalPct.toFixed(1)),
-                  edgePct: parseFloat((Math.abs(peorCaida) * 65).toFixed(1)),
+                  edgePct: parseFloat((((pBcConfirma / askReal) - 1.0) * 100).toFixed(2)),
                   linkPoly: pm.link
                 });
               }
@@ -882,8 +944,9 @@
       const noResults = document.getElementById('no-results');
       const query = (document.getElementById('filtro-texto').value || '').toLowerCase().trim();
       const inv = Math.max(parseFloat(document.getElementById('input-inversion').value) || 5, 0.5);
-      const minRoi = parseFloat(document.getElementById('slider-roi').value) || 35;
-      const minEv = parseFloat(document.getElementById('slider-ev').value) || 2.0;
+      const minRoi = parseFloat(document.getElementById('slider-roi').value) || 45;
+      const minProbReal = parseFloat(document.getElementById('slider-prob-min').value) || 56;
+      const minEv = parseFloat(document.getElementById('slider-ev').value) || 3.5;
       const maxDias = parseFloat(document.getElementById('slider-dias').value) || 2;
 
       const combinada = [];
@@ -897,8 +960,9 @@
 
         if (!fij) {
           if (o.daysLeft > (maxDias + 0.15)) return false;
+          if ((o.probRealPct || 50) < minProbReal) return false;
           if (o.roiOperacionPct < minRoi && o.categoriaAlpha !== 'rebote') return false;
-          if (o.edgePct < minEv && o.categoriaAlpha !== 'rebote') return false;
+          if (o.edgePct < minEv) return false;
         }
 
         if (filtroActivo === 'rebote' && o.categoriaAlpha !== 'rebote') return false;
